@@ -1,0 +1,28 @@
+{% extends 'auth/base.html' %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block content %}
+<main class="screen">
+    <section class="auth-card" aria-label="Вход">
+        <h1 class="auth-card__title">Вход</h1>
+
+        <form class="auth-form" method="post">
+            {% csrf_token %}
+            <label class="auth-form__field">
+                <span class="auth-form__label">Почта или телефон</span>
+                <input class="auth-form__input" type="text" name="login" required>
+            </label>
+
+            <label class="auth-form__field">
+                <span class="auth-form__label">Пароль</span>
+                <input class="auth-form__input" type="password" name="password" required>
+            </label>
+
+            <button class="auth-form__submit" type="submit">Войти</button>
+        </form>
+
+        <a class="auth-card__register" href="{% url 'auth:register' %}">Зарегистрироваться</a>
+    </section>
+</main>
+{% endblock %}

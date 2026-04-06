@@ -1,2 +1,7 @@
 django
 psycopg[binary]
+django-allauth
+djangorestframework
+dj-rest-auth
+djangorestframework-simplejwt
+requests

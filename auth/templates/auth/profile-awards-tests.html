@@ -1,0 +1,127 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Профиль - Мои награды{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/profile-awards-tests.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="awards-screen">
+    <header class="awards-topbar">
+        <a class="awards-topbar__icon" href="{% url 'auth:profile' %}">
+            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="Назад">
+        </a>
+        <h1 class="awards-topbar__title">Мои награды</h1>
+        <a class="awards-topbar__icon" href="{% url 'auth:profile' %}">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
+        </a>
+    </header>
+
+    <section class="award-summary">
+        <div class="award-summary__row">
+            <img src="{% static 'auth/img/award-first.svg' %}" alt="">
+            <span>1 место</span>
+            <strong>15 раз</strong>
+        </div>
+    </section>
+
+    <section class="awards-list" id="awards-list">
+        <button type="button" class="awards-list__item" data-date="2025-02-25">
+            <p>HIIT Training / силовая</p>
+            <span>25.02.2025</span>
+            <b>120 кг</b>
+        </button>
+        <button type="button" class="awards-list__item" data-date="2025-02-25">
+            <p>HIIT Training / силовая</p>
+            <span>25.02.2025</span>
+            <b>120 кг</b>
+        </button>
+        <button type="button" class="awards-list__item" data-date="2025-02-29">
+            <p>HIIT Training / силовая</p>
+            <span>29.02.2025</span>
+            <b>120 кг</b>
+        </button>
+        <button type="button" class="awards-list__item" data-date="2025-02-29">
+            <p>HIIT Training / силовая</p>
+            <span>29.02.2025</span>
+            <b>120 кг</b>
+        </button>
+        <button type="button" class="awards-list__item" data-date="2024-12-30">
+            <p>HIIT Training / силовая</p>
+            <span>30.12.2024</span>
+            <b>120 кг</b>
+        </button>
+    </section>
+
+    <nav class="bottom-nav" aria-label="Навигация">
+        <a href="#" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
+            <span>Тренировки</span>
+        </a>
+        <a href="#" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
+            <span>Комьюнити</span>
+        </a>
+        <a href="{% url 'auth:profile' %}" class="bottom-nav__item bottom-nav__item--active">
+            <img src="{% static 'auth/img/nav-profile.svg' %}" alt="">
+            <span>Профиль</span>
+        </a>
+        <a href="#" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
+            <span>Достижения</span>
+        </a>
+    </nav>
+</main>
+<div class="award-modal" id="award-modal" hidden>
+    <div class="award-modal__overlay" data-close-modal></div>
+    <section class="award-modal__card">
+        <button type="button" class="award-modal__close" data-close-modal>
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
+        </button>
+        <h2 class="award-modal__title">Как выглядела тренировка, за которую получена награда</h2>
+        <article class="award-modal__item">
+            <p id="modal-training-name">HIIT Training / силовая</p>
+            <span id="modal-training-date">25.02.2025</span>
+            <b id="modal-training-result">120 кг</b>
+        </article>
+    </section>
+</div>
+<script>
+    (function () {
+        const list = document.getElementById("awards-list");
+        const modal = document.getElementById("award-modal");
+        const modalName = document.getElementById("modal-training-name");
+        const modalDate = document.getElementById("modal-training-date");
+        const modalResult = document.getElementById("modal-training-result");
+
+        function sortItems(order) {
+            const items = Array.from(list.querySelectorAll(".awards-list__item"));
+            items.sort((a, b) => {
+                const left = new Date(a.dataset.date).getTime();
+                const right = new Date(b.dataset.date).getTime();
+                return order === "desc" ? right - left : left - right;
+            });
+            items.forEach((item) => list.appendChild(item));
+        }
+
+        sortItems("desc");
+
+        list.addEventListener("click", function (event) {
+            const row = event.target.closest(".awards-list__item");
+            if (!row) return;
+            modalName.textContent = row.querySelector("p").textContent;
+            modalDate.textContent = row.querySelector("span").textContent;
+            modalResult.textContent = row.querySelector("b").textContent;
+            modal.hidden = false;
+        });
+
+        modal.addEventListener("click", function (event) {
+            if (event.target.closest("[data-close-modal]")) {
+                modal.hidden = true;
+            }
+        });
+    })();
+</script>
+{% endblock %}

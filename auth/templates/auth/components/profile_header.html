@@ -1,0 +1,12 @@
+{% load static %}
+<header class="shared-profile-header">
+    <div class="shared-profile-header__avatar" aria-hidden="true"></div>
+    <div class="shared-profile-header__info">
+        <h1 class="shared-profile-header__name">{{ name }}</h1>
+        <p class="shared-profile-header__meta">В кроссфитнесе <span>{{ experience }}</span></p>
+    </div>
+    <div class="shared-profile-header__actions" aria-hidden="true">
+        <img src="{% static 'auth/img/profile-support.svg' %}" alt="">
+        <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+    </div>
+</header>

@@ -9,9 +9,12 @@
 
         <form class="auth-form" method="post">
             {% csrf_token %}
+            {% if form.non_field_errors %}
+                <p class="auth-form__error">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
             <label class="auth-form__field">
-                <span class="auth-form__label">Почта или телефон</span>
-                <input class="auth-form__input" type="text" name="login" required>
+                <span class="auth-form__label">Почта</span>
+                <input class="auth-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" required>
             </label>
 
             <label class="auth-form__field">

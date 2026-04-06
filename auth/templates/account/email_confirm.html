@@ -1,0 +1,30 @@
+{% extends 'auth/base.html' %}
+{% load i18n %}
+{% load account %}
+{% load static %}
+
+{% block title %}Подтверждение email{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/register-success.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="register-success-screen">
+    <section class="register-success-card" aria-label="Подтверждение email">
+        <div class="register-success-card__icon" aria-hidden="true">✓</div>
+        {% if confirmation %}
+            <h1 class="register-success-card__title">Подтвердить email</h1>
+            <p class="register-success-card__text">Нажмите кнопку ниже, чтобы подтвердить адрес и завершить регистрацию.</p>
+            <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+                {% csrf_token %}
+                <button class="register-success-card__button" type="submit">Подтвердить email</button>
+            </form>
+        {% else %}
+            <h1 class="register-success-card__title">Ссылка недействительна</h1>
+            <p class="register-success-card__text">Запросите новую ссылку подтверждения и повторите попытку.</p>
+            <a class="register-success-card__button" href="{% url 'auth:login' %}">На страницу входа</a>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

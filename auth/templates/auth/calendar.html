@@ -1,0 +1,110 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Календарь{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-screen">
+    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+
+    <section class="calendar-header-card">
+        <h1 class="calendar-title">Расписание тренировок</h1>
+        <div class="calendar-days">
+            <button class="calendar-days__item" type="button"><span>Пн</span><b>10</b></button>
+            <button class="calendar-days__item" type="button"><span>Вт</span><b>11</b></button>
+            <button class="calendar-days__item calendar-days__item--active" type="button"><span>Чт</span><b>13</b></button>
+            <button class="calendar-days__item" type="button"><span>Пт</span><b>14</b></button>
+            <button class="calendar-days__item" type="button"><span>Сб</span><b>15</b></button>
+            <button class="calendar-days__item" type="button"><span>Вс</span><b>16</b></button>
+        </div>
+    </section>
+
+    <section class="calendar-training-card">
+        <div class="calendar-training-card__head">
+            <a href="#" class="calendar-plan">
+                <span>HIIT Training</span>
+                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+            </a>
+            <div class="calendar-lang-switch" aria-label="Язык">
+                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Русский и английский">
+            </div>
+        </div>
+
+        <div class="calendar-training-block">
+            <h2 class="calendar-stats-card__title">Силовая</h2>
+            <div class="calendar-stats-card__timeline">
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
+                </div>
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                </div>
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
+                </div>
+            </div>
+        </div>
+
+        <div class="calendar-training-block">
+            <h2 class="calendar-stats-card__title">Силовая</h2>
+            <div class="calendar-stats-card__timeline">
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                </div>
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
+                </div>
+                <div class="calendar-stats-card__point">
+                    <i></i>
+                    <span>15 раз на скакалке</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="calendar-list">
+        <h2>Февраль 2025</h2>
+        <article class="calendar-item">
+            <p>HIIT Training / силовая</p><span>29.02.2025</span><b>120 кг</b>
+        </article>
+        <article class="calendar-item">
+            <p>HIIT Training / силовая</p><span>25.02.2025</span><b>120 кг</b>
+        </article>
+        <article class="calendar-item">
+            <p>HIIT Training / силовая</p><span>21.02.2025</span><b>100 кг</b>
+        </article>
+    </section>
+
+    <nav class="bottom-nav" aria-label="Навигация">
+        <a href="{% url 'auth:calendar' %}" class="bottom-nav__item bottom-nav__item--active">
+            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
+            <span>Тренировки</span>
+        </a>
+        <a href="#" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
+            <span>Комьюнити</span>
+        </a>
+        <a href="{% url 'auth:profile' %}" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-profile.svg' %}" alt="">
+            <span>Профиль</span>
+        </a>
+        <a href="#" class="bottom-nav__item">
+            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
+            <span>Достижения</span>
+        </a>
+    </nav>
+</main>
+{% endblock %}

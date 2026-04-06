@@ -32,6 +32,7 @@
     --register-font-weight: 400;
     --register-font-size: 10px;
     --register-line-height: 20px;
+    --error-color: #dc2626;
 
     --field-shadow: 0 0 1px rgba(52, 52, 52, 0.2);
     --radius-field: 12px;
@@ -75,6 +76,13 @@ body {
 .auth-form {
     display: grid;
     gap: 12px;
+}
+
+.auth-form__error {
+    margin: 0;
+    color: var(--error-color);
+    font-size: 10px;
+    line-height: 14px;
 }
 
 .auth-form__field {

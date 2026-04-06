@@ -17,30 +17,34 @@
     <section class="register-card" aria-label="Регистрация">
         <h1 class="register-card__title">Регистрация</h1>
 
-        <form class="register-form" method="get" action="{% url 'auth:register_password' %}">
+        <form class="register-form" method="post" action="{% url 'auth:register' %}">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <p class="register-form__error">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
             <label class="register-form__field">
                 <span class="register-form__label">Имя</span>
-                <input class="register-form__input" type="text" name="first_name" required>
+                <input class="register-form__input" type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
                 <span class="register-form__label">Фамилия</span>
-                <input class="register-form__input" type="text" name="last_name" required>
+                <input class="register-form__input" type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
                 <span class="register-form__label">Дата рождения</span>
-                <input class="register-form__input" type="text" name="birth_date" required>
+                <input class="register-form__input" type="date" name="birth_date" value="{{ form.birth_date.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
                 <span class="register-form__label">Почта</span>
-                <input class="register-form__input" type="email" name="email" required>
+                <input class="register-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
                 <span class="register-form__label">Номер телефона</span>
-                <input class="register-form__input" type="tel" name="phone" required>
+                <input class="register-form__input" type="tel" name="phone" value="{{ form.phone.value|default:'' }}" required>
             </label>
 
             <button class="register-form__submit" type="submit">Далее</button>

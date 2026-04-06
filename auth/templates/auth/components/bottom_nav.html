@@ -1,0 +1,32 @@
+{% load static %}
+{% url 'auth:calendar' as default_calendar_href %}
+{% url 'auth:community' as default_community_href %}
+{% url 'auth:profile' as default_profile_href %}
+{% with block=nav_block|default:'bottom-nav' %}
+    <nav class="{{ block }}" aria-label="Навигация">
+        <a href="{{ calendar_href|default:default_calendar_href }}" class="{{ block }}__item {% if active == 'calendar' %}{{ block }}__item--active{% endif %}">
+            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
+            <span>Тренировки</span>
+        </a>
+        <a href="{{ community_href|default:default_community_href }}" class="{{ block }}__item {% if active == 'community' %}{{ block }}__item--active{% endif %}">
+            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
+            <span>Комьюнити</span>
+        </a>
+        <a href="{{ profile_href|default:default_profile_href }}" class="{{ block }}__item {% if active == 'profile' %}{{ block }}__item--active{% endif %}">
+            {% if active == 'profile' %}
+                {% if profile_active_icon %}
+                    <img src="{% static profile_active_icon %}" alt="">
+                {% else %}
+                    <img src="{% static 'auth/img/nav-profile-active.svg' %}" alt="">
+                {% endif %}
+            {% else %}
+                <img src="{% static 'auth/img/nav-profile.svg' %}" alt="">
+            {% endif %}
+            <span>Профиль</span>
+        </a>
+        <a href="{{ achievements_href|default:'#' }}" class="{{ block }}__item {% if active == 'achievements' %}{{ block }}__item--active{% endif %}">
+            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
+            <span>Достижения</span>
+        </a>
+    </nav>
+{% endwith %}

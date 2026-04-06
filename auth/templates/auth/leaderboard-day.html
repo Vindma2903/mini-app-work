@@ -1,0 +1,69 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Лидерборд сегодня{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="leaderboard-screen">
+    <p class="leaderboard-screen__label">Лидер борд дня</p>
+    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+
+    <section class="leaderboard-date">
+        <div class="leaderboard-date__head">
+            <h2>Дата</h2>
+            <a href="#" class="leaderboard-date__all">см.все</a>
+        </div>
+        {% include 'auth/components/day_picker.html' with wrapper_class='leaderboard-date__days' item_class='leaderboard-date__day' active_day=4 %}
+        <span class="leaderboard-date__dot" aria-hidden="true"></span>
+    </section>
+
+    <h1 class="leaderboard-title">Лидерборд сегодня</h1>
+
+    <section class="leaderboard-plan" aria-label="Тип плана">
+        <button type="button" class="leaderboard-plan__item leaderboard-plan__item--active">
+            HIIT Training
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </button>
+    </section>
+
+    <section class="leaderboard-subplan" aria-label="Тип тренировки">
+        <button type="button" class="leaderboard-subplan__item">
+            Силовая
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </button>
+    </section>
+
+    <section class="leaderboard-list" aria-label="Рейтинг за сегодня">
+        <article class="leaderboard-item">
+            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-first.svg' %}" alt="1 место"></div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+        </article>
+        <article class="leaderboard-item">
+            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-second.svg' %}" alt="2 место"></div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+        </article>
+        <article class="leaderboard-item">
+            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-third.svg' %}" alt="3 место"></div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+        </article>
+        <div class="leaderboard-list__ellipsis">...</div>
+        <article class="leaderboard-item">
+            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--award">12</div>
+            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+        </article>
+    </section>
+</main>
+{% endblock %}

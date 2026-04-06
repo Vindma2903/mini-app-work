@@ -1,0 +1,133 @@
+:root {
+    --pt-bg: #f5f5f5;
+    --pt-card: #ffffff;
+    --pt-text: #192126;
+    --pt-muted: #8c9093;
+    --pt-blue: #1f64e5;
+    --pt-line: #ececec;
+    --pt-shadow: 0 0 12px rgba(52, 52, 52, 0.2);
+    --pt-radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Montserrat", Arial, sans-serif;
+    background: var(--pt-bg);
+    color: var(--pt-text);
+}
+
+.plan-today-screen {
+    width: 390px;
+    margin: 0 auto;
+    padding: 117px 12px 24px;
+}
+
+.plan-today-title {
+    margin: 0 0 16px;
+    text-align: center;
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 400;
+}
+
+.plan-card {
+    width: 366px;
+    border-radius: var(--pt-radius);
+    background: var(--pt-card);
+    box-shadow: var(--pt-shadow);
+    padding: 16px 12px;
+    margin-bottom: 12px;
+}
+
+.plan-card__head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--pt-blue);
+    font-size: 16px;
+    line-height: 20px;
+}
+
+.plan-card__head img {
+    width: 12px;
+    height: 6px;
+}
+
+.plan-card__block {
+    margin-top: 12px;
+}
+
+.plan-card__block h2 {
+    margin: 0 0 8px;
+    font-size: 32px;
+    line-height: 39px;
+    font-weight: 700;
+}
+
+.plan-card__line {
+    min-height: 32px;
+    border-top: 1px solid var(--pt-line);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+}
+
+.plan-card__line i {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pt-blue);
+}
+
+.plan-card__line span {
+    font-size: 12px;
+    line-height: 15px;
+    color: var(--pt-muted);
+}
+
+.plan-card__line button {
+    margin-left: auto;
+    border: 0;
+    background: transparent;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.plan-card__line button img {
+    width: 18px;
+    height: 18px;
+}
+
+.plan-card__add {
+    margin-top: 10px;
+    width: 100%;
+    height: 34px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--pt-blue);
+    color: #fff;
+    font-size: 10px;
+    line-height: 15px;
+    cursor: pointer;
+}
+
+.plan-card__toggle {
+    width: 61px;
+    height: 29px;
+    display: block;
+    margin: 10px 0 0 auto;
+}
+
+.plan-card--collapsed {
+    height: 50px;
+    padding-top: 15px;
+    padding-bottom: 15px;
+}

@@ -4,6 +4,12 @@ from django.contrib.auth.models import User
 
 from allauth.account.models import EmailAddress
 
+from .models import AdminContact
+
+
+def normalize_phone(value):
+    return ''.join(ch for ch in value if ch.isdigit())
+
 
 class LoginForm(forms.Form):
     email = forms.EmailField()
@@ -40,6 +46,105 @@ class LoginForm(forms.Form):
             raise forms.ValidationError(self.error_messages['email_not_verified'])
 
         self.user = user
+        return cleaned_data
+
+
+class AdminLoginForm(forms.Form):
+    email = forms.EmailField()
+    password = forms.CharField(widget=forms.PasswordInput)
+
+    error_messages = {
+        'invalid_credentials': 'Invalid email or password.',
+        'not_admin': 'This account does not have admin access.',
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.request = kwargs.pop('request', None)
+        self.user = None
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        cleaned_data = super().clean()
+        email = cleaned_data.get('email')
+        password = cleaned_data.get('password')
+
+        if not email or not password:
+            return cleaned_data
+
+        try:
+            target_user = User.objects.get(email__iexact=email)
+        except User.DoesNotExist as exc:
+            raise forms.ValidationError(self.error_messages['invalid_credentials']) from exc
+
+        user = authenticate(self.request, username=target_user.username, password=password)
+        if user is None:
+            raise forms.ValidationError(self.error_messages['invalid_credentials'])
+
+        if not (user.is_staff or user.is_superuser):
+            raise forms.ValidationError(self.error_messages['not_admin'])
+
+        self.user = user
+        return cleaned_data
+
+
+class AdminPasswordResetStartForm(forms.Form):
+    phone = forms.CharField(max_length=32)
+
+    error_messages = {
+        'phone_required': 'Enter a valid phone number.',
+        'phone_not_found': 'Admin account with this phone was not found.',
+    }
+
+    def __init__(self, *args, **kwargs):
+        self.admin_contact = None
+        super().__init__(*args, **kwargs)
+
+    def clean_phone(self):
+        raw_phone = self.cleaned_data['phone']
+        phone = normalize_phone(raw_phone)
+        if len(phone) < 10:
+            raise forms.ValidationError(self.error_messages['phone_required'])
+        return phone
+
+    def clean(self):
+        cleaned_data = super().clean()
+        phone = cleaned_data.get('phone')
+        if not phone:
+            return cleaned_data
+
+        try:
+            contact = AdminContact.objects.select_related('user').get(phone=phone)
+        except AdminContact.DoesNotExist as exc:
+            raise forms.ValidationError(self.error_messages['phone_not_found']) from exc
+
+        if not (contact.user.is_staff or contact.user.is_superuser):
+            raise forms.ValidationError(self.error_messages['phone_not_found'])
+
+        self.admin_contact = contact
+        return cleaned_data
+
+
+class AdminPasswordResetConfirmForm(forms.Form):
+    code = forms.CharField(max_length=6, min_length=6)
+    password = forms.CharField(widget=forms.PasswordInput, min_length=8)
+    password_repeat = forms.CharField(widget=forms.PasswordInput, min_length=8)
+
+    error_messages = {
+        'invalid_code': 'Invalid confirmation code.',
+        'expired_code': 'Confirmation code has expired. Request a new one.',
+        'password_mismatch': 'Passwords do not match.',
+    }
+
+    def clean_code(self):
+        return self.cleaned_data['code'].strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        password_repeat = cleaned_data.get('password_repeat')
+
+        if password and password_repeat and password != password_repeat:
+            raise forms.ValidationError(self.error_messages['password_mismatch'])
         return cleaned_data
 
 

@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Календарь{% endblock %}
+{% block title %}РљР°Р»РµРЅРґР°СЂСЊ{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
@@ -10,101 +10,161 @@
 
 {% block content %}
 <main class="calendar-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name='Р’РёРєС‚РѕСЂРёСЏ РРІР°РЅРѕРІР°' experience='8 Р»РµС‚' %}
 
     <section class="calendar-header-card">
-        <h1 class="calendar-title">Расписание тренировок</h1>
-        <div class="calendar-days">
-            <button class="calendar-days__item" type="button"><span>Пн</span><b>10</b></button>
-            <button class="calendar-days__item" type="button"><span>Вт</span><b>11</b></button>
-            <button class="calendar-days__item calendar-days__item--active" type="button"><span>Чт</span><b>13</b></button>
-            <button class="calendar-days__item" type="button"><span>Пт</span><b>14</b></button>
-            <button class="calendar-days__item" type="button"><span>Сб</span><b>15</b></button>
-            <button class="calendar-days__item" type="button"><span>Вс</span><b>16</b></button>
-        </div>
+        <h1 class="calendar-title">Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє</h1>
+        {% include 'auth/components/day_picker.html' with wrapper_class='calendar-days' item_class='calendar-days__item' active_day=4 show_wednesday='0' %}
     </section>
 
     <section class="calendar-training-card">
         <div class="calendar-training-card__head">
-            <a href="#" class="calendar-plan">
+            <a href="{% url 'auth:training_plan_today' %}" class="calendar-plan" id="calendar-plan-toggle">
                 <span>HIIT Training</span>
                 <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
             </a>
-            <div class="calendar-lang-switch" aria-label="Язык">
-                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Русский и английский">
+            <div class="calendar-lang-switch" aria-label="РЇР·С‹Рє">
+                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Р СѓСЃСЃРєРёР№ Рё Р°РЅРіР»РёР№СЃРєРёР№">
             </div>
         </div>
 
-        <div class="calendar-training-block">
-            <h2 class="calendar-stats-card__title">Силовая</h2>
-            <div class="calendar-stats-card__timeline">
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
-                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
-                </div>
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
-                </div>
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
-                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
+        <button type="button" class="calendar-add-result" data-open-result-modal>Р”РѕР±Р°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚</button>
+
+        <div id="calendar-training-details" hidden>
+            <div class="calendar-training-block">
+                <h2 class="calendar-stats-card__title">РЎРёР»РѕРІР°СЏ</h2>
+                <div class="calendar-stats-card__timeline">
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                    </div>
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                    </div>
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="calendar-training-block">
-            <h2 class="calendar-stats-card__title">Силовая</h2>
-            <div class="calendar-stats-card__timeline">
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
-                </div>
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
-                    <a href="#" class="calendar-watch-video"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></a>
-                </div>
-                <div class="calendar-stats-card__point">
-                    <i></i>
-                    <span>15 раз на скакалке</span>
+            <div class="calendar-training-block">
+                <h2 class="calendar-stats-card__title">РЎРёР»РѕРІР°СЏ</h2>
+                <div class="calendar-stats-card__timeline">
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                    </div>
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                    </div>
+                    <div class="calendar-stats-card__point">
+                        <i></i>
+                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
     <section class="calendar-list">
-        <h2>Февраль 2025</h2>
-        <article class="calendar-item">
-            <p>HIIT Training / силовая</p><span>29.02.2025</span><b>120 кг</b>
-        </article>
-        <article class="calendar-item">
-            <p>HIIT Training / силовая</p><span>25.02.2025</span><b>120 кг</b>
-        </article>
-        <article class="calendar-item">
-            <p>HIIT Training / силовая</p><span>21.02.2025</span><b>100 кг</b>
-        </article>
+        <h2>Р¤РµРІСЂР°Р»СЊ 2025</h2>
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='21.02.2025' result='100 Р С”Р С–' %}
     </section>
 
-    <nav class="bottom-nav" aria-label="Навигация">
-        <a href="{% url 'auth:calendar' %}" class="bottom-nav__item bottom-nav__item--active">
-            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
-            <span>Тренировки</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
-            <span>Комьюнити</span>
-        </a>
-        <a href="{% url 'auth:profile' %}" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-profile.svg' %}" alt="">
-            <span>Профиль</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
-            <span>Достижения</span>
-        </a>
-    </nav>
+        {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
+<div class="calendar-video-modal" id="calendar-video-modal" hidden>
+    <div class="calendar-video-modal__overlay" data-close-video-modal></div>
+    <section class="calendar-video-modal__card">
+        <button type="button" class="calendar-video-modal__close" data-close-video-modal>
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
+        </button>
+        <div class="calendar-video-modal__frame-wrap">
+            <iframe
+                id="calendar-video-frame"
+                class="calendar-video-modal__frame"
+                src=""
+                title="Р’РёРґРµРѕ С‚СЂРµРЅРёСЂРѕРІРєРё"
+                loading="lazy"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin"
+                allowfullscreen>
+            </iframe>
+        </div>
+    </section>
+</div>
+<div class="calendar-result-modal" id="calendar-result-modal" hidden>
+    <div class="calendar-result-modal__overlay" data-close-result-modal></div>
+    <section class="calendar-result-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-result-title">
+        <button type="button" class="calendar-result-modal__close" data-close-result-modal aria-label="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="">
+        </button>
+        <h2 class="calendar-result-modal__title" id="calendar-result-title">Р”РѕР±Р°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚</h2>
+        <p class="calendar-result-modal__text">Р—Р°РїРѕР»РЅРёС‚Рµ Р·РЅР°С‡РµРЅРёСЏ РїРѕ СѓРїСЂР°Р¶РЅРµРЅРёСЏРј Р·Р° СЃРµРіРѕРґРЅСЏ</p>
+        <div class="calendar-result-modal__content">
+            <div class="calendar-result-modal__group">
+                <h3>РЎРёР»РѕРІР°СЏ</h3>
+                <label>
+                    <span>РџСЂРёСЃРµРґ 10 x2</span>
+                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ РєРі">
+                </label>
+                <label>
+                    <span>РћС‚Р¶РёРјР°РЅРёСЏ 10 x2</span>
+                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ РєРі">
+                </label>
+            </div>
+
+            <div class="calendar-result-modal__group">
+                <h3>РљР°СЂРґРёРѕ</h3>
+                <label>
+                    <span>РџР»Р°РЅРєР° 30 СЃРµРє</span>
+                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ СЃРµРє">
+                </label>
+            </div>
+        </div>
+
+        <button type="button" class="calendar-result-modal__save" data-close-result-modal>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+    </section>
+</div>
+<script>
+    (function () {
+        const modal = document.getElementById("calendar-video-modal");
+        const frame = document.getElementById("calendar-video-frame");
+        const resultModal = document.getElementById("calendar-result-modal");
+        const openResultButton = document.querySelector("[data-open-result-modal]");
+        document.querySelectorAll(".calendar-watch-video").forEach((trigger) => {
+            trigger.addEventListener("click", (event) => {
+                event.preventDefault();
+                frame.src = trigger.dataset.videoUrl || "";
+                modal.hidden = false;
+            });
+        });
+
+        modal.addEventListener("click", (event) => {
+            if (!event.target.closest("[data-close-video-modal]")) return;
+            modal.hidden = true;
+            frame.src = "";
+        });
+
+        if (openResultButton && resultModal) {
+            openResultButton.addEventListener("click", () => {
+                resultModal.hidden = false;
+            });
+
+            resultModal.addEventListener("click", (event) => {
+                if (!event.target.closest("[data-close-result-modal]")) return;
+                resultModal.hidden = true;
+            });
+        }
+    })();
+</script>
 {% endblock %}
+

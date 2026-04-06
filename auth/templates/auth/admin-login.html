@@ -1,0 +1,32 @@
+{% extends 'auth/base.html' %}
+
+{% block title %}Admin Login{% endblock %}
+
+{% block content %}
+<main class="screen">
+    <section class="auth-card" aria-label="Admin login">
+        <h1 class="auth-card__title">Admin Login</h1>
+
+        <form class="auth-form" method="post">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <p class="auth-form__error">{{ form.non_field_errors.0 }}</p>
+            {% endif %}
+            <label class="auth-form__field">
+                <span class="auth-form__label">Email</span>
+                <input class="auth-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" required>
+            </label>
+
+            <label class="auth-form__field">
+                <span class="auth-form__label">Password</span>
+                <input class="auth-form__input" type="password" name="password" required>
+            </label>
+
+            <button class="auth-form__submit" type="submit">Sign In</button>
+        </form>
+
+        <a class="auth-card__register" href="{% url 'auth:admin_password_reset_start' %}">Forgot password?</a>
+        <a class="auth-card__register" href="{% url 'auth:login' %}">Back to user login</a>
+    </section>
+</main>
+{% endblock %}

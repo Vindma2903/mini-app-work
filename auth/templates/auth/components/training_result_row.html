@@ -1,0 +1,13 @@
+{% if tag == 'button' %}
+<button type="button" class="{{ row_class }}" {% if data_date %}data-date="{{ data_date }}"{% endif %}>
+    <p>{{ title }}</p>
+    <span>{{ date }}</span>
+    <b>{{ result }}</b>
+</button>
+{% else %}
+<article class="{{ row_class }}" {% if data_date %}data-date="{{ data_date }}"{% endif %}>
+    <p>{{ title }}</p>
+    <span>{{ date }}</span>
+    <b>{{ result }}</b>
+</article>
+{% endif %}

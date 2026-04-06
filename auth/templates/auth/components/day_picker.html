@@ -1,0 +1,13 @@
+{% with wrap=wrapper_class|default:'calendar-days' item=item_class|default:'calendar-days__item' %}
+<div class="{{ wrap }}">
+    <button class="{{ item }}{% if active_day == 1 %} {{ item }}--active{% endif %}" type="button"><span>Пн</span><b>10</b></button>
+    <button class="{{ item }}{% if active_day == 2 %} {{ item }}--active{% endif %}" type="button"><span>Вт</span><b>11</b></button>
+    {% if show_wednesday|default:'1' == '1' %}
+    <button class="{{ item }}{% if active_day == 3 %} {{ item }}--active{% endif %}" type="button"><span>Ср</span><b>12</b></button>
+    {% endif %}
+    <button class="{{ item }}{% if active_day == 4 %} {{ item }}--active{% endif %}" type="button"><span>Чт</span><b>13</b></button>
+    <button class="{{ item }}{% if active_day == 5 %} {{ item }}--active{% endif %}" type="button"><span>Пт</span><b>14</b></button>
+    <button class="{{ item }}{% if active_day == 6 %} {{ item }}--active{% endif %}" type="button"><span>Сб</span><b>15</b></button>
+    <button class="{{ item }}{% if active_day == 7 %} {{ item }}--active{% endif %}" type="button"><span>Вс</span><b>16</b></button>
+</div>
+{% endwith %}

@@ -1,98 +1,114 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Профиль{% endblock %}
+{% block title %}РџСЂРѕС„РёР»СЊ{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/profile.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/profile.css' %}?v=goal-modal-2">
 {% endblock %}
 
 {% block content %}
 <main class="profile-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name='Р’РёРєС‚РѕСЂРёСЏ РРІР°РЅРѕРІР°' experience='8 Р»РµС‚' %}
 
     <section class="card">
         <div class="card__head">
-            <h2>Моя активность</h2>
-            <button type="button">Цель</button>
+            <h2>РњРѕСЏ Р°РєС‚РёРІРЅРѕСЃС‚СЊ</h2>
+            <button type="button" class="goal-trigger" data-open-goal-modal>
+                <img src="{% static 'auth/img/profile-goal-icon.svg' %}" alt="">
+                <span>Р¦РµР»СЊ</span>
+            </button>
         </div>
         <div class="activity-grid">
             <article class="activity-grid__item activity-grid__item--light">
-                <strong data-activity="visits">3 тренировки</strong>
-                <span>Мои посещения</span>
+                <strong data-activity="visits">3 С‚СЂРµРЅРёСЂРѕРІРєРё</strong>
+                <span>РњРѕРё РїРѕСЃРµС‰РµРЅРёСЏ</span>
             </article>
             <article class="activity-grid__item activity-grid__item--blue">
-                <strong data-activity="goal">6 тренировок</strong>
-                <span>Цель</span>
+                <strong data-activity="goal">6 С‚СЂРµРЅРёСЂРѕРІРѕРє</strong>
+                <span>Р¦РµР»СЊ</span>
             </article>
         </div>
         <div class="tabs" data-tabs="activity">
-            <button type="button" class="tabs__item tabs__item--active" data-period="week">За неделю</button>
-            <button type="button" class="tabs__item" data-period="month">За месяц</button>
-            <button type="button" class="tabs__item" data-period="all">За всё время</button>
+            <button type="button" class="tabs__item tabs__item--active" data-period="week">Р—Р° РЅРµРґРµР»СЋ</button>
+            <button type="button" class="tabs__item" data-period="month">Р—Р° РјРµСЃСЏС†</button>
+            <button type="button" class="tabs__item" data-period="all">Р—Р° РІСЃС‘ РІСЂРµРјСЏ</button>
         </div>
     </section>
 
     <section class="card">
-        <h2 class="card__title">Статистика участия</h2>
+        <h2 class="card__title">РЎС‚Р°С‚РёСЃС‚РёРєР° СѓС‡Р°СЃС‚РёСЏ</h2>
         <div class="stats">
-            <div><strong data-stats="given">0</strong><span>Поставленных реакций</span></div>
-            <div><strong data-stats="received">0</strong><span>Полученных реакций</span></div>
+            <div><strong data-stats="given">0</strong><span>РџРѕСЃС‚Р°РІР»РµРЅРЅС‹С… СЂРµР°РєС†РёР№</span></div>
+            <div><strong data-stats="received">0</strong><span>РџРѕР»СѓС‡РµРЅРЅС‹С… СЂРµР°РєС†РёР№</span></div>
         </div>
         <div class="tabs" data-tabs="stats">
-            <button type="button" class="tabs__item tabs__item--active" data-period="week">За неделю</button>
-            <button type="button" class="tabs__item" data-period="month">За месяц</button>
-            <button type="button" class="tabs__item" data-period="all">За всё время</button>
+            <button type="button" class="tabs__item tabs__item--active" data-period="week">Р—Р° РЅРµРґРµР»СЋ</button>
+            <button type="button" class="tabs__item" data-period="month">Р—Р° РјРµСЃСЏС†</button>
+            <button type="button" class="tabs__item" data-period="all">Р—Р° РІСЃС‘ РІСЂРµРјСЏ</button>
         </div>
     </section>
 
     <section class="card card--awards">
-        <h2 class="card__title"><a class="card__title-link" href="{% url 'auth:profile_awards_tests' %}">Награды в лидербордах</a></h2>
+        <h2 class="card__title"><a class="card__title-link" href="{% url 'auth:profile_awards_tests' %}">РќР°РіСЂР°РґС‹ РІ Р»РёРґРµСЂР±РѕСЂРґР°С…</a></h2>
         <div class="awards">
             <div class="awards__row">
                 <img class="awards__icon" src="{% static 'auth/img/award-first.svg' %}" alt="">
-                <b>1 место</b>
-                <span>15 раз</span>
+                <b>1 РјРµСЃС‚Рѕ</b>
+                <span>15 СЂР°Р·</span>
             </div>
             <div class="awards__row">
                 <img class="awards__icon" src="{% static 'auth/img/award-second.svg' %}" alt="">
-                <b>2 место</b>
-                <span>18 раз</span>
+                <b>2 РјРµСЃС‚Рѕ</b>
+                <span>18 СЂР°Р·</span>
             </div>
             <div class="awards__row">
                 <img class="awards__icon" src="{% static 'auth/img/award-third.svg' %}" alt="">
-                <b>3 место</b>
-                <span>10 раз</span>
+                <b>3 РјРµСЃС‚Рѕ</b>
+                <span>10 СЂР°Р·</span>
             </div>
         </div>
     </section>
 
-    <nav class="bottom-nav" aria-label="Навигация">
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
-            <span>Тренировки</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
-            <span>Комьюнити</span>
-        </a>
-        <a href="{% url 'auth:profile' %}" class="bottom-nav__item bottom-nav__item--active">
-            <img src="{% static 'auth/img/nav-profile-active.svg' %}" alt="">
-            <span>Профиль</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
-            <span>Достижения</span>
-        </a>
-    </nav>
+        {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' %}
 </main>
+<div class="goal-modal" id="goal-modal" hidden>
+    <div class="goal-modal__overlay" data-close-goal-modal></div>
+    <section class="goal-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="goal-modal-title">
+        <button type="button" class="goal-modal__close" data-close-goal-modal aria-label="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-goal-close.svg' %}" alt="">
+        </button>
+        <h3 class="goal-modal__title" id="goal-modal-title">
+            <img src="{% static 'auth/img/profile-goal-icon.svg' %}" alt="">
+            <span>РЈСЃС‚Р°РЅРѕРІРёС‚СЊ С†РµР»СЊ</span>
+        </h3>
+        <p class="goal-modal__text">РЎРєРѕР»СЊРєРѕ СЂР°Р· РІ РЅРµРґРµР»СЋ РІС‹ РїР»Р°РЅРёСЂСѓРµС‚Рµ РїРѕСЃРµС‰Р°С‚СЊ С‚СЂРµРЅРёСЂРѕРІРєРё?</p>
+
+        <div class="goal-modal__counter">
+            <button type="button" class="goal-modal__round-btn" data-goal-dec>в€’</button>
+            <div class="goal-modal__counter-center">
+                <strong data-goal-value>7</strong>
+                <span>С‚СЂРµРЅРёСЂРѕРІРѕРє РІ РЅРµРґРµР»СЋ</span>
+            </div>
+            <button type="button" class="goal-modal__round-btn" data-goal-inc>+</button>
+        </div>
+
+        <div class="goal-modal__quick">
+            <button type="button" class="goal-modal__quick-btn" data-goal-preset="3">3</button>
+            <button type="button" class="goal-modal__quick-btn" data-goal-preset="5">5</button>
+            <button type="button" class="goal-modal__quick-btn goal-modal__quick-btn--active" data-goal-preset="7">7</button>
+        </div>
+
+        <button type="button" class="goal-modal__save" data-goal-save>РЎРѕС…СЂР°РЅРёС‚СЊ С†РµР»СЊ</button>
+    </section>
+</div>
 <script>
     (function () {
         const activityValues = {
-            week: { visits: "3 тренировки", goal: "6 тренировок" },
-            month: { visits: "12 тренировок", goal: "20 тренировок" },
-            all: { visits: "84 тренировки", goal: "150 тренировок" }
+            week: { visits: "3 С‚СЂРµРЅРёСЂРѕРІРєРё", goal: "6 С‚СЂРµРЅРёСЂРѕРІРѕРє" },
+            month: { visits: "12 С‚СЂРµРЅРёСЂРѕРІРѕРє", goal: "20 С‚СЂРµРЅРёСЂРѕРІРѕРє" },
+            all: { visits: "84 С‚СЂРµРЅРёСЂРѕРІРєРё", goal: "150 С‚СЂРµРЅРёСЂРѕРІРѕРє" }
         };
 
         const statsValues = {
@@ -100,6 +116,8 @@
             month: { given: "7", received: "5" },
             all: { given: "31", received: "26" }
         };
+        const goalSettings = { week: 6, month: 20, all: 150 };
+        let selectedGoal = 7;
 
         function activateTab(group, period) {
             group.querySelectorAll(".tabs__item").forEach((button) => {
@@ -134,6 +152,49 @@
                 }
             });
         });
+
+        const goalModal = document.getElementById("goal-modal");
+        const goalValue = goalModal.querySelector("[data-goal-value]");
+        const goalQuickButtons = goalModal.querySelectorAll("[data-goal-preset]");
+        const goalCloseButton = goalModal.querySelector(".goal-modal__close");
+
+        function updateGoalModalValue(value) {
+            selectedGoal = Math.max(1, Math.min(30, value));
+            goalValue.textContent = String(selectedGoal);
+            goalQuickButtons.forEach((button) => {
+                button.classList.toggle("goal-modal__quick-btn--active", Number(button.dataset.goalPreset) === selectedGoal);
+            });
+        }
+
+        document.querySelector("[data-open-goal-modal]").addEventListener("click", () => {
+            updateGoalModalValue(selectedGoal);
+            goalModal.hidden = false;
+        });
+
+        goalModal.addEventListener("click", (event) => {
+            if (event.target.closest("[data-close-goal-modal]")) {
+                goalModal.hidden = true;
+            }
+        });
+
+        goalCloseButton.addEventListener("click", () => {
+            goalModal.hidden = true;
+        });
+
+        goalModal.querySelector("[data-goal-dec]").addEventListener("click", () => updateGoalModalValue(selectedGoal - 1));
+        goalModal.querySelector("[data-goal-inc]").addEventListener("click", () => updateGoalModalValue(selectedGoal + 1));
+        goalQuickButtons.forEach((button) => {
+            button.addEventListener("click", () => updateGoalModalValue(Number(button.dataset.goalPreset)));
+        });
+
+        goalModal.querySelector("[data-goal-save]").addEventListener("click", () => {
+            goalSettings.week = selectedGoal;
+            activityValues.week.goal = `${selectedGoal} С‚СЂРµРЅРёСЂРѕРІРѕРє`;
+            const activeActivityPeriod = document.querySelector("[data-tabs='activity'] .tabs__item--active")?.dataset.period || "week";
+            renderActivity(activeActivityPeriod);
+            goalModal.hidden = true;
+        });
     })();
 </script>
 {% endblock %}
+

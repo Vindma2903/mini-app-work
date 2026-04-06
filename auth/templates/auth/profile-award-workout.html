@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Тренировка за награду{% endblock %}
+{% block title %}РўСЂРµРЅРёСЂРѕРІРєР° Р·Р° РЅР°РіСЂР°РґСѓ{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/profile-award-workout.css' %}">
@@ -11,68 +11,31 @@
 <main class="award-workout-screen">
     <header class="award-workout-topbar">
         <a class="award-workout-topbar__icon" href="{% url 'auth:profile_awards_tests' %}">
-            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="Назад">
+            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="РќР°Р·Р°Рґ">
         </a>
-        <h1 class="award-workout-topbar__title">Как выглядела тренировка, за которую получена награда</h1>
+        <h1 class="award-workout-topbar__title">РљР°Рє РІС‹РіР»СЏРґРµР»Р° С‚СЂРµРЅРёСЂРѕРІРєР°, Р·Р° РєРѕС‚РѕСЂСѓСЋ РїРѕР»СѓС‡РµРЅР° РЅР°РіСЂР°РґР°</h1>
         <a class="award-workout-topbar__icon" href="{% url 'auth:profile' %}">
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
         </a>
     </header>
 
     <section class="award-summary">
         <div class="award-summary__row">
             <img src="{% static 'auth/img/award-first.svg' %}" alt="">
-            <span>1 место</span>
-            <strong>15 раз</strong>
+            <span>1 РјРµСЃС‚Рѕ</span>
+            <strong>15 СЂР°Р·</strong>
         </div>
     </section>
 
     <section class="award-workout-list" id="award-workout-list">
-        <article class="award-workout-list__item" data-date="2025-02-25">
-            <p>HIIT Training / силовая</p>
-            <span>25.02.2025</span>
-            <b>120 кг</b>
-        </article>
-        <article class="award-workout-list__item" data-date="2025-02-25">
-            <p>HIIT Training / силовая</p>
-            <span>25.02.2025</span>
-            <b>120 кг</b>
-        </article>
-        <article class="award-workout-list__item" data-date="2025-02-29">
-            <p>HIIT Training / силовая</p>
-            <span>29.02.2025</span>
-            <b>120 кг</b>
-        </article>
-        <article class="award-workout-list__item" data-date="2025-02-29">
-            <p>HIIT Training / силовая</p>
-            <span>29.02.2025</span>
-            <b>120 кг</b>
-        </article>
-        <article class="award-workout-list__item" data-date="2024-12-30">
-            <p>HIIT Training / силовая</p>
-            <span>30.12.2024</span>
-            <b>120 кг</b>
-        </article>
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2024-12-30' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='30.12.2024' result='120 Р С”Р С–' %}
     </section>
 
-    <nav class="bottom-nav" aria-label="Навигация">
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-training.svg' %}" alt="">
-            <span>Тренировки</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-community.svg' %}" alt="">
-            <span>Комьюнити</span>
-        </a>
-        <a href="{% url 'auth:profile' %}" class="bottom-nav__item bottom-nav__item--active">
-            <img src="{% static 'auth/img/nav-profile.svg' %}" alt="">
-            <span>Профиль</span>
-        </a>
-        <a href="#" class="bottom-nav__item">
-            <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
-            <span>Достижения</span>
-        </a>
-    </nav>
+        {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
 </main>
 <script>
     (function () {
@@ -83,3 +46,4 @@
     })();
 </script>
 {% endblock %}
+

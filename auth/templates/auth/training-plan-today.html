@@ -1,0 +1,64 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}План тренировок на сегодня{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/training-plan-today.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="plan-today-screen">
+    <h1 class="plan-today-title">План тренировок на сегодня</h1>
+
+    <section class="plan-card plan-card--expanded">
+        <div class="plan-card__head">
+            <span>HIIT Training</span>
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </div>
+
+        <div class="plan-card__block">
+            <h2>Силовая</h2>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+        </div>
+
+        <div class="plan-card__block">
+            <h2>Силовая</h2>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+        </div>
+
+        <div class="plan-card__block">
+            <h2>Силовая</h2>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+        </div>
+
+        <button type="button" class="plan-card__add">Добавить результат</button>
+        <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+    </section>
+
+    <section class="plan-card plan-card--collapsed">
+        <div class="plan-card__head">
+            <span>HIIT Training</span>
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </div>
+    </section>
+    <section class="plan-card plan-card--collapsed">
+        <div class="plan-card__head">
+            <span>HIIT Training</span>
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </div>
+    </section>
+    <section class="plan-card plan-card--collapsed">
+        <div class="plan-card__head">
+            <span>HIIT Training</span>
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </div>
+    </section>
+</main>
+{% endblock %}

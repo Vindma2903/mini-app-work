@@ -1,0 +1,53 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}{{ exercise.title }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/achievement-exercise.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="achievement-exercise-screen">
+    <header class="achievement-exercise-top">
+        <a class="achievement-exercise-top__back" href="{% url 'auth:achievements' %}" aria-label="Назад">←</a>
+        <h1>{{ exercise.title }}</h1>
+        <a class="achievement-exercise-top__close" href="{% url 'auth:achievements' %}" aria-label="Закрыть">✕</a>
+    </header>
+
+    <section class="exercise-max-card">
+        <div class="exercise-max-grid">
+            {% for rep in exercise.max %}
+                <div class="exercise-max-grid__cell">
+                    <strong>{{ rep }}</strong>
+                    <span>{{ forloop.counter }} REP MAX</span>
+                </div>
+            {% endfor %}
+        </div>
+        <button type="button" class="exercise-btn exercise-btn--outline">Редактировать</button>
+    </section>
+
+    <section class="exercise-percent-card">
+        <div class="exercise-percent-head">
+            <span class="exercise-percent-head__item exercise-percent-head__item--active">1 REP</span>
+            <span class="exercise-percent-head__item">2 REP</span>
+            <span class="exercise-percent-head__item">3 REP</span>
+            <span class="exercise-percent-head__item">4 REP</span>
+        </div>
+        {% for row in exercise.percent_rows %}
+            <div class="exercise-percent-row">
+                {% for value, percent in row %}
+                    <div class="exercise-percent-row__cell">
+                        <strong>{{ value }}</strong>
+                        <span>{{ percent }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </section>
+
+    <button type="button" class="exercise-btn exercise-btn--primary">Сохранить</button>
+
+    {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
+</main>
+{% endblock %}

@@ -1,0 +1,24 @@
+{
+  "name": "mini-app",
+  "version": "1.0.0",
+  "description": "Ниже перечислены доступные маршруты проекта на текущий момент.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Vindma2903/mini-app-work.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Vindma2903/mini-app-work/issues"
+  },
+  "homepage": "https://github.com/Vindma2903/mini-app-work#readme",
+  "devDependencies": {
+    "cypress": "^15.13.0"
+  }
+}

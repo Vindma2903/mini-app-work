@@ -1,0 +1,43 @@
+{% load static %}
+<div class="my-results-modal" id="my-results-modal" hidden>
+    <div class="my-results-modal__overlay" data-close-results-modal></div>
+    <section class="my-results-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="my-results-modal-title">
+        <button type="button" class="my-results-modal__close" data-close-results-modal aria-label="Закрыть">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="">
+        </button>
+
+        <h2 class="my-results-modal__title" id="my-results-modal-title">Мои результаты</h2>
+        <h3 class="my-results-modal__subtitle">Силовая</h3>
+
+        <div class="my-results-modal__chips" aria-label="Режим выполнения">
+            <button type="button" class="my-results-chip my-results-chip--active">RX</button>
+            <button type="button" class="my-results-chip">RX+</button>
+            <button type="button" class="my-results-chip">LITE</button>
+            <button type="button" class="my-results-chip">SCALED</button>
+        </div>
+
+        <div class="my-results-list" aria-label="Силовая">
+            <label class="my-results-row">
+                <span>Присед 10 х2</span>
+                <input type="text" placeholder="50 кг">
+            </label>
+            <label class="my-results-row">
+                <span>Отжимания 10 х2</span>
+                <input type="text" placeholder="29 сек.">
+            </label>
+            <label class="my-results-row">
+                <span>Подтягивания 10 х2</span>
+                <input type="text" placeholder="10 раз">
+            </label>
+            <label class="my-results-row">
+                <span>Планка 30 сек</span>
+                <input type="text" placeholder="30 сек.">
+            </label>
+        </div>
+
+        <div class="my-results-modal__actions">
+            <button type="button" class="my-results-modal__btn my-results-modal__btn--ghost">Пропустить</button>
+            <button type="button" class="my-results-modal__btn my-results-modal__btn--primary">Далее</button>
+        </div>
+    </section>
+</div>

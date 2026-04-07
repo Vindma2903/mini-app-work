@@ -86,34 +86,63 @@ body {
 }
 
 .activity-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 18px;
+    padding: 8px 10px 0;
     margin-bottom: 14px;
+    border-bottom: 4px solid var(--line);
 }
 
 .activity-grid__item {
-    border-radius: var(--radius-md);
-    padding: 12px 10px;
-    min-height: 105px;
+    width: 108px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
 }
 
-.activity-grid__item--light { background: var(--line); }
-.activity-grid__item--blue { background: var(--blue); color: #fff; }
-
-.activity-grid__item strong {
+.activity-grid__value {
     font-size: 8px;
     font-weight: 400;
     line-height: 10px;
+    color: #2b2b2b;
 }
 
-.activity-grid__item span {
+.activity-grid__bar {
+    width: 100%;
+    min-height: 120px;
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 10px;
+    transition: height .2s ease;
+}
+
+.activity-grid__item--light .activity-grid__bar {
+    background: var(--line);
+}
+
+.activity-grid__item--blue .activity-grid__bar {
+    background: var(--blue);
+}
+
+.activity-grid__item--blue .activity-grid__value {
+    color: var(--blue);
+}
+
+.activity-grid__bar span {
     font-size: 10px;
     line-height: 12px;
     font-weight: 500;
+    color: #111;
+}
+
+.activity-grid__item--blue .activity-grid__bar span {
+    color: #fff;
 }
 
 .stats {

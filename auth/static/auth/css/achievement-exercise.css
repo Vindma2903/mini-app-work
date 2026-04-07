@@ -1,0 +1,204 @@
+:root {
+    --axe-bg: #f5f5f5;
+    --axe-white: #ffffff;
+    --axe-blue: #1f64e5;
+    --axe-shadow: 0 10px 40px rgba(29, 22, 23, 0.07);
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    font-family: "Montserrat", Arial, sans-serif;
+    background: var(--axe-bg);
+}
+
+.achievement-exercise-screen {
+    width: 390px;
+    margin: 0 auto;
+    padding: 24px 12px 96px;
+}
+
+.achievement-exercise-top {
+    width: 366px;
+    display: grid;
+    grid-template-columns: 20px 1fr 20px;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.achievement-exercise-top h1 {
+    margin: 0;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 20px;
+}
+
+.achievement-exercise-top__back,
+.achievement-exercise-top__close {
+    text-decoration: none;
+    color: #7f7f7f;
+    font-size: 18px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.exercise-max-card,
+.exercise-percent-card {
+    width: 366px;
+    border-radius: 12px;
+    background: var(--axe-white);
+    box-shadow: var(--axe-shadow);
+}
+
+.exercise-max-card {
+    padding: 12px 24px;
+    margin-bottom: 24px;
+}
+
+.exercise-max-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-bottom: 24px;
+}
+
+.exercise-max-grid__cell {
+    text-align: center;
+}
+
+.exercise-max-grid__cell strong {
+    display: block;
+    font-size: 24px;
+    line-height: 29px;
+    font-weight: 400;
+}
+
+.exercise-max-grid__cell span {
+    display: block;
+    font-size: 10px;
+    line-height: 20px;
+}
+
+.exercise-btn {
+    width: 100%;
+    height: 39px;
+    border-radius: 10px;
+    font-size: 12px;
+    line-height: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.exercise-btn--outline {
+    border: 1px solid var(--axe-blue);
+    background: #fff;
+    color: #000;
+}
+
+.exercise-percent-card {
+    padding: 12px;
+    margin-bottom: 32px;
+}
+
+.exercise-percent-head {
+    width: 342px;
+    height: 28px;
+    border-radius: 8px;
+    background: #d9d9d9;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    margin-bottom: 24px;
+}
+
+.exercise-percent-head__item {
+    font-size: 12px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.exercise-percent-head__item--active {
+    background: #fffdfd;
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(52, 52, 52, 0.2);
+}
+
+.exercise-percent-row {
+    width: 275px;
+    margin: 0 auto 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.exercise-percent-row:last-child {
+    margin-bottom: 0;
+}
+
+.exercise-percent-row__cell {
+    text-align: center;
+}
+
+.exercise-percent-row__cell strong {
+    display: block;
+    font-size: 12px;
+    line-height: 20px;
+    font-weight: 400;
+}
+
+.exercise-percent-row__cell span {
+    display: block;
+    font-size: 8px;
+    line-height: 10px;
+    color: rgba(127, 127, 127, 0.5);
+}
+
+.exercise-btn--primary {
+    border: 0;
+    background: var(--axe-blue);
+    color: #fff;
+}
+
+.achievements-bottom-nav {
+    position: fixed;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 24px;
+    width: 366px;
+    height: 64px;
+    border-radius: 12px;
+    background: #fffdfd;
+    box-shadow: 0 0 12px rgba(52, 52, 52, 0.2);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    align-items: center;
+    text-align: center;
+}
+
+.achievements-bottom-nav__item {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-decoration: none;
+    color: var(--axe-blue);
+}
+
+.achievements-bottom-nav__item img {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.achievements-bottom-nav__item span {
+    font-size: 8px;
+    line-height: 10px;
+    font-weight: 600;
+}
+
+.achievements-bottom-nav__item--active {
+    color: #0f4bcc;
+}

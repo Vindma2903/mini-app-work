@@ -1,0 +1,79 @@
+.training-rate-thanks-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 87;
+    font-family: "Montserrat", Arial, sans-serif;
+}
+
+.training-rate-thanks-modal[hidden] {
+    display: none !important;
+}
+
+.training-rate-thanks-modal__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 23, 23, 0.72);
+}
+
+.training-rate-thanks-modal__card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 342px;
+    height: 280px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(29, 22, 23, 0.07);
+    padding: 24px;
+}
+
+.training-rate-thanks-modal__trophy {
+    position: absolute;
+    object-fit: contain;
+}
+
+.training-rate-thanks-modal__trophy--main {
+    width: 70px;
+    height: 70px;
+    left: 136px;
+    top: 47px;
+}
+
+.training-rate-thanks-modal__trophy--left,
+.training-rate-thanks-modal__trophy--right {
+    width: 36px;
+    height: 36px;
+    top: 36px;
+}
+
+.training-rate-thanks-modal__trophy--left {
+    left: 88px;
+}
+
+.training-rate-thanks-modal__trophy--right {
+    left: 218px;
+}
+
+.training-rate-thanks-modal__title {
+    margin: 117px 0 0;
+    text-align: center;
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 600;
+    color: #192126;
+}
+
+.training-rate-thanks-modal__btn {
+    margin-top: 32px;
+    width: 294px;
+    height: 39px;
+    border: 0;
+    border-radius: 10px;
+    background: #1f64e5;
+    color: #fff;
+    font-size: 12px;
+    line-height: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}

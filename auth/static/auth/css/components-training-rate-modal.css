@@ -1,0 +1,136 @@
+.training-rate-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 86;
+    font-family: "Montserrat", Arial, sans-serif;
+}
+
+.training-rate-modal[hidden] {
+    display: none !important;
+}
+
+.training-rate-modal__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(23, 23, 23, 0.72);
+}
+
+.training-rate-modal__card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 342px;
+    height: 497px;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 10px 40px rgba(29, 22, 23, 0.07);
+    padding: 24px;
+}
+
+.training-rate-modal__close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 22px;
+    height: 22px;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    cursor: pointer;
+}
+
+.training-rate-modal__close img {
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.training-rate-modal__title {
+    margin: 0 0 31px;
+    text-align: center;
+    font-size: 18px;
+    line-height: 22px;
+    font-weight: 600;
+    color: #192126;
+}
+
+.training-rate-modal__ratings {
+    display: grid;
+    gap: 17px;
+    margin-bottom: 24px;
+}
+
+.training-rate-modal__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.training-rate-modal__row span {
+    font-family: Inter, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 20px;
+    color: #101828;
+}
+
+.training-rate-modal__stars {
+    display: flex;
+    gap: 5px;
+}
+
+.training-rate-modal__star {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    background: transparent;
+    color: #d0d5dd;
+    font-size: 20px;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+}
+
+.training-rate-modal__star--active {
+    color: #fbbf24;
+}
+
+.training-rate-modal__comment {
+    display: block;
+    margin-bottom: 24px;
+}
+
+.training-rate-modal__comment span {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 10px;
+    line-height: 12px;
+    color: #7f7f7f;
+}
+
+.training-rate-modal__comment textarea {
+    width: 100%;
+    height: 150px;
+    border: 1px solid #ebebeb;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.1);
+    resize: none;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 20px;
+    color: #adadad;
+    outline: none;
+}
+
+.training-rate-modal__save {
+    width: 294px;
+    height: 39px;
+    border: 0;
+    border-radius: 10px;
+    background: #1f64e5;
+    color: #fff;
+    font-size: 12px;
+    line-height: 15px;
+    font-weight: 500;
+    cursor: pointer;
+}

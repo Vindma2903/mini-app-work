@@ -1,0 +1,13 @@
+{% load static %}
+<div class="training-rate-thanks-modal" id="training-rate-thanks-modal" hidden>
+    <div class="training-rate-thanks-modal__overlay"></div>
+    <section class="training-rate-thanks-modal__card" role="dialog" aria-modal="true" aria-labelledby="training-rate-thanks-title">
+        <img class="training-rate-thanks-modal__trophy training-rate-thanks-modal__trophy--left" src="{% static 'auth/img/rate-thanks-trophy-main.png' %}" alt="">
+        <img class="training-rate-thanks-modal__trophy training-rate-thanks-modal__trophy--main" src="{% static 'auth/img/rate-thanks-trophy-main.png' %}" alt="">
+        <img class="training-rate-thanks-modal__trophy training-rate-thanks-modal__trophy--right" src="{% static 'auth/img/rate-thanks-trophy-main.png' %}" alt="">
+
+        <h2 class="training-rate-thanks-modal__title" id="training-rate-thanks-title">Спасибо, что оценили тренировку</h2>
+
+        <button type="button" class="training-rate-thanks-modal__btn">Посмотреть лидерборд</button>
+    </section>
+</div>

@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РљРѕРјСЊСЋРЅРёС‚Рё{% endblock %}
+{% block title %}Комьюнити{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
@@ -10,11 +10,11 @@
 
 {% block content %}
 <main class="community-screen">
-    {% include 'auth/components/profile_header.html' with name='Р’РёРєС‚РѕСЂРёСЏ РРІР°РЅРѕРІР°' experience='8 Р»РµС‚' %}
+    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
 
     <section class="community-date">
-        <h2 class="community-date__title">Р”Р°С‚Р°</h2>
-        <a href="#" class="community-date__all">СЃРј.РІСЃРµ</a>
+        <h2 class="community-date__title">Дата</h2>
+        <a href="#" class="community-date__all">см.все</a>
         {% include 'auth/components/day_picker.html' with wrapper_class='community-days' item_class='community-days__item' active_day=4 %}
         <span class="community-date__dot" aria-hidden="true"></span>
     </section>
@@ -24,84 +24,83 @@
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>Р’РµСЂРѕРЅРёРєР° Р’.</h3>
-                    <p>РћРЅР»Р°Р№РЅ</p>
+                    <h3>Вероника В.</h3>
+                    <p>Онлайн</p>
                 </div>
             </div>
             <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">РЎРёР»РѕРІР°СЏ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__type">РљР°СЂРґРёРѕ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <a href="#" class="community-card__reactions">14 <span>вЂє</span></a>
+            <div class="community-card__type">Силовая</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__type">Кардио</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <a href="#" class="community-card__reactions">14 <span>›</span></a>
         </article>
 
         <article class="community-card">
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>Р•РІРіРµРЅРёСЏ Р’.</h3>
-                    <p>РћРЅР»Р°Р№РЅ</p>
+                    <h3>Евгения В.</h3>
+                    <p>Онлайн</p>
                 </div>
             </div>
             <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">РЎРёР»РѕРІР°СЏ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__type">РљР°СЂРґРёРѕ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <a href="#" class="community-card__reactions">14 <span>вЂє</span></a>
+            <div class="community-card__type">Силовая</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__type">Кардио</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <a href="#" class="community-card__reactions">14 <span>›</span></a>
         </article>
 
         <article class="community-card">
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>РљСЂРёСЃС‚РёРЅР° Р’.</h3>
-                    <p>РћРЅР»Р°Р№РЅ</p>
+                    <h3>Кристина В.</h3>
+                    <p>Онлайн</p>
                 </div>
             </div>
             <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">РЎРёР»РѕРІР°СЏ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__type">РљР°СЂРґРёРѕ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <a href="#" class="community-card__reactions">14 <span>вЂє</span></a>
+            <div class="community-card__type">Силовая</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__type">Кардио</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <a href="#" class="community-card__reactions">14 <span>›</span></a>
         </article>
 
         <article class="community-card">
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>РљРёСЂРёР»Р» Р’.</h3>
-                    <p>РћРЅР»Р°Р№РЅ</p>
+                    <h3>Кирилл В.</h3>
+                    <p>Онлайн</p>
                 </div>
             </div>
             <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">РЎРёР»РѕРІР°СЏ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__type">РљР°СЂРґРёРѕ</div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>50 РєРі</b></div>
-            <div class="community-card__line"><span>РџСЂРёСЃРµРґ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <div class="community-card__line"><span>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…2</span><b>29 СЃРµРє</b></div>
-            <a href="#" class="community-card__reactions">14 <span>вЂє</span></a>
+            <div class="community-card__type">Силовая</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__type">Кардио</div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
+            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
+            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
+            <a href="#" class="community-card__reactions">14 <span>›</span></a>
         </article>
     </section>
 
-        {% include 'auth/components/bottom_nav.html' with active='community' nav_block='community-bottom-nav' %}
+    {% include 'auth/components/bottom_nav.html' with active='community' nav_block='community-bottom-nav' %}
 </main>
 {% endblock %}
-

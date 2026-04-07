@@ -1,0 +1,22 @@
+{% load static %}
+<div class="result-saved-modal" id="result-saved-modal" hidden>
+    <div class="result-saved-modal__overlay"></div>
+    <section class="result-saved-modal__card" role="dialog" aria-modal="true" aria-labelledby="result-saved-title">
+        <button type="button" class="result-saved-modal__back" aria-label="Назад">
+            <img src="{% static 'auth/img/result-saved-back.svg' %}" alt="">
+        </button>
+        <button type="button" class="result-saved-modal__close" aria-label="Закрыть">
+            <img src="{% static 'auth/img/result-saved-close.svg' %}" alt="">
+        </button>
+
+        <img class="result-saved-modal__trophy" src="{% static 'auth/img/result-saved-trophy.png' %}" alt="">
+        <h2 class="result-saved-modal__title" id="result-saved-title">Результат записан!</h2>
+
+        <button type="button" class="result-saved-modal__btn result-saved-modal__btn--primary">
+            Оценить тренировку
+        </button>
+        <button type="button" class="result-saved-modal__btn result-saved-modal__btn--secondary">
+            Посмотреть лидерборд
+        </button>
+    </section>
+</div>

@@ -2,6 +2,7 @@
 {% url 'auth:calendar' as default_calendar_href %}
 {% url 'auth:community' as default_community_href %}
 {% url 'auth:profile' as default_profile_href %}
+{% url 'auth:achievements' as default_achievements_href %}
 {% with block=nav_block|default:'bottom-nav' %}
     <nav class="{{ block }}" aria-label="Навигация">
         <a href="{{ calendar_href|default:default_calendar_href }}" class="{{ block }}__item {% if active == 'calendar' %}{{ block }}__item--active{% endif %}">
@@ -24,7 +25,7 @@
             {% endif %}
             <span>Профиль</span>
         </a>
-        <a href="{{ achievements_href|default:'#' }}" class="{{ block }}__item {% if active == 'achievements' %}{{ block }}__item--active{% endif %}">
+        <a href="{{ achievements_href|default:default_achievements_href }}" class="{{ block }}__item {% if active == 'achievements' %}{{ block }}__item--active{% endif %}">
             <img src="{% static 'auth/img/nav-achievements.svg' %}" alt="">
             <span>Достижения</span>
         </a>

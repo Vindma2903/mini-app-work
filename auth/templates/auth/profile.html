@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Профиль{% endblock %}
@@ -57,23 +57,23 @@
     </section>
 
     <section class="card card--awards">
-        <h2 class="card__title"><a class="card__title-link" href="{% url 'auth:profile_awards_tests' %}">Награды в лидербордах</a></h2>
+        <h2 class="card__title"><a class="card__title-link" href="{% url 'auth:profile_award_workout' %}">Награды в лидербордах</a></h2>
         <div class="awards">
-            <div class="awards__row">
+            <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-first.svg' %}" alt="">
                 <b>1 место</b>
                 <span>15 раз</span>
-            </div>
-            <div class="awards__row">
+            </a>
+            <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-second.svg' %}" alt="">
                 <b>2 место</b>
                 <span>18 раз</span>
-            </div>
-            <div class="awards__row">
+            </a>
+            <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-third.svg' %}" alt="">
                 <b>3 место</b>
                 <span>10 раз</span>
-            </div>
+            </a>
         </div>
     </section>
 
@@ -229,3 +229,4 @@
     })();
 </script>
 {% endblock %}
+

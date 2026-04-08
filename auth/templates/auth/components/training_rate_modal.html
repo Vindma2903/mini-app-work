@@ -1,8 +1,8 @@
-{% load static %}
+﻿{% load static %}
 <div class="training-rate-modal" id="training-rate-modal" hidden>
-    <div class="training-rate-modal__overlay"></div>
+    <div class="training-rate-modal__overlay" data-close-training-rate-modal></div>
     <section class="training-rate-modal__card" role="dialog" aria-modal="true" aria-labelledby="training-rate-title">
-        <button type="button" class="training-rate-modal__close" aria-label="Закрыть">
+        <button type="button" class="training-rate-modal__close" aria-label="Закрыть" data-close-training-rate-modal>
             <img src="{% static 'auth/img/result-saved-close.svg' %}" alt="">
         </button>
 
@@ -11,51 +11,51 @@
         <div class="training-rate-modal__ratings">
             <div class="training-rate-modal__row">
                 <span>Общая</span>
-                <div class="training-rate-modal__stars" aria-label="Оценка общая">
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
+                <div class="training-rate-modal__stars" aria-label="Оценка общая" data-rating-category="overall">
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="1">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="2">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="3">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="4">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="5">★</button>
                 </div>
             </div>
             <div class="training-rate-modal__row">
                 <span>Силовая</span>
-                <div class="training-rate-modal__stars" aria-label="Оценка силовая">
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
+                <div class="training-rate-modal__stars" aria-label="Оценка силовая" data-rating-category="strength">
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="1">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="2">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="3">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="4">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="5">★</button>
                 </div>
             </div>
             <div class="training-rate-modal__row">
                 <span>Кардио</span>
-                <div class="training-rate-modal__stars" aria-label="Оценка кардио">
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
+                <div class="training-rate-modal__stars" aria-label="Оценка кардио" data-rating-category="cardio">
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="1">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="2">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="3">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="4">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="5">★</button>
                 </div>
             </div>
             <div class="training-rate-modal__row">
                 <span>Метабол.</span>
-                <div class="training-rate-modal__stars" aria-label="Оценка метаболическая">
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
-                    <button type="button" class="training-rate-modal__star">★</button>
+                <div class="training-rate-modal__stars" aria-label="Оценка метаболическая" data-rating-category="metabolic">
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="1">★</button>
+                    <button type="button" class="training-rate-modal__star training-rate-modal__star--active" data-rating-value="2">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="3">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="4">★</button>
+                    <button type="button" class="training-rate-modal__star" data-rating-value="5">★</button>
                 </div>
             </div>
         </div>
 
         <label class="training-rate-modal__comment">
             <span>Комментарий</span>
-            <textarea placeholder="|"></textarea>
+            <textarea data-training-rate-comment></textarea>
         </label>
 
-        <button type="button" class="training-rate-modal__save">Cохранить</button>
+        <button type="button" class="training-rate-modal__save" data-save-training-rate>Сохранить</button>
     </section>
 </div>

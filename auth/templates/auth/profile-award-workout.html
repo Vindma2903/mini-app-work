@@ -1,7 +1,7 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РўСЂРµРЅРёСЂРѕРІРєР° Р·Р° РЅР°РіСЂР°РґСѓ{% endblock %}
+{% block title %}Тренировка за награду{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/profile-award-workout.css' %}">
@@ -11,39 +11,113 @@
 <main class="award-workout-screen">
     <header class="award-workout-topbar">
         <a class="award-workout-topbar__icon" href="{% url 'auth:profile_awards_tests' %}">
-            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="РќР°Р·Р°Рґ">
+            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="Назад">
         </a>
-        <h1 class="award-workout-topbar__title">РљР°Рє РІС‹РіР»СЏРґРµР»Р° С‚СЂРµРЅРёСЂРѕРІРєР°, Р·Р° РєРѕС‚РѕСЂСѓСЋ РїРѕР»СѓС‡РµРЅР° РЅР°РіСЂР°РґР°</h1>
+        <h1 class="award-workout-topbar__title">Мои награды</h1>
         <a class="award-workout-topbar__icon" href="{% url 'auth:profile' %}">
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
         </a>
     </header>
 
     <section class="award-summary">
         <div class="award-summary__row">
             <img src="{% static 'auth/img/award-first.svg' %}" alt="">
-            <span>1 РјРµСЃС‚Рѕ</span>
-            <strong>15 СЂР°Р·</strong>
+            <span>1 место</span>
+            <strong>15 раз</strong>
         </div>
     </section>
 
     <section class="award-workout-list" id="award-workout-list">
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2024-12-30' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='30.12.2024' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2024-12-30' title='HIIT Training / Силовая' date='30.12.2024' result='120 кг' %}
     </section>
 
-        {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
 </main>
+{% include 'auth/components/award_info_modal.html' %}
+<div class="award-details-modal" id="award-details-modal" hidden>
+    <div class="award-details-modal__overlay" data-close-award-details></div>
+    <section class="award-details-modal__card" role="dialog" aria-modal="true" aria-labelledby="award-details-title">
+        <button type="button" class="award-details-modal__close" data-close-award-details aria-label="Закрыть">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="">
+        </button>
+        <h2 class="award-details-modal__title" id="award-details-title">Мои награды</h2>
+        <div class="award-details-modal__head">
+            <button type="button" class="award-details-modal__training" data-award-training-toggle aria-expanded="false">
+                <span id="award-details-training">HIIT Training</span>
+                <i></i>
+            </button>
+            <div class="award-details-modal__lang">
+                <button type="button" class="award-details-modal__lang-btn award-details-modal__lang-btn--active" data-award-lang="ru" aria-label="Русский">
+                    <img src="{% static 'auth/img/flag-ru-circle.svg' %}" alt="">
+                </button>
+                <button type="button" class="award-details-modal__lang-btn" data-award-lang="usa" aria-label="English (USA)">
+                    <img src="{% static 'auth/img/flag-usa-circle.svg' %}" alt="">
+                </button>
+            </div>
+        </div>
+        <div data-award-details-content hidden>
+            {% for section in result_sections %}
+            <section class="award-details-modal__section">
+                <h3>{{ section.title }}</h3>
+                <div class="award-details-modal__line">• Результат: {{ section.value }}</div>
+                <div class="award-details-modal__line">• Режим: {{ section.mode }}</div>
+            </section>
+            {% endfor %}
+            <button type="button" class="award-details-modal__leaderboard">Посмотреть лидерборд</button>
+        </div>
+    </section>
+</div>
 <script>
     (function () {
         const list = document.getElementById("award-workout-list");
         const items = Array.from(list.querySelectorAll(".award-workout-list__item"));
         items.sort((a, b) => new Date(b.dataset.date) - new Date(a.dataset.date));
         items.forEach((item) => list.appendChild(item));
+
+        const detailsModal = document.getElementById("award-details-modal");
+        const detailsTraining = document.getElementById("award-details-training");
+        const langButtons = detailsModal.querySelectorAll("[data-award-lang]");
+        const trainingToggle = detailsModal.querySelector("[data-award-training-toggle]");
+        const detailsContent = detailsModal.querySelector("[data-award-details-content]");
+        const leaderboardButton = detailsModal.querySelector(".award-details-modal__leaderboard");
+
+        list.addEventListener("click", function (event) {
+            const row = event.target.closest(".award-workout-list__item");
+            if (!row) return;
+            const rawTraining = row.querySelector("p").textContent || "";
+            detailsTraining.textContent = rawTraining.split("/")[0].trim() || "HIIT Training";
+            detailsContent.hidden = true;
+            trainingToggle.setAttribute("aria-expanded", "false");
+            detailsModal.hidden = false;
+        });
+
+        detailsModal.addEventListener("click", function (event) {
+            if (!event.target.closest("[data-close-award-details]")) return;
+            detailsModal.hidden = true;
+        });
+
+        langButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                langButtons.forEach((item) => {
+                    item.classList.toggle("award-details-modal__lang-btn--active", item === button);
+                });
+            });
+        });
+
+        trainingToggle.addEventListener("click", function () {
+            const isExpanded = trainingToggle.getAttribute("aria-expanded") === "true";
+            const nextExpanded = !isExpanded;
+            trainingToggle.setAttribute("aria-expanded", String(nextExpanded));
+            detailsContent.hidden = !nextExpanded;
+        });
+
+        leaderboardButton?.addEventListener("click", function () {
+            window.location.href = "{% url 'auth:leaderboard_day' %}";
+        });
     })();
 </script>
 {% endblock %}
-

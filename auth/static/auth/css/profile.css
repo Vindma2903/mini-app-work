@@ -215,6 +215,12 @@ body {
     gap: 12px;
 }
 
+.awards__row--link {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
 .awards__icon {
     width: 25px;
     height: 29px;

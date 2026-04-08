@@ -11,11 +11,15 @@ from .views import (
     LeaderboardDayView,
     ProfileAwardWorkoutView,
     LoginView,
+    LogoutView,
     ProfileAwardsTestsView,
     ProfileView,
     RegisterPasswordView,
     RegisterSuccessView,
+    DownloadTrainingResultsImageView,
     RegisterView,
+    SaveTrainingResultsView,
+    SaveTrainingRateView,
     TrainingPlanTodayView,
 )
 
@@ -23,10 +27,14 @@ app_name = 'auth'
 
 urlpatterns = [
     path('', LoginView.as_view(), name='login'),
+    path('logout/', LogoutView.as_view(), name='logout'),
     path('admin-auth/', AdminLoginView.as_view(), name='admin_login'),
     path('admin-auth/password-reset/', AdminPasswordResetStartView.as_view(), name='admin_password_reset_start'),
     path('admin-auth/password-reset/confirm/', AdminPasswordResetConfirmView.as_view(), name='admin_password_reset_confirm'),
     path('calendar/', CalendarView.as_view(), name='calendar'),
+    path('calendar/save-results/', SaveTrainingResultsView.as_view(), name='calendar_save_results'),
+    path('calendar/save-training-rate/', SaveTrainingRateView.as_view(), name='calendar_save_training_rate'),
+    path('calendar/download-results-image/', DownloadTrainingResultsImageView.as_view(), name='calendar_download_results_image'),
     path('community/', CommunityView.as_view(), name='community'),
     path('training-plan/today/', TrainingPlanTodayView.as_view(), name='training_plan_today'),
     path('achievements/', AchievementsView.as_view(), name='achievements'),

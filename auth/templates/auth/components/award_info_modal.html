@@ -1,0 +1,15 @@
+{% load static %}
+<div class="award-modal" id="award-modal" hidden>
+    <div class="award-modal__overlay" data-close-modal></div>
+    <section class="award-modal__card">
+        <button type="button" class="award-modal__close" data-close-modal>
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
+        </button>
+        <h2 class="award-modal__title">Мои награды</h2>
+        <article class="award-modal__item">
+            <p id="modal-training-name">HIIT Training / силовая</p>
+            <span id="modal-training-date">25.02.2025</span>
+            <b id="modal-training-result">120 кг</b>
+        </article>
+    </section>
+</div>

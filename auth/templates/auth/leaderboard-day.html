@@ -1,11 +1,11 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Лидерборд сегодня{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-4">
 {% endblock %}
 
 {% block content %}
@@ -24,46 +24,119 @@
 
     <h1 class="leaderboard-title">Лидерборд сегодня</h1>
 
-    <section class="leaderboard-plan" aria-label="Тип плана">
-        <button type="button" class="leaderboard-plan__item leaderboard-plan__item--active">
+    <section class="leaderboard-plan" aria-label="Тип тренировки">
+        <button type="button" class="leaderboard-plan__item" data-plan-toggle aria-expanded="true">
             HIIT Training
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </button>
+
+        <div class="leaderboard-groups" data-subplans>
+            <section class="leaderboard-group">
+                <button type="button" class="leaderboard-group__toggle" data-subplan-toggle="strength" aria-expanded="true">
+                    Силовая
+                    <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+                </button>
+
+                <div class="leaderboard-list" data-subplan-panel="strength">
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-first.svg' %}" alt="1 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-second.svg' %}" alt="2 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-third.svg' %}" alt="3 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <div class="leaderboard-list__ellipsis">...</div>
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award">12</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                </div>
+            </section>
+
+            <section class="leaderboard-group">
+                <button type="button" class="leaderboard-group__toggle" data-subplan-toggle="cardio" aria-expanded="true">
+                    Кардио.
+                    <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+                </button>
+
+                <div class="leaderboard-list" data-subplan-panel="cardio">
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-first.svg' %}" alt="1 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-second.svg' %}" alt="2 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <article class="leaderboard-item">
+                    <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-third.svg' %}" alt="3 место"></div>
+                    <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                </article>
+                <div class="leaderboard-list__ellipsis">...</div>
+                </div>
+            </section>
+        </div>
     </section>
 
-    <section class="leaderboard-subplan" aria-label="Тип тренировки">
-        <button type="button" class="leaderboard-subplan__item">
-            Силовая
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </button>
-    </section>
-
-    <section class="leaderboard-list" aria-label="Рейтинг за сегодня">
-        <article class="leaderboard-item">
-            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-first.svg' %}" alt="1 место"></div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
-        </article>
-        <article class="leaderboard-item">
-            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-second.svg' %}" alt="2 место"></div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
-        </article>
-        <article class="leaderboard-item">
-            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--award"><img src="{% static 'auth/img/award-third.svg' %}" alt="3 место"></div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
-        </article>
-        <div class="leaderboard-list__ellipsis">...</div>
-        <article class="leaderboard-item">
-            <div class="leaderboard-item__cell leaderboard-item__cell--name">Виктория Иванова</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--time">25 минут</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--award">12</div>
-            <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
-        </article>
-    </section>
+    {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
+
+<script>
+    (function () {
+        const planToggle = document.querySelector("[data-plan-toggle]");
+        const groupsWrap = document.querySelector("[data-subplans]");
+        const groupButtons = document.querySelectorAll("[data-subplan-toggle]");
+        const panels = document.querySelectorAll("[data-subplan-panel]");
+
+        function syncPanel(key) {
+            const button = Array.from(groupButtons).find((item) => item.dataset.subplanToggle === key);
+            const panel = Array.from(panels).find((item) => item.dataset.subplanPanel === key);
+            if (!button || !panel) return;
+            const expanded = button.getAttribute("aria-expanded") === "true";
+            panel.hidden = !expanded;
+        }
+
+        function syncPlanState() {
+            const expanded = planToggle.getAttribute("aria-expanded") === "true";
+            groupsWrap.hidden = !expanded;
+            if (!expanded) return;
+            groupButtons.forEach((button) => syncPanel(button.dataset.subplanToggle));
+        }
+
+        planToggle?.addEventListener("click", () => {
+            const expanded = planToggle.getAttribute("aria-expanded") === "true";
+            planToggle.setAttribute("aria-expanded", String(!expanded));
+            syncPlanState();
+        });
+
+        groupButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const expanded = button.getAttribute("aria-expanded") === "true";
+                button.setAttribute("aria-expanded", String(!expanded));
+                syncPanel(button.dataset.subplanToggle);
+            });
+        });
+
+        syncPlanState();
+    })();
+</script>
 {% endblock %}

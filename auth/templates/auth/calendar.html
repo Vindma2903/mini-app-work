@@ -1,19 +1,24 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РљР°Р»РµРЅРґР°СЂСЊ{% endblock %}
+{% block title %}Календарь{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-my-results-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-result-saved-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-share-results-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-thanks-modal.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
 {% endblock %}
 
 {% block content %}
 <main class="calendar-screen">
-    {% include 'auth/components/profile_header.html' with name='Р’РёРєС‚РѕСЂРёСЏ РРІР°РЅРѕРІР°' experience='8 Р»РµС‚' %}
+    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
 
     <section class="calendar-header-card">
-        <h1 class="calendar-title">Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє</h1>
+        <h1 class="calendar-title">Расписание тренировок</h1>
         {% include 'auth/components/day_picker.html' with wrapper_class='calendar-days' item_class='calendar-days__item' active_day=4 show_wednesday='0' %}
     </section>
 
@@ -23,49 +28,49 @@
                 <span>HIIT Training</span>
                 <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
             </a>
-            <div class="calendar-lang-switch" aria-label="РЇР·С‹Рє">
-                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Р СѓСЃСЃРєРёР№ Рё Р°РЅРіР»РёР№СЃРєРёР№">
+            <div class="calendar-lang-switch" aria-label="Язык">
+                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Русский и английский">
             </div>
         </div>
 
-        <button type="button" class="calendar-add-result" data-open-result-modal>Р”РѕР±Р°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚</button>
+        <button type="button" class="calendar-add-result" data-open-result-modal>Добавить результат</button>
 
         <div id="calendar-training-details" hidden>
             <div class="calendar-training-block">
-                <h2 class="calendar-stats-card__title">РЎРёР»РѕРІР°СЏ</h2>
+                <h2 class="calendar-stats-card__title">Силовая</h2>
                 <div class="calendar-stats-card__timeline">
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                        <span>15 раз на скакалке</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
                     </div>
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <span>15 раз на скакалке</span>
                     </div>
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                        <span>15 раз на скакалке</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
                     </div>
                 </div>
             </div>
 
             <div class="calendar-training-block">
-                <h2 class="calendar-stats-card__title">РЎРёР»РѕРІР°СЏ</h2>
+                <h2 class="calendar-stats-card__title">Силовая</h2>
                 <div class="calendar-stats-card__timeline">
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <span>15 раз на скакалке</span>
                     </div>
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="РџРѕСЃРјРѕС‚СЂРµС‚СЊ РІРёРґРµРѕ"></button>
+                        <span>15 раз на скакалке</span>
+                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
                     </div>
                     <div class="calendar-stats-card__point">
                         <i></i>
-                        <span>15 СЂР°Р· РЅР° СЃРєР°РєР°Р»РєРµ</span>
+                        <span>15 раз на скакалке</span>
                     </div>
                 </div>
             </div>
@@ -73,26 +78,27 @@
     </section>
 
     <section class="calendar-list">
-        <h2>Р¤РµРІСЂР°Р»СЊ 2025</h2>
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='21.02.2025' result='100 Р С”Р С–' %}
+        <h2>Февраль 2025</h2>
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='21.02.2025' result='100 кг' %}
     </section>
 
-        {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
+    {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
+
 <div class="calendar-video-modal" id="calendar-video-modal" hidden>
     <div class="calendar-video-modal__overlay" data-close-video-modal></div>
     <section class="calendar-video-modal__card">
         <button type="button" class="calendar-video-modal__close" data-close-video-modal>
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
         </button>
         <div class="calendar-video-modal__frame-wrap">
             <iframe
                 id="calendar-video-frame"
                 class="calendar-video-modal__frame"
                 src=""
-                title="Р’РёРґРµРѕ С‚СЂРµРЅРёСЂРѕРІРєРё"
+                title="Видео тренировки"
                 loading="lazy"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 referrerpolicy="strict-origin-when-cross-origin"
@@ -101,70 +107,387 @@
         </div>
     </section>
 </div>
-<div class="calendar-result-modal" id="calendar-result-modal" hidden>
-    <div class="calendar-result-modal__overlay" data-close-result-modal></div>
-    <section class="calendar-result-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="calendar-result-title">
-        <button type="button" class="calendar-result-modal__close" data-close-result-modal aria-label="Р—Р°РєСЂС‹С‚СЊ">
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="">
-        </button>
-        <h2 class="calendar-result-modal__title" id="calendar-result-title">Р”РѕР±Р°РІРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚</h2>
-        <p class="calendar-result-modal__text">Р—Р°РїРѕР»РЅРёС‚Рµ Р·РЅР°С‡РµРЅРёСЏ РїРѕ СѓРїСЂР°Р¶РЅРµРЅРёСЏРј Р·Р° СЃРµРіРѕРґРЅСЏ</p>
-        <div class="calendar-result-modal__content">
-            <div class="calendar-result-modal__group">
-                <h3>РЎРёР»РѕРІР°СЏ</h3>
-                <label>
-                    <span>РџСЂРёСЃРµРґ 10 x2</span>
-                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ РєРі">
-                </label>
-                <label>
-                    <span>РћС‚Р¶РёРјР°РЅРёСЏ 10 x2</span>
-                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ РєРі">
-                </label>
-            </div>
 
-            <div class="calendar-result-modal__group">
-                <h3>РљР°СЂРґРёРѕ</h3>
-                <label>
-                    <span>РџР»Р°РЅРєР° 30 СЃРµРє</span>
-                    <input type="text" placeholder="Р’РІРµРґРёС‚Рµ СЃРµРє">
-                </label>
-            </div>
-        </div>
+{% include 'auth/components/my_results_modal.html' %}
+{% include 'auth/components/result_saved_modal.html' %}
+{% include 'auth/components/share_results_modal.html' %}
+{% include 'auth/components/training_rate_modal.html' %}
+{% include 'auth/components/training_rate_thanks_modal.html' %}
 
-        <button type="button" class="calendar-result-modal__save" data-close-result-modal>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
-    </section>
-</div>
 <script>
     (function () {
-        const modal = document.getElementById("calendar-video-modal");
+        const videoModal = document.getElementById("calendar-video-modal");
         const frame = document.getElementById("calendar-video-frame");
-        const resultModal = document.getElementById("calendar-result-modal");
+
+        const resultModal = document.getElementById("my-results-modal");
+        const resultSavedModal = document.getElementById("result-saved-modal");
+        const shareResultsModal = document.getElementById("share-results-modal");
+        const trainingRateModal = document.getElementById("training-rate-modal");
+        const trainingRateThanksModal = document.getElementById("training-rate-thanks-modal");
         const openResultButton = document.querySelector("[data-open-result-modal]");
+        const saveResultsUrl = "{% url 'auth:calendar_save_results' %}";
+        const saveTrainingRateUrl = "{% url 'auth:calendar_save_training_rate' %}";
+        const downloadResultsImageUrl = "{% url 'auth:calendar_download_results_image' %}";
+        const leaderboardDayUrl = "{% url 'auth:leaderboard_day' %}";
+        const csrfTokenFallback = "{{ csrf_token }}";
+        let lastSavedResults = null;
+        let lastSavedDate = null;
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
         document.querySelectorAll(".calendar-watch-video").forEach((trigger) => {
             trigger.addEventListener("click", (event) => {
                 event.preventDefault();
                 frame.src = trigger.dataset.videoUrl || "";
-                modal.hidden = false;
+                videoModal.hidden = false;
             });
         });
 
-        modal.addEventListener("click", (event) => {
+        videoModal.addEventListener("click", (event) => {
             if (!event.target.closest("[data-close-video-modal]")) return;
-            modal.hidden = true;
+            videoModal.hidden = true;
             frame.src = "";
         });
 
         if (openResultButton && resultModal) {
+            const sectionTitle = resultModal.querySelector("[data-results-section-title]");
+            const minutesInput = resultModal.querySelector("[data-results-minutes]");
+            const secondsInput = resultModal.querySelector("[data-results-seconds]");
+            const nextButton = resultModal.querySelector("[data-results-next]");
+            const skipButton = resultModal.querySelector("[data-results-skip]");
             openResultButton.addEventListener("click", () => {
+                resetWizard();
                 resultModal.hidden = false;
             });
 
             resultModal.addEventListener("click", (event) => {
-                if (!event.target.closest("[data-close-result-modal]")) return;
+                if (!event.target.closest("[data-close-results-modal]")) return;
                 resultModal.hidden = true;
+            });
+
+            const modeButtons = resultModal.querySelectorAll("[data-results-mode]");
+            modeButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    modeButtons.forEach((item) => {
+                        item.classList.toggle("my-results-chip--active", item === button);
+                    });
+                });
+            });
+
+            const sections = [
+                { key: "strength", title: "Силовая" },
+                { key: "cardio", title: "Кардио" },
+                { key: "metabolic", title: "Метаболическая" },
+            ];
+            const draftResults = {};
+            let sectionIndex = 0;
+
+            function getActiveMode() {
+                const active = resultModal.querySelector(".my-results-chip--active");
+                return (active?.dataset?.resultsMode || "rx").toLowerCase();
+            }
+
+            function setMode(mode) {
+                modeButtons.forEach((button) => {
+                    button.classList.toggle("my-results-chip--active", (button.dataset.resultsMode || "").toLowerCase() === mode);
+                });
+            }
+
+            function readCurrentValues() {
+                const minutes = (minutesInput.value || "").trim();
+                const seconds = (secondsInput.value || "").trim();
+
+                if (minutes && !/^\d+$/.test(minutes)) {
+                    alert("Поле минут должно содержать только цифры.");
+                    return null;
+                }
+                if (seconds && !/^\d+$/.test(seconds)) {
+                    alert("Поле секунд должно содержать только цифры.");
+                    return null;
+                }
+                if (seconds && Number(seconds) > 59) {
+                    alert("Секунды должны быть в диапазоне от 0 до 59.");
+                    return null;
+                }
+
+                return {
+                    minutes: minutes || null,
+                    seconds: seconds || null,
+                    mode: getActiveMode(),
+                };
+            }
+
+            function writeCurrentValues() {
+                const currentSection = sections[sectionIndex];
+                const data = draftResults[currentSection.key] || {};
+                minutesInput.value = data.minutes || "";
+                secondsInput.value = data.seconds || "";
+                setMode((data.mode || "rx").toLowerCase());
+            }
+
+            function renderStep() {
+                const isLastStep = sectionIndex === sections.length - 1;
+                sectionTitle.textContent = sections[sectionIndex].title;
+                nextButton.textContent = isLastStep ? "Сохранить" : "Далее";
+                writeCurrentValues();
+            }
+
+            function resetWizard() {
+                sectionIndex = 0;
+                Object.keys(draftResults).forEach((key) => delete draftResults[key]);
+                renderStep();
+            }
+
+            function saveCurrentStep(allowEmpty) {
+                const values = readCurrentValues();
+                if (!values) return false;
+                if (!allowEmpty && values.minutes === null && values.seconds === null) {
+                    alert("Введите результат или нажмите «Пропустить».");
+                    return false;
+                }
+                draftResults[sections[sectionIndex].key] = values;
+                return true;
+            }
+
+            async function submitResults() {
+                nextButton.disabled = true;
+                skipButton.disabled = true;
+                try {
+                    const response = await fetch(saveResultsUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: JSON.stringify({
+                            results: draftResults,
+                            date: new Date().toISOString().slice(0, 10),
+                        }),
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload.ok) {
+                        alert("Не удалось сохранить результаты. Попробуйте еще раз.");
+                        return;
+                    }
+                    lastSavedResults = JSON.parse(JSON.stringify(draftResults));
+                    lastSavedDate = payload.date || new Date().toISOString().slice(0, 10);
+                    resultModal.hidden = true;
+                    if (resultSavedModal) {
+                        resultSavedModal.hidden = false;
+                    }
+                    resetWizard();
+                } catch (error) {
+                    alert("Ошибка сети при сохранении результатов.");
+                } finally {
+                    nextButton.disabled = false;
+                    skipButton.disabled = false;
+                }
+            }
+
+            nextButton.addEventListener("click", async () => {
+                if (!saveCurrentStep(false)) return;
+                if (sectionIndex < sections.length - 1) {
+                    sectionIndex += 1;
+                    renderStep();
+                    return;
+                }
+                await submitResults();
+            });
+
+            skipButton.addEventListener("click", async () => {
+                saveCurrentStep(true);
+                if (sectionIndex < sections.length - 1) {
+                    sectionIndex += 1;
+                    renderStep();
+                    return;
+                }
+                await submitResults();
+            });
+
+            resetWizard();
+        }
+
+        if (resultSavedModal) {
+            resultSavedModal.addEventListener("click", (event) => {
+                if (!event.target.closest("[data-close-result-saved-modal]")) return;
+                resultSavedModal.hidden = true;
+            });
+
+            resultSavedModal.querySelector("[data-open-share-results-modal]")?.addEventListener("click", () => {
+                if (!shareResultsModal) return;
+
+                const formatValue = (entry) => {
+                    if (!entry) return "--";
+                    const minutes = entry.minutes ?? "";
+                    const seconds = entry.seconds ?? "";
+                    if (!minutes && !seconds) return "--";
+                    if (minutes && seconds) return `${minutes}x${seconds}`;
+                    return minutes || seconds;
+                };
+
+                shareResultsModal.querySelector("[data-share-value='cardio']").textContent =
+                    formatValue(lastSavedResults?.cardio);
+                shareResultsModal.querySelector("[data-share-value='strength']").textContent =
+                    formatValue(lastSavedResults?.strength);
+                shareResultsModal.querySelector("[data-share-value='metabolic']").textContent =
+                    formatValue(lastSavedResults?.metabolic);
+                shareResultsModal.querySelector("[data-share-date]").textContent =
+                    new Date(lastSavedDate || Date.now()).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) + " г.";
+
+                resultSavedModal.hidden = true;
+                shareResultsModal.hidden = false;
+            });
+
+            resultSavedModal.querySelector("[data-open-training-rate-modal]")?.addEventListener("click", () => {
+                if (!trainingRateModal) return;
+                trainingRateModal.querySelector("[data-training-rate-comment]").value = "";
+                resultSavedModal.hidden = true;
+                trainingRateModal.hidden = false;
+            });
+        }
+
+        if (trainingRateModal) {
+            const rateSaveButton = trainingRateModal.querySelector("[data-save-training-rate]");
+            const rateCommentInput = trainingRateModal.querySelector("[data-training-rate-comment]");
+
+            const readRatings = () => {
+                const ratings = {};
+                trainingRateModal.querySelectorAll("[data-rating-category]").forEach((group) => {
+                    const category = group.dataset.ratingCategory;
+                    const value = group.querySelectorAll(".training-rate-modal__star--active").length;
+                    ratings[category] = value;
+                });
+                return ratings;
+            };
+
+            trainingRateModal.querySelectorAll("[data-rating-category]").forEach((group) => {
+                group.addEventListener("click", (event) => {
+                    const star = event.target.closest(".training-rate-modal__star");
+                    if (!star) return;
+                    const selected = Number(star.dataset.ratingValue || "0");
+                    if (!selected) return;
+                    group.querySelectorAll(".training-rate-modal__star").forEach((item) => {
+                        const value = Number(item.dataset.ratingValue || "0");
+                        item.classList.toggle("training-rate-modal__star--active", value <= selected);
+                    });
+                });
+            });
+
+            trainingRateModal.addEventListener("click", (event) => {
+                if (!event.target.closest("[data-close-training-rate-modal]")) return;
+                trainingRateModal.hidden = true;
+            });
+
+            rateSaveButton?.addEventListener("click", async () => {
+                const ratings = readRatings();
+                if (!ratings.overall || !ratings.strength || !ratings.cardio || !ratings.metabolic) {
+                    alert("Пожалуйста, поставьте оценку по всем разделам.");
+                    return;
+                }
+
+                rateSaveButton.disabled = true;
+                try {
+                    const response = await fetch(saveTrainingRateUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: JSON.stringify({
+                            date: lastSavedDate || new Date().toISOString().slice(0, 10),
+                            ratings,
+                            comment: (rateCommentInput?.value || "").trim(),
+                        }),
+                    });
+                    const payload = await response.json().catch(() => ({}));
+                    if (!response.ok || !payload.ok) {
+                        alert("Не удалось сохранить оценку. Попробуйте еще раз.");
+                        return;
+                    }
+
+                    trainingRateModal.hidden = true;
+                    if (trainingRateThanksModal) {
+                        trainingRateThanksModal.hidden = false;
+                    }
+                } catch (error) {
+                    alert("Ошибка сети при сохранении оценки.");
+                } finally {
+                    rateSaveButton.disabled = false;
+                }
+            });
+        }
+
+        if (trainingRateThanksModal) {
+            trainingRateThanksModal.addEventListener("click", (event) => {
+                const closeTarget = event.target.closest("[data-close-training-rate-thanks-modal]");
+                if (!closeTarget) return;
+                if (closeTarget.classList.contains("training-rate-thanks-modal__btn")) {
+                    window.location.href = leaderboardDayUrl;
+                    return;
+                }
+                trainingRateThanksModal.hidden = true;
+            });
+        }
+
+        if (shareResultsModal) {
+            shareResultsModal.addEventListener("click", (event) => {
+                if (!event.target.closest("[data-close-share-results-modal]")) return;
+                shareResultsModal.hidden = true;
+            });
+
+            shareResultsModal.querySelector("[data-open-share-native]")?.addEventListener("click", async () => {
+                if (!navigator.share) return;
+                try {
+                    await navigator.share({
+                        title: "Результаты тренировки",
+                        text: "Делюсь результатами тренировки!",
+                        url: window.location.href,
+                    });
+                } catch (error) {
+                    // ignore cancellation
+                }
+            });
+
+            shareResultsModal.querySelector("[data-share-download]")?.addEventListener("click", () => {
+                fetch(downloadResultsImageUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                    },
+                    body: JSON.stringify({
+                        results: lastSavedResults || {},
+                        date: lastSavedDate || new Date().toISOString().slice(0, 10),
+                    }),
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("download_failed");
+                        }
+                        return Promise.all([response.blob(), response.headers.get("Content-Disposition")]);
+                    })
+                    .then(([blob, disposition]) => {
+                        const filenameMatch = disposition && disposition.match(/filename=\"?([^\";]+)\"?/i);
+                        const filename = filenameMatch ? filenameMatch[1] : "training-results.png";
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = url;
+                        link.download = filename;
+                        document.body.appendChild(link);
+                        link.click();
+                        link.remove();
+                        URL.revokeObjectURL(url);
+                    })
+                    .catch(() => {
+                        alert("Не удалось скачать изображение. Попробуйте еще раз.");
+                    });
             });
         }
     })();
 </script>
 {% endblock %}
-

@@ -1,0 +1,35 @@
+{% load static %}
+<div class="share-results-modal" id="share-results-modal" hidden>
+    <div class="share-results-modal__overlay" data-close-share-results-modal></div>
+    <section class="share-results-modal__card" role="dialog" aria-modal="true" aria-labelledby="share-results-title">
+        <div class="share-results-modal__head">
+            <button type="button" class="share-results-modal__icon-btn" data-open-share-native aria-label="Поделиться">
+                <img src="{% static 'auth/img/share-results-icon.svg' %}" alt="">
+            </button>
+            <button type="button" class="share-results-modal__icon-btn" data-close-share-results-modal aria-label="Закрыть">
+                ✕
+            </button>
+        </div>
+
+        <div class="share-results-modal__summary">
+            <h2 id="share-results-title">Результаты тренировки</h2>
+            <div class="share-results-modal__row">
+                <span>Кардио</span>
+                <b data-share-value="cardio">--</b>
+            </div>
+            <div class="share-results-modal__row">
+                <span>Силовая</span>
+                <b data-share-value="strength">--</b>
+            </div>
+            <div class="share-results-modal__row">
+                <span>Метаболическая</span>
+                <b data-share-value="metabolic">--</b>
+            </div>
+            <p class="share-results-modal__date" data-share-date></p>
+        </div>
+
+        <button type="button" class="share-results-modal__download" data-share-download>
+            Скачать изображение
+        </button>
+    </section>
+</div>

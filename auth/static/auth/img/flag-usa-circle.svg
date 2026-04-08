@@ -1,0 +1,36 @@
+<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="clip0">
+      <circle cx="7" cy="7" r="7"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#clip0)">
+    <rect width="14" height="14" fill="#F0F0F0"/>
+    <rect y="0" width="14" height="1.08" fill="#D80027"/>
+    <rect y="2.16" width="14" height="1.08" fill="#D80027"/>
+    <rect y="4.32" width="14" height="1.08" fill="#D80027"/>
+    <rect y="6.48" width="14" height="1.08" fill="#D80027"/>
+    <rect y="8.64" width="14" height="1.08" fill="#D80027"/>
+    <rect y="10.8" width="14" height="1.08" fill="#D80027"/>
+    <rect y="12.96" width="14" height="1.08" fill="#D80027"/>
+    <rect width="6.4" height="5.92" fill="#0052B4"/>
+    <circle cx="1.1" cy="1.1" r="0.35" fill="white"/>
+    <circle cx="2.5" cy="1.1" r="0.35" fill="white"/>
+    <circle cx="3.9" cy="1.1" r="0.35" fill="white"/>
+    <circle cx="5.3" cy="1.1" r="0.35" fill="white"/>
+    <circle cx="1.8" cy="2.1" r="0.35" fill="white"/>
+    <circle cx="3.2" cy="2.1" r="0.35" fill="white"/>
+    <circle cx="4.6" cy="2.1" r="0.35" fill="white"/>
+    <circle cx="1.1" cy="3.1" r="0.35" fill="white"/>
+    <circle cx="2.5" cy="3.1" r="0.35" fill="white"/>
+    <circle cx="3.9" cy="3.1" r="0.35" fill="white"/>
+    <circle cx="5.3" cy="3.1" r="0.35" fill="white"/>
+    <circle cx="1.8" cy="4.1" r="0.35" fill="white"/>
+    <circle cx="3.2" cy="4.1" r="0.35" fill="white"/>
+    <circle cx="4.6" cy="4.1" r="0.35" fill="white"/>
+    <circle cx="1.1" cy="5.1" r="0.35" fill="white"/>
+    <circle cx="2.5" cy="5.1" r="0.35" fill="white"/>
+    <circle cx="3.9" cy="5.1" r="0.35" fill="white"/>
+    <circle cx="5.3" cy="5.1" r="0.35" fill="white"/>
+  </g>
+</svg>

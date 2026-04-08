@@ -5,4 +5,5 @@ djangorestframework
 dj-rest-auth
 djangorestframework-simplejwt
 drf-spectacular
+pillow
 requests

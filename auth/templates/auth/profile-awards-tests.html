@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РџСЂРѕС„РёР»СЊ - РњРѕРё РЅР°РіСЂР°РґС‹{% endblock %}
+{% block title %}Профиль - Мои награды{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/profile-awards-tests.css' %}">
@@ -11,43 +11,43 @@
 <main class="awards-screen">
     <header class="awards-topbar">
         <a class="awards-topbar__icon" href="{% url 'auth:profile' %}">
-            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="РќР°Р·Р°Рґ">
+            <img src="{% static 'auth/img/profile-awards-back.svg' %}" alt="Назад">
         </a>
-        <h1 class="awards-topbar__title">РњРѕРё РЅР°РіСЂР°РґС‹</h1>
+        <h1 class="awards-topbar__title">Мои награды</h1>
         <a class="awards-topbar__icon" href="{% url 'auth:profile' %}">
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
         </a>
     </header>
 
     <section class="award-summary">
         <div class="award-summary__row">
             <img src="{% static 'auth/img/award-first.svg' %}" alt="">
-            <span>1 РјРµСЃС‚Рѕ</span>
-            <strong>15 СЂР°Р·</strong>
+            <span>1 место</span>
+            <strong>15 раз</strong>
         </div>
     </section>
 
     <section class="awards-list" id="awards-list">
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='25.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='29.02.2025' result='120 Р С”Р С–' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2024-12-30' title='HIIT Training / РЎРѓР С‘Р В»Р С•Р Р†Р В°РЎРЏ' date='30.12.2024' result='120 Р С”Р С–' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2024-12-30' title='HIIT Training / Силовая' date='30.12.2024' result='120 кг' %}
     </section>
 
-        {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
 </main>
 <div class="award-modal" id="award-modal" hidden>
     <div class="award-modal__overlay" data-close-modal></div>
     <section class="award-modal__card">
         <button type="button" class="award-modal__close" data-close-modal>
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Р—Р°РєСЂС‹С‚СЊ">
+            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
         </button>
-        <h2 class="award-modal__title">РљР°Рє РІС‹РіР»СЏРґРµР»Р° С‚СЂРµРЅРёСЂРѕРІРєР°, Р·Р° РєРѕС‚РѕСЂСѓСЋ РїРѕР»СѓС‡РµРЅР° РЅР°РіСЂР°РґР°</h2>
+        <h2 class="award-modal__title">Мои награды</h2>
         <article class="award-modal__item">
-            <p id="modal-training-name">HIIT Training / СЃРёР»РѕРІР°СЏ</p>
+            <p id="modal-training-name">HIIT Training / силовая</p>
             <span id="modal-training-date">25.02.2025</span>
-            <b id="modal-training-result">120 РєРі</b>
+            <b id="modal-training-result">120 кг</b>
         </article>
     </section>
 </div>

@@ -98,3 +98,23 @@ class TrainingRate(models.Model):
 
     def __str__(self):
         return f'{self.user.email}: {self.training_date} rate={self.overall}'
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='profile',
+    )
+    birth_date = models.DateField(null=True, blank=True)
+    telegram_user_id = models.BigIntegerField(null=True, blank=True, unique=True)
+    telegram_username = models.CharField(max_length=255, blank=True, default='')
+    telegram_first_name = models.CharField(max_length=255, blank=True, default='')
+    telegram_last_name = models.CharField(max_length=255, blank=True, default='')
+    telegram_link_token = models.CharField(max_length=128, blank=True, default='', db_index=True)
+    telegram_link_expires_at = models.DateTimeField(null=True, blank=True)
+    telegram_linked_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'Profile of {self.user.email}'

@@ -1,0 +1,219 @@
+﻿{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}РќР°СЃС‚СЂРѕР№РєРё{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/settings.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="settings-screen">
+    <header class="settings-topbar">
+        <a href="{% url 'auth:profile' %}" class="settings-topbar__back">
+            <img src="{% static 'auth/img/register-back-arrow.svg' %}" alt="">
+            <span>РќР°Р·Р°Рґ</span>
+        </a>
+        <a href="{% url 'auth:logout' %}" class="settings-topbar__logout" aria-label="Р’С‹Р№С‚Рё">
+            <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        </a>
+    </header>
+
+    <section class="settings-user">
+        <div class="settings-user__avatar"></div>
+        <h1 data-settings-full-name>{{ settings_name }}</h1>
+        <p>{{ settings_email }}</p>
+        <button type="button" class="settings-user__link-btn" data-open-telegram-link {% if telegram_linked %}disabled{% endif %}>
+            <img src="{% static 'auth/img/register-back-arrow.svg' %}" alt="">
+            <span data-telegram-link-btn-text>{% if telegram_linked %}Telegram привязан{% else %}Привязать аккаунт{% endif %}</span>
+        </button>
+        <p class="settings-user__link-status" data-telegram-link-msg>
+            {% if telegram_linked %}Подключен {{ telegram_display|default:"Telegram аккаунт" }}{% endif %}
+        </p>
+    </section>
+
+    <section class="settings-block">
+        <h2>РЎРјРµРЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ</h2>
+        <label class="settings-field"><span>РРјСЏ</span><input type="text" value="{{ settings_first_name }}" data-profile-first-name></label>
+        <label class="settings-field"><span>Р¤Р°РјРёР»РёСЏ</span><input type="text" value="{{ settings_last_name }}" data-profile-last-name></label>
+        <label class="settings-field"><span>Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span><input type="text" value="{{ settings_birth_date }}" placeholder="Р“Р“Р“Р“-РњРњ-Р”Р”" data-profile-birth-date></label>
+        <button type="button" class="settings-save" data-save-profile-data>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <p class="settings-block__msg" data-profile-save-msg hidden></p>
+    </section>
+
+    <section class="settings-block">
+        <h2>РЎРјРµРЅРёС‚СЊ РїРѕС‡С‚Сѓ</h2>
+        <label class="settings-field"><span>РџРѕС‡С‚Р°</span><input type="email" placeholder=""></label>
+        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+    </section>
+
+    <section class="settings-block">
+        <h2>РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ</h2>
+        <label class="settings-field"><span>Р’РІРµРґРёС‚Рµ СЃС‚Р°СЂС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
+        <label class="settings-field"><span>Р’РІРµРґРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
+        <label class="settings-field"><span>РџРѕРІС‚РѕСЂРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
+        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+    </section>
+
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='settings-bottom-nav' %}
+</main>
+<script>
+    (function () {
+        const saveBtn = document.querySelector("[data-save-profile-data]");
+        if (!saveBtn) return;
+
+        const firstNameInput = document.querySelector("[data-profile-first-name]");
+        const lastNameInput = document.querySelector("[data-profile-last-name]");
+        const birthDateInput = document.querySelector("[data-profile-birth-date]");
+        const fullNameNode = document.querySelector("[data-settings-full-name]");
+        const messageNode = document.querySelector("[data-profile-save-msg]");
+        const saveUrl = "{% url 'auth:settings_profile_data' %}";
+        const csrfTokenFallback = "{{ csrf_token }}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
+        function showMessage(text, isError) {
+            messageNode.hidden = false;
+            messageNode.textContent = text;
+            messageNode.classList.toggle("settings-block__msg--error", Boolean(isError));
+            messageNode.classList.toggle("settings-block__msg--ok", !isError);
+        }
+
+        saveBtn.addEventListener("click", async () => {
+            const payload = {
+                first_name: (firstNameInput.value || "").trim(),
+                last_name: (lastNameInput.value || "").trim(),
+                birth_date: (birthDateInput.value || "").trim(),
+            };
+
+            saveBtn.disabled = true;
+            try {
+                const response = await fetch(saveUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) {
+                    showMessage("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ.", true);
+                    return;
+                }
+
+                fullNameNode.textContent = `${data.first_name} ${data.last_name}`.trim();
+                if (data.birth_date) {
+                    birthDateInput.value = data.birth_date;
+                }
+                showMessage("Р”Р°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ СЃРѕС…СЂР°РЅРµРЅС‹.", false);
+            } catch (error) {
+                showMessage("РћС€РёР±РєР° СЃРµС‚Рё. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·.", true);
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
+
+        const tgBtn = document.querySelector("[data-open-telegram-link]");
+        const tgMsg = document.querySelector("[data-telegram-link-msg]");
+        const tgBtnText = document.querySelector("[data-telegram-link-btn-text]");
+        const tgStartUrl = "{% url 'auth:settings_telegram_link_start' %}";
+        const tgStatusUrl = "{% url 'auth:settings_telegram_status' %}";
+
+        function showTelegramMessage(text, isError = false) {
+            if (!tgMsg) return;
+            tgMsg.textContent = text || "";
+            tgMsg.classList.toggle("settings-user__link-status--error", Boolean(isError));
+        }
+
+        function updateTelegramLinkedState(username) {
+            if (!tgBtn) return;
+            tgBtn.disabled = true;
+            if (tgBtnText) {
+                tgBtnText.textContent = "Telegram привязан";
+            }
+            const shownName = username ? `@${username}` : "Telegram аккаунт";
+            showTelegramMessage(`Подключен ${shownName}`, false);
+        }
+
+        async function fetchTelegramStatus() {
+            const response = await fetch(tgStatusUrl, {
+                method: "GET",
+                headers: {
+                    "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                },
+            });
+            const data = await response.json().catch(() => ({}));
+            return { response, data };
+        }
+
+        async function waitTelegramLinked() {
+            const maxAttempts = 40;
+            for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+                await new Promise((resolve) => setTimeout(resolve, 3000));
+                try {
+                    const { response, data } = await fetchTelegramStatus();
+                    if (response.ok && data.ok && data.linked) {
+                        updateTelegramLinkedState(data.telegram_username || "");
+                        return true;
+                    }
+                } catch (error) {
+                    // continue polling
+                }
+            }
+            return false;
+        }
+
+        if (tgBtn) {
+            tgBtn.addEventListener("click", async () => {
+                tgBtn.disabled = true;
+                showTelegramMessage("Создаем ссылку для привязки...");
+                try {
+                    const response = await fetch(tgStartUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: JSON.stringify({}),
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.ok) {
+                        showTelegramMessage("Не удалось начать привязку Telegram.", true);
+                        tgBtn.disabled = false;
+                        return;
+                    }
+
+                    if (data.already_linked) {
+                        updateTelegramLinkedState(data.telegram_username || "");
+                        return;
+                    }
+
+                    if (!data.deep_link) {
+                        showTelegramMessage("Не задан TELEGRAM_BOT_USERNAME в настройках.", true);
+                        tgBtn.disabled = false;
+                        return;
+                    }
+
+                    window.open(data.deep_link, "_blank", "noopener,noreferrer");
+                    showTelegramMessage("Откройте Telegram и нажмите Start в боте. Ждем подтверждение...");
+                    const linked = await waitTelegramLinked();
+                    if (!linked) {
+                        showTelegramMessage("Подтверждение не получено. Нажмите кнопку и попробуйте снова.", true);
+                        tgBtn.disabled = false;
+                    }
+                } catch (error) {
+                    showTelegramMessage("Ошибка сети. Попробуйте еще раз.", true);
+                    tgBtn.disabled = false;
+                }
+            });
+        }
+    })();
+</script>
+{% endblock %}
+

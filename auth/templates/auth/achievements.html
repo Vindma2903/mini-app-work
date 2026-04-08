@@ -55,16 +55,50 @@
     </div>
 
     <div data-achievements-panel="benchmarks" hidden>
-        <section class="achievements-block">
-            <h2>Benchmarks</h2>
-            <div class="achievements-card">
-                <article class="achievements-row"><p>Fran</p><span>03:42</span></article>
-                <article class="achievements-row"><p>Cindy</p><span>18 раундов</span></article>
-                <article class="achievements-row"><p>Murph</p><span>43:10</span></article>
-                <article class="achievements-row"><p>Helen</p><span>09:56</span></article>
-                <article class="achievements-row"><p>Grace</p><span>02:48</span></article>
-                <article class="achievements-row"><p>Annie</p><span>07:11</span></article>
-                <article class="achievements-row"><p>Fight Gone Bad</p><span>323</span></article>
+        <section class="achievements-bench">
+            <div class="achievements-bench-tabs">
+                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="girls">Girls</button>
+                <button type="button" class="achievements-bench-tabs__item achievements-bench-tabs__item--active" data-bench-tab="heroes">Heroes</button>
+                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="heroes2">Heroes</button>
+            </div>
+
+            <div class="achievements-card achievements-card--bench" data-bench-panel="girls" hidden>
+                <article class="achievements-row achievements-row--bench"><p>Anna Yard</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+            </div>
+
+            <div class="achievements-card achievements-card--bench" data-bench-panel="heroes">
+                <article class="achievements-row achievements-row--bench"><p>Anna Yard</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+            </div>
+
+            <div class="achievements-card achievements-card--bench" data-bench-panel="heroes2" hidden>
+                <article class="achievements-row achievements-row--bench"><p>Murph</p><span>43:10</span></article>
+                <article class="achievements-row achievements-row--bench"><p>DT</p><span>11:25</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Randy</p><span>05:09</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Fight Gone Bad</p><span>323</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Nate</p><span>--</span></article>
+                <article class="achievements-row achievements-row--bench"><p>Tommy V</p><span>--</span></article>
             </div>
         </section>
     </div>
@@ -85,9 +119,27 @@
             });
         }
 
+        const benchTabs = document.querySelectorAll("[data-bench-tab]");
+        const benchPanels = document.querySelectorAll("[data-bench-panel]");
+
+        function activateBenchTab(tabName) {
+            benchTabs.forEach((tab) => {
+                tab.classList.toggle("achievements-bench-tabs__item--active", tab.dataset.benchTab === tabName);
+            });
+            benchPanels.forEach((panel) => {
+                panel.hidden = panel.dataset.benchPanel !== tabName;
+            });
+        }
+
         tabs.forEach((tab) => {
             tab.addEventListener("click", () => activateTab(tab.dataset.achievementsTab));
         });
+
+        benchTabs.forEach((tab) => {
+            tab.addEventListener("click", () => activateBenchTab(tab.dataset.benchTab));
+        });
+
+        activateBenchTab("heroes");
     })();
 </script>
 {% endblock %}

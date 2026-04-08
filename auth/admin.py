@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AdminContact, AdminPasswordResetRequest, TrainingRate, TrainingResult
+from .models import AdminContact, AdminPasswordResetRequest, TrainingRate, TrainingResult, UserProfile
 
 
 @admin.register(AdminContact)
@@ -36,3 +36,9 @@ class TrainingRateAdmin(admin.ModelAdmin):
     )
     search_fields = ('user__email', 'comment')
     list_filter = ('training_date',)
+
+
+@admin.register(UserProfile)
+class UserProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'birth_date', 'telegram_user_id', 'telegram_username', 'telegram_linked_at', 'updated_at')
+    search_fields = ('user__email', 'telegram_username', 'telegram_user_id')

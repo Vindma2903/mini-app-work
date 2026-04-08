@@ -42,3 +42,8 @@
 .shared-profile-header__actions img {
     display: block;
 }
+
+.shared-profile-header__settings-link {
+    display: inline-flex;
+    align-items: center;
+}

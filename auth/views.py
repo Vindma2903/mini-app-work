@@ -14,8 +14,10 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.generic import FormView, TemplateView
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
@@ -29,10 +31,11 @@ from .forms import (
     RegisterStepForm,
 )
 from .jwt_utils import build_token_pair_for_user, clear_jwt_cookies, get_jwt_cookie_names, set_jwt_cookies
-from .models import AdminPasswordResetRequest, TrainingRate, TrainingResult
+from .models import AdminPasswordResetRequest, TrainingRate, TrainingResult, UserProfile
 
 REGISTER_SESSION_KEY = 'register_step_data'
 ADMIN_PASSWORD_RESET_SESSION_KEY = 'admin_password_reset_request_id'
+TELEGRAM_LINK_TTL_MINUTES = 10
 logger = logging.getLogger(__name__)
 
 
@@ -62,6 +65,13 @@ def resolve_request_user(request):
         return request.user, 'cookie'
 
     return None, None
+
+
+def build_telegram_deep_link(token):
+    bot_username = (settings.TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
+    if not bot_username:
+        return ''
+    return f'https://t.me/{bot_username}?start=link_{token}'
 
 
 class LoginView(FormView):
@@ -352,6 +362,252 @@ class JwtProtectedMixin:
 
 class ProfileView(JwtProtectedMixin, TemplateView):
     template_name = 'auth/profile.html'
+
+
+class SettingsView(JwtProtectedMixin, TemplateView):
+    template_name = 'auth/settings.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+        context['settings_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
+        context['settings_email'] = self.request.user.email
+        context['settings_first_name'] = self.request.user.first_name or ''
+        context['settings_last_name'] = self.request.user.last_name or ''
+        context['settings_birth_date'] = profile.birth_date.isoformat() if profile.birth_date else ''
+        context['telegram_linked'] = bool(profile.telegram_user_id)
+        context['telegram_display'] = f"@{profile.telegram_username}" if profile.telegram_username else ''
+        return context
+
+
+class UpdateProfileDataView(View):
+    http_method_names = ['post']
+
+    @staticmethod
+    def _parse_birth_date(raw_value):
+        value = str(raw_value or '').strip()
+        if not value:
+            return None
+        for fmt in ('%Y-%m-%d', '%d.%m.%Y'):
+            try:
+                return timezone.datetime.strptime(value, fmt).date()
+            except ValueError:
+                continue
+        return 'invalid'
+
+    def post(self, request, *args, **kwargs):
+        user, auth_type = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        first_name = str(payload.get('first_name') or '').strip()
+        last_name = str(payload.get('last_name') or '').strip()
+        birth_date_raw = payload.get('birth_date')
+
+        if not first_name:
+            return JsonResponse({'ok': False, 'error': 'first_name_required'}, status=400)
+        if not last_name:
+            return JsonResponse({'ok': False, 'error': 'last_name_required'}, status=400)
+        if len(first_name) > 150 or len(last_name) > 150:
+            return JsonResponse({'ok': False, 'error': 'name_too_long'}, status=400)
+
+        parsed_birth_date = self._parse_birth_date(birth_date_raw)
+        if parsed_birth_date == 'invalid':
+            return JsonResponse({'ok': False, 'error': 'invalid_birth_date'}, status=400)
+
+        user.first_name = first_name
+        user.last_name = last_name
+        user.save(update_fields=['first_name', 'last_name'])
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.birth_date = parsed_birth_date
+        profile.save(update_fields=['birth_date', 'updated_at'])
+
+        logger.info(
+            'Profile data updated user_id=%s email=%s auth=%s ip=%s',
+            user.id,
+            user.email,
+            auth_type,
+            get_client_ip(request),
+        )
+        return JsonResponse({
+            'ok': True,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'birth_date': profile.birth_date.isoformat() if profile.birth_date else '',
+        })
+
+
+class StartTelegramLinkView(View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        user, auth_type = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        deep_link_bot = (settings.TELEGRAM_BOT_USERNAME or '').strip()
+        if not deep_link_bot:
+            return JsonResponse({'ok': False, 'error': 'telegram_not_configured'}, status=400)
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        if profile.telegram_user_id:
+            return JsonResponse(
+                {
+                    'ok': True,
+                    'already_linked': True,
+                    'linked': True,
+                    'telegram_username': profile.telegram_username or '',
+                }
+            )
+
+        token = secrets.token_urlsafe(24)
+        expires_at = timezone.now() + timedelta(minutes=TELEGRAM_LINK_TTL_MINUTES)
+        profile.telegram_link_token = token
+        profile.telegram_link_expires_at = expires_at
+        profile.save(update_fields=['telegram_link_token', 'telegram_link_expires_at', 'updated_at'])
+
+        link_url = build_telegram_deep_link(token)
+        logger.info(
+            'Telegram link started user_id=%s email=%s auth=%s ip=%s',
+            user.id,
+            user.email,
+            auth_type,
+            get_client_ip(request),
+        )
+        return JsonResponse(
+            {
+                'ok': True,
+                'linked': False,
+                'deep_link': link_url,
+                'expires_at': expires_at.isoformat(),
+                'ttl_seconds': TELEGRAM_LINK_TTL_MINUTES * 60,
+            }
+        )
+
+
+class TelegramLinkStatusView(View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        user, _ = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        is_pending = bool(profile.telegram_link_token and profile.telegram_link_expires_at and profile.telegram_link_expires_at > timezone.now())
+        return JsonResponse(
+            {
+                'ok': True,
+                'linked': bool(profile.telegram_user_id),
+                'pending': is_pending,
+                'telegram_username': profile.telegram_username or '',
+                'telegram_first_name': profile.telegram_first_name or '',
+            }
+        )
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class TelegramWebhookView(View):
+    http_method_names = ['post']
+
+    @staticmethod
+    def _extract_start_token(text):
+        content = str(text or '').strip()
+        if not content:
+            return ''
+        if not content.startswith('/start'):
+            return ''
+
+        parts = content.split(maxsplit=1)
+        if len(parts) < 2:
+            return ''
+        payload = parts[1].strip()
+        if payload.startswith('link_'):
+            return payload.replace('link_', '', 1).strip()
+        return ''
+
+    def post(self, request, *args, **kwargs):
+        configured_secret = (settings.TELEGRAM_WEBHOOK_SECRET or '').strip()
+        if configured_secret:
+            incoming_secret = (request.headers.get('X-Telegram-Bot-Api-Secret-Token') or '').strip()
+            if incoming_secret != configured_secret:
+                logger.warning('Telegram webhook denied invalid secret ip=%s', get_client_ip(request))
+                return JsonResponse({'ok': False, 'error': 'invalid_secret'}, status=403)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        message = payload.get('message') or payload.get('edited_message') or {}
+        from_user = message.get('from') or {}
+        telegram_user_id = from_user.get('id')
+        token = self._extract_start_token(message.get('text'))
+
+        if not telegram_user_id or not token:
+            return JsonResponse({'ok': True})
+
+        now = timezone.now()
+        profile = (
+            UserProfile.objects.select_related('user')
+            .filter(telegram_link_token=token, telegram_link_expires_at__gt=now)
+            .first()
+        )
+        if profile is None:
+            logger.warning(
+                'Telegram link failed token_not_found tg_user_id=%s ip=%s',
+                telegram_user_id,
+                get_client_ip(request),
+            )
+            return JsonResponse({'ok': True})
+
+        already_bound = (
+            UserProfile.objects.exclude(pk=profile.pk)
+            .filter(telegram_user_id=telegram_user_id)
+            .exists()
+        )
+        if already_bound:
+            logger.warning(
+                'Telegram link failed already_bound tg_user_id=%s target_user_id=%s ip=%s',
+                telegram_user_id,
+                profile.user_id,
+                get_client_ip(request),
+            )
+            return JsonResponse({'ok': True})
+
+        profile.telegram_user_id = int(telegram_user_id)
+        profile.telegram_username = str(from_user.get('username') or '')
+        profile.telegram_first_name = str(from_user.get('first_name') or '')
+        profile.telegram_last_name = str(from_user.get('last_name') or '')
+        profile.telegram_link_token = ''
+        profile.telegram_link_expires_at = None
+        profile.telegram_linked_at = now
+        profile.save(
+            update_fields=[
+                'telegram_user_id',
+                'telegram_username',
+                'telegram_first_name',
+                'telegram_last_name',
+                'telegram_link_token',
+                'telegram_link_expires_at',
+                'telegram_linked_at',
+                'updated_at',
+            ]
+        )
+        logger.info(
+            'Telegram linked success user_id=%s email=%s tg_user_id=%s ip=%s',
+            profile.user_id,
+            profile.user.email,
+            profile.telegram_user_id,
+            get_client_ip(request),
+        )
+        return JsonResponse({'ok': True})
 
 
 class ProfileAwardsTestsView(JwtProtectedMixin, TemplateView):

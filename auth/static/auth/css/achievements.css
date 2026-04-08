@@ -24,13 +24,18 @@ body {
 .achievements-header {
     margin-top: 36px;
     margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
 }
 
 .achievements-header h1 {
-    margin: 0 0 10px;
+    margin: 0;
     font-size: 16px;
     line-height: 20px;
     font-weight: 400;
+    flex-shrink: 0;
 }
 
 .achievements-tabs {
@@ -112,6 +117,59 @@ body {
     line-height: 20px;
     font-weight: 400;
     color: #000;
+}
+
+.achievements-bench {
+    margin-top: 8px;
+}
+
+.achievements-bench-tabs {
+    width: 366px;
+    height: 34px;
+    border-radius: 10px;
+    background: #d9d9d9;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: center;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.achievements-bench-tabs__item {
+    border: 0;
+    background: transparent;
+    height: 30px;
+    margin: 2px;
+    border-radius: 10px;
+    font-size: 14px;
+    line-height: 17px;
+    color: #9b9b9b;
+    cursor: pointer;
+}
+
+.achievements-bench-tabs__item--active {
+    background: #fffdfd;
+    color: #1f64e5;
+    box-shadow: 0 0 10px rgba(52, 52, 52, 0.16);
+}
+
+.achievements-card--bench {
+    padding: 0 12px;
+}
+
+.achievements-row--bench {
+    height: 56px;
+}
+
+.achievements-row--bench p,
+.achievements-row--bench span {
+    font-size: 14px;
+    line-height: 17px;
+    color: #2a2f34;
+}
+
+.achievements-row--bench span {
+    color: #565e67;
 }
 
 .achievements-bottom-nav {

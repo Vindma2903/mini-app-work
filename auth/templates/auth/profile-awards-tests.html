@@ -35,7 +35,7 @@
         {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2024-12-30' title='HIIT Training / Силовая' date='30.12.2024' result='120 кг' %}
     </section>
 
-    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' profile_active_icon='auth/img/nav-profile.svg' calendar_href='#' community_href='#' achievements_href='#' %}
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' %}
 </main>
 <div class="award-modal" id="award-modal" hidden>
     <div class="award-modal__overlay" data-close-modal></div>
@@ -88,4 +88,3 @@
     })();
 </script>
 {% endblock %}
-

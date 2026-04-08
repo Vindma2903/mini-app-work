@@ -5,8 +5,10 @@
         <h1 class="shared-profile-header__name">{{ name }}</h1>
         <p class="shared-profile-header__meta">В кроссфитнесе <span>{{ experience }}</span></p>
     </div>
-    <div class="shared-profile-header__actions" aria-hidden="true">
+    <div class="shared-profile-header__actions">
         <img src="{% static 'auth/img/profile-support.svg' %}" alt="">
-        <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        <a href="{% url 'auth:settings' %}" class="shared-profile-header__settings-link" aria-label="Настройки">
+            <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        </a>
     </div>
 </header>

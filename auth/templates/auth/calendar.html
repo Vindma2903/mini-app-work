@@ -45,7 +45,13 @@
                         <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                     </button>
                 </div>
-                <button type="button"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
+                <div class="calendar-create-menu-wrap">
+                    <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
+                    <div class="calendar-create-menu" id="calendar-create-menu" hidden>
+                        <button type="button" id="calendar-create-from-scratch">Тренировка с нуля</button>
+                        <button type="button" id="calendar-create-ready-plan">Готовый комплекс</button>
+                    </div>
+                </div>
             </div>
 
             <div class="calendar-list-desktop">
@@ -184,6 +190,244 @@
     </section>
 </div>
 
+<div class="calendar-create-modal" id="calendar-create-modal" hidden>
+    <div class="calendar-create-modal__overlay" data-close-create></div>
+    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление тренировки">
+        <header class="calendar-create-modal__head">
+            <h3>Добавление тренировки</h3>
+            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Закрыть">×</button>
+        </header>
+
+        <div class="calendar-create-modal__body">
+            <label class="calendar-create-modal__field">
+                <span>Дата</span>
+                <button type="button" class="calendar-create-modal__input" id="calendar-create-date-trigger">
+                    <em id="calendar-create-date-value">22.08.2026</em>
+                    <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                </button>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Направление</span>
+                <div class="calendar-create-modal__dropdown" id="calendar-direction-dropdown">
+                    <button type="button" class="calendar-create-modal__input" id="calendar-direction-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <em id="calendar-create-direction-value">FBB</em>
+                        <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                    </button>
+                    <div class="calendar-create-modal__dropdown-menu" id="calendar-direction-menu" role="listbox" hidden>
+                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-direction-option="fbb" data-direction-label="FBB">FBB</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="crossfit" data-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="gymnastics" data-direction-label="Гимнастика">Гимнастика</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="workout" data-direction-label="Воркаут дня">Воркаут дня</button>
+                    </div>
+                    <input type="hidden" name="training_direction" id="calendar-direction-input" value="fbb">
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field" id="calendar-ready-plan-field" hidden>
+                <span>Готовые тренировки</span>
+                <div class="calendar-create-modal__dropdown" id="calendar-ready-plan-dropdown">
+                    <button type="button" class="calendar-create-modal__input" id="calendar-ready-plan-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <em id="calendar-ready-plan-value">Готовые тренировки</em>
+                        <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                    </button>
+                    <div class="calendar-create-modal__dropdown-menu" id="calendar-ready-plan-menu" role="listbox" hidden>
+                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-ready-plan-option="ready" data-ready-plan-label="Готовые тренировки">Готовые тренировки</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-ready-plan-option="benchmarks" data-ready-plan-label="Benchmarks">Benchmarks</button>
+                    </div>
+                    <input type="hidden" name="ready_plan_type" id="calendar-ready-plan-input" value="ready">
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Видимость</span>
+                <div class="calendar-create-modal__dropdown" id="calendar-visibility-dropdown">
+                    <button type="button" class="calendar-create-modal__input" id="calendar-visibility-trigger" aria-haspopup="listbox" aria-expanded="false">
+                        <em id="calendar-visibility-value">Для всех</em>
+                        <img id="calendar-visibility-chevron" src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                    </button>
+                    <div class="calendar-create-modal__dropdown-menu" id="calendar-visibility-menu" role="listbox" hidden>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-visibility-option="coaches" data-visibility-label="Только для тренеров">Только для тренеров</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-visibility-option="all" data-visibility-label="Для всех">Для всех</button>
+                    </div>
+                    <input type="hidden" name="training_visibility" id="calendar-visibility-input" value="all">
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Комментарий</span>
+                <textarea class="calendar-create-modal__textarea"></textarea>
+            </label>
+
+            <div class="calendar-create-modal__exercise-card">
+                <p class="calendar-create-modal__exercise-name">Смит х2 (мин.)</p>
+                <div class="calendar-create-modal__exercise-grid">
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
+                        <span>Блок</span>
+                        <div class="calendar-create-modal__dropdown" id="calendar-block-dropdown">
+                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-block-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                <em id="calendar-block-value">Силовая</em><img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                            </button>
+                            <div class="calendar-create-modal__dropdown-menu" id="calendar-block-menu" role="listbox" hidden>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-block-option="strength" data-block-label="Силовая">Силовая</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="cardio" data-block-label="Кардио">Кардио</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="gymnastics" data-block-label="Гимнастика">Гимнастика</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="custom" data-block-label="Свое название">Свое название</button>
+                            </div>
+                            <input type="hidden" name="training_block_type" id="calendar-block-input" value="strength">
+                        </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block-custom" id="calendar-block-custom-wrap" hidden>
+                        <span>&nbsp;</span>
+                        <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise">
+                        <span>Упражнение</span>
+                        <input id="calendar-create-exercise-input" class="calendar-create-modal__text-input" type="text">
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
+                        <span>Количество</span>
+                        <div class="calendar-create-modal__count">
+                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" placeholder="Подходов">
+                            <small>по</small>
+                            <input id="calendar-create-reps-input" class="calendar-create-modal__text-input" type="text" placeholder="Повторений">
+                        </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
+                        <span>Тип оценки</span>
+                        <div class="calendar-create-modal__dropdown" id="calendar-result-type-dropdown">
+                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                <em id="calendar-result-type-value">Время</em>
+                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                            </button>
+                            <div class="calendar-create-modal__dropdown-menu" id="calendar-result-type-menu" role="listbox" hidden>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="time" data-result-type-label="Время">Время</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
+                            </div>
+                            <input type="hidden" name="training_result_type" id="calendar-result-type-input" value="time">
+                        </div>
+                    </label>
+                </div>
+                <button type="button" class="calendar-create-modal__save" id="calendar-create-save">Сохранить</button>
+            </div>
+
+            <button type="button" class="calendar-create-modal__add-exercise">
+                <img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить упражнение
+            </button>
+
+            <div class="calendar-create-modal__colors">
+                <p>Цвет тренировки в админ панели</p>
+                <div>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-create-color="blue"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-create-color="orange"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-create-color="green"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-create-color="pink"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--violet" aria-label="Фиолетовый" aria-pressed="false" data-create-color="violet"></button>
+                </div>
+                <input type="hidden" name="training_color" id="calendar-create-color" value="blue">
+                <small id="calendar-create-color-selected">Выбран цвет: Синий</small>
+                <small>Выберите цвет для визуального отображения тренировки в календаре</small>
+            </div>
+
+            <div class="calendar-create-modal__preview">
+                <p>Предпросмотр</p>
+                <article>
+                    <h4>HIIT Training</h4>
+                    <ul>
+                        <li>Смит 10 х1</li>
+                        <li>Присед 10 х1</li>
+                        <li>Отжимания 10 х1</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="calendar-ready-modal" id="calendar-ready-modal" hidden>
+    <div class="calendar-ready-modal__overlay" data-close-ready></div>
+    <section class="calendar-ready-modal__card" role="dialog" aria-modal="true" aria-label="Готовый комплекс">
+        <header class="calendar-ready-modal__head">
+            <h3>Готовый комплекс</h3>
+            <button type="button" class="calendar-ready-modal__close" data-close-ready aria-label="Закрыть">×</button>
+        </header>
+        <div class="calendar-ready-modal__body">
+            <label class="calendar-ready-modal__field">
+                <span>Дата</span>
+                <button type="button" class="calendar-ready-modal__input" id="calendar-ready-date-trigger">
+                    <em id="calendar-ready-date-value">22.08.2026</em>
+                    <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                </button>
+            </label>
+            <label class="calendar-ready-modal__field">
+                <span>Тренировка</span>
+                <button type="button" class="calendar-ready-modal__input">
+                    <em>Тренировка</em>
+                    <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                </button>
+            </label>
+            <label class="calendar-ready-modal__field">
+                <span>Тип комплекса</span>
+                <button type="button" class="calendar-ready-modal__input">
+                    <em>Найти комплекс</em>
+                    <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                </button>
+            </label>
+            <div class="calendar-ready-modal__list">
+                <button type="button">Тренировка с Ксенией</button>
+                <button type="button">Синди</button>
+                <button type="button">Тренировка с Ксенией</button>
+                <button type="button">Синди</button>
+                <button type="button">Тренировка с Ксенией</button>
+                <button type="button">Синди</button>
+                <button type="button">Тренировка с Ксенией</button>
+                <button type="button">Синди</button>
+            </div>
+            <div class="calendar-ready-modal__colors">
+                <p>Цвет тренировки в админ панели</p>
+                <div>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--blue is-active" aria-label="Синий"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--orange" aria-label="Оранжевый"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--green" aria-label="Зеленый"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--pink" aria-label="Розовый"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--violet" aria-label="Фиолетовый"></button>
+                </div>
+                <small>Выберите цвет для визуального отображения тренировки в календаре</small>
+            </div>
+            <div class="calendar-ready-modal__preview">
+                <p>Предпросмотр</p>
+                <article>
+                    <h4>Тренировка с Ксенией</h4>
+                    <ul>
+                        <li>Смит 10 х1</li>
+                        <li>Присед 10 х1</li>
+                        <li>Отжимания 10 х1</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="calendar-create-date-picker" id="calendar-create-date-picker" hidden>
+    <section class="calendar-create-date-picker__card" role="dialog" aria-modal="false" aria-label="Выберите дату тренировки">
+        <header class="calendar-create-date-picker__head">
+            <h3>Выберите дату</h3>
+            <button type="button" class="calendar-create-date-picker__close" id="calendar-create-date-close" aria-label="Закрыть">×</button>
+        </header>
+        <div class="calendar-create-date-picker__month">
+            <button type="button" id="calendar-create-prev-month">‹</button>
+            <strong id="calendar-create-month-label"></strong>
+            <button type="button" id="calendar-create-next-month">›</button>
+        </div>
+        <div class="calendar-create-date-picker__weekdays">
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+        </div>
+        <div class="calendar-create-date-picker__grid" id="calendar-create-date-grid"></div>
+    </section>
+</div>
+
 <script>
     (function () {
         const openBtn = document.getElementById("calendar-open-picker");
@@ -193,6 +437,64 @@
         const rangeLabel = document.getElementById("calendar-range-label");
         const prevMonthBtn = document.getElementById("calendar-prev-month");
         const nextMonthBtn = document.getElementById("calendar-next-month");
+        const createModal = document.getElementById("calendar-create-modal");
+        const readyModal = document.getElementById("calendar-ready-modal");
+        const openCreateBtn = document.getElementById("calendar-open-create");
+        const createMenu = document.getElementById("calendar-create-menu");
+        const createFromScratchBtn = document.getElementById("calendar-create-from-scratch");
+        const createReadyPlanBtn = document.getElementById("calendar-create-ready-plan");
+        const calendarListDesktop = document.querySelector(".calendar-list-desktop");
+        const createSaveBtn = document.getElementById("calendar-create-save");
+        const createDateValue = document.getElementById("calendar-create-date-value");
+        const createDateTrigger = document.getElementById("calendar-create-date-trigger");
+        const createDatePicker = document.getElementById("calendar-create-date-picker");
+        const createDateGrid = document.getElementById("calendar-create-date-grid");
+        const createDateMonthLabel = document.getElementById("calendar-create-month-label");
+        const createDateCloseBtn = document.getElementById("calendar-create-date-close");
+        const createDatePrevMonthBtn = document.getElementById("calendar-create-prev-month");
+        const createDateNextMonthBtn = document.getElementById("calendar-create-next-month");
+        const readyDateTrigger = document.getElementById("calendar-ready-date-trigger");
+        const readyDateValue = document.getElementById("calendar-ready-date-value");
+        const createDirectionValue = document.getElementById("calendar-create-direction-value");
+        const directionDropdown = document.getElementById("calendar-direction-dropdown");
+        const directionTrigger = document.getElementById("calendar-direction-trigger");
+        const directionMenu = document.getElementById("calendar-direction-menu");
+        const directionInput = document.getElementById("calendar-direction-input");
+        const directionOptions = directionMenu?.querySelectorAll("[data-direction-option]") || [];
+        const readyPlanField = document.getElementById("calendar-ready-plan-field");
+        const readyPlanDropdown = document.getElementById("calendar-ready-plan-dropdown");
+        const readyPlanTrigger = document.getElementById("calendar-ready-plan-trigger");
+        const readyPlanMenu = document.getElementById("calendar-ready-plan-menu");
+        const readyPlanValue = document.getElementById("calendar-ready-plan-value");
+        const readyPlanInput = document.getElementById("calendar-ready-plan-input");
+        const readyPlanOptions = readyPlanMenu?.querySelectorAll("[data-ready-plan-option]") || [];
+        const createCommentInput = createModal?.querySelector(".calendar-create-modal__textarea");
+        const createExerciseInput = document.getElementById("calendar-create-exercise-input");
+        const createSetsInput = document.getElementById("calendar-create-sets-input");
+        const createRepsInput = document.getElementById("calendar-create-reps-input");
+        const blockDropdown = document.getElementById("calendar-block-dropdown");
+        const blockTrigger = document.getElementById("calendar-block-trigger");
+        const blockMenu = document.getElementById("calendar-block-menu");
+        const blockValue = document.getElementById("calendar-block-value");
+        const blockInput = document.getElementById("calendar-block-input");
+        const blockOptions = blockMenu?.querySelectorAll("[data-block-option]") || [];
+        const blockCustomWrap = document.getElementById("calendar-block-custom-wrap");
+        const blockCustomInput = document.getElementById("calendar-block-custom-input");
+        const visibilityDropdown = document.getElementById("calendar-visibility-dropdown");
+        const visibilityTrigger = document.getElementById("calendar-visibility-trigger");
+        const visibilityMenu = document.getElementById("calendar-visibility-menu");
+        const visibilityValue = document.getElementById("calendar-visibility-value");
+        const visibilityInput = document.getElementById("calendar-visibility-input");
+        const visibilityOptions = visibilityMenu?.querySelectorAll("[data-visibility-option]") || [];
+        const resultTypeDropdown = document.getElementById("calendar-result-type-dropdown");
+        const resultTypeTrigger = document.getElementById("calendar-result-type-trigger");
+        const resultTypeMenu = document.getElementById("calendar-result-type-menu");
+        const resultTypeValue = document.getElementById("calendar-result-type-value");
+        const resultTypeInput = document.getElementById("calendar-result-type-input");
+        const resultTypeOptions = resultTypeMenu?.querySelectorAll("[data-result-type-option]") || [];
+        const colorButtons = document.querySelectorAll("[data-create-color]");
+        const selectedColorInput = document.getElementById("calendar-create-color");
+        const selectedColorText = document.getElementById("calendar-create-color-selected");
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
 
         const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
@@ -278,6 +580,497 @@
             render();
         });
         updateRangeLabel();
+
+        function closeAllCreateDropdowns() {
+            closeVisibilityMenu();
+            closeDirectionMenu();
+            closeReadyPlanMenu();
+            closeBlockMenu();
+            closeResultTypeMenu();
+        }
+
+        function openCreateModal(fromReadyPlan = false) {
+            if (!createModal) return;
+            if (createMenu) createMenu.hidden = true;
+            if (readyModal) readyModal.hidden = true;
+            if (readyPlanField) readyPlanField.hidden = !fromReadyPlan;
+            closeAllCreateDropdowns();
+            createModal.hidden = false;
+            document.body.style.overflow = "hidden";
+        }
+
+        function openReadyModal() {
+            if (!readyModal) return;
+            if (createMenu) createMenu.hidden = true;
+            if (createModal) createModal.hidden = true;
+            closeAllCreateDropdowns();
+            readyModal.hidden = false;
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeCreateModal() {
+            if (createModal) createModal.hidden = true;
+            if (readyModal) readyModal.hidden = true;
+            if (createDatePicker) createDatePicker.hidden = true;
+            if (readyPlanMenu) readyPlanMenu.hidden = true;
+            closeAllCreateDropdowns();
+            document.body.style.overflow = "";
+        }
+
+        function selectDirectionOption(nextValue, nextLabel) {
+            directionOptions.forEach((btn) => {
+                const isCurrent = (btn.getAttribute("data-direction-option") || "") === nextValue;
+                btn.classList.toggle("is-active", isCurrent);
+            });
+            if (createDirectionValue) createDirectionValue.textContent = nextLabel;
+            if (directionInput) directionInput.value = nextValue;
+        }
+
+        openCreateBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (!createMenu) {
+                openCreateModal(false);
+                return;
+            }
+            createMenu.hidden = !createMenu.hidden;
+        });
+
+        createFromScratchBtn?.addEventListener("click", () => {
+            selectDirectionOption("fbb", "FBB");
+            openCreateModal(false);
+        });
+
+        createReadyPlanBtn?.addEventListener("click", () => {
+            openReadyModal();
+        });
+        createModal?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-close-create]")) closeCreateModal();
+        });
+        readyModal?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-close-ready]")) closeCreateModal();
+        });
+
+        let createPickerMonth = new Date(2026, 7, 1);
+        let activeDateValue = createDateValue;
+
+        function formatCreateDate(dateValue) {
+            const day = String(dateValue.getDate()).padStart(2, "0");
+            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            return `${day}.${month}.${dateValue.getFullYear()}`;
+        }
+
+        function renderCreateDatePicker() {
+            if (!createDateGrid || !createDateMonthLabel) return;
+
+            const selectedDate = parseCreateDate(activeDateValue?.textContent || "") || new Date(2026, 7, 22);
+            createDateMonthLabel.textContent = `${months[createPickerMonth.getMonth()]} ${createPickerMonth.getFullYear()}`;
+            createDateGrid.innerHTML = "";
+
+            const firstDay = new Date(createPickerMonth.getFullYear(), createPickerMonth.getMonth(), 1);
+            const daysInMonth = new Date(createPickerMonth.getFullYear(), createPickerMonth.getMonth() + 1, 0).getDate();
+            const offset = (firstDay.getDay() + 6) % 7;
+
+            for (let i = 0; i < offset; i += 1) {
+                const filler = document.createElement("span");
+                filler.className = "calendar-create-date-picker__cell calendar-create-date-picker__cell--empty";
+                createDateGrid.appendChild(filler);
+            }
+
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const date = new Date(createPickerMonth.getFullYear(), createPickerMonth.getMonth(), day);
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "calendar-create-date-picker__cell";
+                if (
+                    date.getFullYear() === selectedDate.getFullYear() &&
+                    date.getMonth() === selectedDate.getMonth() &&
+                    date.getDate() === selectedDate.getDate()
+                ) {
+                    btn.classList.add("calendar-create-date-picker__cell--selected");
+                }
+                btn.textContent = String(day);
+                btn.addEventListener("click", () => {
+                    if (activeDateValue) activeDateValue.textContent = formatCreateDate(date);
+                    if (createDatePicker) createDatePicker.hidden = true;
+                });
+                createDateGrid.appendChild(btn);
+            }
+        }
+
+        function openCreateDatePickerFor(targetEl, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!createDatePicker) return;
+            activeDateValue = targetEl;
+            const parsed = parseCreateDate(targetEl?.textContent || "");
+            createPickerMonth = new Date((parsed || new Date()).getFullYear(), (parsed || new Date()).getMonth(), 1);
+            renderCreateDatePicker();
+            createDatePicker.hidden = false;
+        }
+
+        createDateTrigger?.addEventListener("click", (event) => openCreateDatePickerFor(createDateValue, event));
+        readyDateTrigger?.addEventListener("click", (event) => openCreateDatePickerFor(readyDateValue, event));
+
+        createDateCloseBtn?.addEventListener("click", () => {
+            if (createDatePicker) createDatePicker.hidden = true;
+        });
+
+        createDatePrevMonthBtn?.addEventListener("click", () => {
+            createPickerMonth = new Date(createPickerMonth.getFullYear(), createPickerMonth.getMonth() - 1, 1);
+            renderCreateDatePicker();
+        });
+
+        createDateNextMonthBtn?.addEventListener("click", () => {
+            createPickerMonth = new Date(createPickerMonth.getFullYear(), createPickerMonth.getMonth() + 1, 1);
+            renderCreateDatePicker();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!createDatePicker || createDatePicker.hidden) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (
+                target.closest("#calendar-create-date-picker") ||
+                target.closest("#calendar-create-date-trigger") ||
+                target.closest("#calendar-ready-date-trigger")
+            ) return;
+            createDatePicker.hidden = true;
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!createMenu || createMenu.hidden) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest(".calendar-create-menu-wrap")) return;
+            createMenu.hidden = true;
+        });
+
+        function closeVisibilityMenu() {
+            if (!visibilityMenu || !visibilityTrigger) return;
+            visibilityMenu.hidden = true;
+            visibilityTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openVisibilityMenu() {
+            if (!visibilityMenu || !visibilityTrigger) return;
+            visibilityMenu.hidden = false;
+            visibilityTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        visibilityTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (visibilityMenu?.hidden) {
+                openVisibilityMenu();
+            } else {
+                closeVisibilityMenu();
+            }
+        });
+
+        visibilityOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-visibility-option") || "all";
+                const nextLabel = optionButton.getAttribute("data-visibility-label") || "Для всех";
+
+                visibilityOptions.forEach((btn) => btn.classList.remove("is-active"));
+                optionButton.classList.add("is-active");
+
+                if (visibilityValue) visibilityValue.textContent = nextLabel;
+                if (visibilityInput) visibilityInput.value = nextValue;
+
+                closeVisibilityMenu();
+            });
+        });
+
+        function closeDirectionMenu() {
+            if (!directionMenu || !directionTrigger) return;
+            directionMenu.hidden = true;
+            directionTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openDirectionMenu() {
+            if (!directionMenu || !directionTrigger) return;
+            directionMenu.hidden = false;
+            directionTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        directionTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (directionMenu?.hidden) {
+                openDirectionMenu();
+            } else {
+                closeDirectionMenu();
+            }
+        });
+
+        directionOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-direction-option") || "fbb";
+                const nextLabel = optionButton.getAttribute("data-direction-label") || "FBB";
+                selectDirectionOption(nextValue, nextLabel);
+                closeDirectionMenu();
+            });
+        });
+
+        function closeReadyPlanMenu() {
+            if (!readyPlanMenu || !readyPlanTrigger) return;
+            readyPlanMenu.hidden = true;
+            readyPlanTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openReadyPlanMenu() {
+            if (!readyPlanMenu || !readyPlanTrigger) return;
+            readyPlanMenu.hidden = false;
+            readyPlanTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        readyPlanTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (readyPlanMenu?.hidden) {
+                openReadyPlanMenu();
+            } else {
+                closeReadyPlanMenu();
+            }
+        });
+
+        readyPlanOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-ready-plan-option") || "ready";
+                const nextLabel = optionButton.getAttribute("data-ready-plan-label") || "Готовые тренировки";
+                readyPlanOptions.forEach((btn) => btn.classList.remove("is-active"));
+                optionButton.classList.add("is-active");
+                if (readyPlanValue) readyPlanValue.textContent = nextLabel;
+                if (readyPlanInput) readyPlanInput.value = nextValue;
+                closeReadyPlanMenu();
+            });
+        });
+
+        function closeBlockMenu() {
+            if (!blockMenu || !blockTrigger) return;
+            blockMenu.hidden = true;
+            blockTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openBlockMenu() {
+            if (!blockMenu || !blockTrigger) return;
+            blockMenu.hidden = false;
+            blockTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        function toggleCustomBlockField(currentValue) {
+            if (!blockCustomWrap) return;
+            const isCustom = currentValue === "custom";
+            blockCustomWrap.hidden = !isCustom;
+            if (!isCustom && blockCustomInput) {
+                blockCustomInput.value = "";
+            }
+        }
+
+        blockTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (blockMenu?.hidden) {
+                openBlockMenu();
+            } else {
+                closeBlockMenu();
+            }
+        });
+
+        blockOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-block-option") || "strength";
+                const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
+
+                blockOptions.forEach((btn) => btn.classList.remove("is-active"));
+                optionButton.classList.add("is-active");
+
+                if (blockValue) blockValue.textContent = nextLabel;
+                if (blockInput) blockInput.value = nextValue;
+                toggleCustomBlockField(nextValue);
+
+                closeBlockMenu();
+            });
+        });
+
+        function closeResultTypeMenu() {
+            if (!resultTypeMenu || !resultTypeTrigger) return;
+            resultTypeMenu.hidden = true;
+            resultTypeTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openResultTypeMenu() {
+            if (!resultTypeMenu || !resultTypeTrigger) return;
+            resultTypeMenu.hidden = false;
+            resultTypeTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        resultTypeTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (resultTypeMenu?.hidden) {
+                openResultTypeMenu();
+            } else {
+                closeResultTypeMenu();
+            }
+        });
+
+        resultTypeOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-result-type-option") || "time";
+                const nextLabel = optionButton.getAttribute("data-result-type-label") || "Время";
+
+                resultTypeOptions.forEach((btn) => btn.classList.remove("is-active"));
+                optionButton.classList.add("is-active");
+
+                if (resultTypeValue) resultTypeValue.textContent = nextLabel;
+                if (resultTypeInput) resultTypeInput.value = nextValue;
+
+                closeResultTypeMenu();
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!visibilityDropdown) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (visibilityDropdown.contains(target)) return;
+            closeVisibilityMenu();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!directionDropdown) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (directionDropdown.contains(target)) return;
+            closeDirectionMenu();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!readyPlanDropdown || !readyPlanField || readyPlanField.hidden) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (readyPlanDropdown.contains(target)) return;
+            closeReadyPlanMenu();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!blockDropdown) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (blockDropdown.contains(target)) return;
+            closeBlockMenu();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!resultTypeDropdown) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (resultTypeDropdown.contains(target)) return;
+            closeResultTypeMenu();
+        });
+
+        function updateSelectedColor(colorKey, colorName, activeButton) {
+            colorButtons.forEach((button) => {
+                const isActive = button === activeButton;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+
+            if (selectedColorInput) {
+                selectedColorInput.value = colorKey;
+            }
+            if (selectedColorText) {
+                selectedColorText.textContent = `Выбран цвет: ${colorName}`;
+            }
+        }
+
+        colorButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const colorKey = button.getAttribute("data-create-color") || "blue";
+                const colorName = button.getAttribute("aria-label") || "Синий";
+                updateSelectedColor(colorKey, colorName, button);
+            });
+        });
+
+        function getDayNameRussian(dateValue) {
+            const weekday = dateValue.toLocaleDateString("ru-RU", { weekday: "long" });
+            return weekday.charAt(0).toUpperCase() + weekday.slice(1);
+        }
+
+        function parseCreateDate(value) {
+            const text = String(value || "").trim();
+            const parts = text.split(".");
+            if (parts.length !== 3) return null;
+            const day = Number(parts[0]);
+            const month = Number(parts[1]);
+            const year = Number(parts[2]);
+            if (!day || !month || !year) return null;
+            const parsed = new Date(year, month - 1, day);
+            if (Number.isNaN(parsed.getTime())) return null;
+            return parsed;
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function createCalendarCard() {
+            if (!calendarListDesktop) return;
+
+            const colorKey = selectedColorInput?.value || "blue";
+            const colorClass = `calendar-day--${colorKey}`;
+            const fallbackDate = new Date();
+            const parsedDate = parseCreateDate(createDateValue?.textContent || "");
+            const date = parsedDate || fallbackDate;
+            const dayNumber = date.getDate();
+            const dayName = getDayNameRussian(date);
+
+            const direction = escapeHtml((createDirectionValue?.textContent || "Training").trim());
+            const comment = escapeHtml((createCommentInput?.value || "").trim() || "Комментарий");
+            const exercise = escapeHtml((createExerciseInput?.value || "").trim() || "Упражнение");
+            const sets = escapeHtml((createSetsInput?.value || "").trim());
+            const reps = escapeHtml((createRepsInput?.value || "").trim());
+            const volume = sets && reps ? `${exercise} ${sets}x${reps}` : exercise;
+            const blockType = blockInput?.value || "strength";
+            const blockLabels = {
+                strength: "Силовая",
+                cardio: "Кардио",
+                gymnastics: "Гимнастика",
+                custom: "Свое название"
+            };
+            let selectedBlock = blockLabels[blockType] || "Силовая";
+            if (blockType === "custom") {
+                selectedBlock = (blockCustomInput?.value || "").trim() || "Свое название";
+            }
+            const blockName = escapeHtml(selectedBlock);
+
+            const card = document.createElement("article");
+            card.className = `calendar-day ${colorClass} calendar-day--short`;
+            card.innerHTML = `
+                <div class="calendar-day__head"><span>${dayName}</span><b>${dayNumber}</b></div>
+                <div class="calendar-event">
+                    <h3>${direction}</h3>
+                    <p class="calendar-event__comment">Комментарий</p>
+                    <p>${comment}</p>
+                    <div class="calendar-event__section calendar-event__section--compact"><h4>${blockName} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                    <div class="calendar-event__section"><p>${volume}</p></div>
+                    <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                </div>
+            `;
+            calendarListDesktop.appendChild(card);
+        }
+
+        createSaveBtn?.addEventListener("click", () => {
+            createCalendarCard();
+            closeCreateModal();
+        });
     })();
 </script>
 {% endblock %}

@@ -666,6 +666,10 @@
             if (directionInput) directionInput.value = nextValue;
         }
 
+        if (createMenu) {
+            createMenu.hidden = true;
+        }
+
         openCreateBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
             if (!createMenu) {

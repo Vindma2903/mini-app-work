@@ -1,0 +1,500 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Статистика{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/statistics.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop statistics-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content statistics-content">
+        <header class="calendar-content__header">
+            <div>
+                <h1>Статистика</h1>
+                <p>Обзор тренировок и статистики</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <b>AM</b>
+            </div>
+        </header>
+
+        <div class="statistics-card">
+            <div class="statistics-card__range">
+                <strong id="statistics-range-label">Понедельник, 2 марта 2026 - Воскресенье, 8 марта 2026</strong>
+                <button type="button" class="statistics-card__range-button" id="statistics-open-picker" aria-label="Выбрать дату">
+                    <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                </button>
+            </div>
+
+            <div class="statistics-layout">
+                <div class="statistics-main">
+                    <section class="statistics-section">
+                        <h2>Рейтинг упражнений</h2>
+                        <div class="statistics-table-wrap">
+                            <table class="statistics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Упражнение</th>
+                                        <th>Тренировка</th>
+                                        <th>Результаты</th>
+                                        <th>Отзывы</th>
+                                        <th>Оценка</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in exercise_rows %}
+                                    <tr>
+                                        <td>{{ row.exercise }}</td>
+                                        <td><a href="#" data-open-training-view>{{ row.training }}</a></td>
+                                        <td><a href="#">{{ row.results }}</a></td>
+                                        <td><a href="#" data-open-reviews>{{ row.reviews }}</a></td>
+                                        <td>{{ row.rating }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+
+                    <section class="statistics-section">
+                        <h2>Рейтинг активности пользователей</h2>
+                        <div class="statistics-table-wrap">
+                            <table class="statistics-table">
+                                <thead>
+                                    <tr>
+                                        <th>Имя</th>
+                                        <th>Кол-во тренировок ↑</th>
+                                        <th>Получено реакций ↑</th>
+                                        <th>Поставлено реакций ↑</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in activity_rows %}
+                                    <tr>
+                                        <td>{{ row.name }}</td>
+                                        <td>{{ row.trainings }}</td>
+                                        <td>{{ row.received }}</td>
+                                        <td>{{ row.sent }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </div>
+
+                <aside class="statistics-side">
+                    <section class="statistics-metric">
+                        <h3>Статистика по пользователям</h3>
+                        <div class="statistics-metric__grid">
+                            <div>
+                                <strong>21</strong>
+                                <span>Зарегистрированных</span>
+                            </div>
+                            <div>
+                                <strong>14</strong>
+                                <span>Активных</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="statistics-metric">
+                        <h3>Статистика по результатам</h3>
+                        <div class="statistics-metric__grid">
+                            <div>
+                                <strong>5</strong>
+                                <span>За сегодня</span>
+                            </div>
+                            <div>
+                                <strong>25</strong>
+                                <span>За выбранный период</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <a href="{% url 'auth:leaderboard_day' %}" class="statistics-side__button">Лидерборд сегодня</a>
+                </aside>
+            </div>
+
+            <div class="statistics-lower">
+                <section class="statistics-section">
+                    <h2>Рейтинг достижений пользователей</h2>
+                    <div class="statistics-table-wrap statistics-table-wrap--wide">
+                        <table class="statistics-table statistics-table--achievements">
+                            <thead>
+                                <tr>
+                                    <th>Имя</th>
+                                    <th>Посещено тренировок ↑</th>
+                                    <th>Цель по посещениям ↑</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in achievement_rows %}
+                                <tr>
+                                    <td>{{ row.name }}</td>
+                                    <td>{{ row.visited }}</td>
+                                    <td>{{ row.goal }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <div class="statistics-charts">
+                    <section class="statistics-chart">
+                        <h3>График регистрации пользователей</h3>
+                        <p>за неделю</p>
+                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
+                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
+                            <path d="M40 170 C55 165,65 160,80 150 S105 110,120 110 S145 155,160 160 S185 150,200 135 S225 95,240 85 S265 120,280 115" class="statistics-chart__line statistics-chart__line--blue"/>
+                            <circle cx="40" cy="170" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="80" cy="150" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="120" cy="110" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="160" cy="160" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="200" cy="135" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="240" cy="85" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="280" cy="115" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                        </svg>
+                        <div class="statistics-chart__labels">
+                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                        </div>
+                    </section>
+
+                    <section class="statistics-chart">
+                        <h3>Кол-во тренировок в день</h3>
+                        <p>за неделю</p>
+                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
+                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
+                            <path d="M40 165 C55 160,65 155,80 145 S105 100,120 95 S145 150,160 155 S185 145,200 130 S225 90,240 70 S265 40,280 30" class="statistics-chart__line statistics-chart__line--orange"/>
+                            <circle cx="40" cy="165" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="80" cy="145" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="120" cy="95" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="160" cy="155" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="200" cy="130" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="240" cy="70" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <circle cx="280" cy="30" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                        </svg>
+                        <div class="statistics-chart__labels">
+                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                        </div>
+                    </section>
+                </div>
+
+                <div class="statistics-charts">
+                    <section class="statistics-chart">
+                        <h3>Тренировочная активность</h3>
+                        <p>за неделю</p>
+                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
+                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
+                            <rect x="52" y="80" width="24" height="120" rx="6" class="statistics-chart__bar"/>
+                            <rect x="92" y="105" width="24" height="95" rx="6" class="statistics-chart__bar"/>
+                            <rect x="132" y="40" width="24" height="160" rx="6" class="statistics-chart__bar"/>
+                            <rect x="172" y="55" width="24" height="145" rx="6" class="statistics-chart__bar"/>
+                            <rect x="212" y="135" width="24" height="65" rx="6" class="statistics-chart__bar"/>
+                            <rect x="252" y="120" width="24" height="80" rx="6" class="statistics-chart__bar"/>
+                            <rect x="292" y="72" width="24" height="128" rx="6" class="statistics-chart__bar"/>
+                        </svg>
+                        <div class="statistics-chart__labels">
+                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                        </div>
+                    </section>
+
+                    <section class="statistics-chart">
+                        <h3>График регистрации пользователей</h3>
+                        <p>за неделю</p>
+                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
+                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
+                            <path d="M40 170 C55 165,65 160,80 150 S105 110,120 110 S145 155,160 160 S185 150,200 135 S225 95,240 85 S265 120,280 115" class="statistics-chart__line statistics-chart__line--blue"/>
+                            <circle cx="40" cy="170" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="80" cy="150" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="120" cy="110" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="160" cy="160" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="200" cy="135" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="240" cy="85" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <circle cx="280" cy="115" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                        </svg>
+                        <div class="statistics-chart__labels">
+                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<div class="calendar-create-modal statistics-training-view" id="statistics-training-view-modal" hidden>
+    <div class="calendar-create-modal__overlay" data-close-training-view></div>
+    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Просмотр тренировки">
+        <header class="calendar-create-modal__head">
+            <h3>Просмотр тренировки</h3>
+            <button type="button" class="calendar-create-modal__close" data-close-training-view aria-label="Закрыть">×</button>
+        </header>
+        <div class="calendar-create-modal__body">
+            <label class="calendar-create-modal__field">
+                <span>Дата</span>
+                <div class="calendar-create-modal__input statistics-training-view__input">
+                    <em id="statistics-training-view-date">23 Февраля 2026</em>
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Направление</span>
+                <div class="calendar-create-modal__input statistics-training-view__input">
+                    <em id="statistics-training-view-direction">FBB</em>
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Видимость</span>
+                <div class="calendar-create-modal__input statistics-training-view__input">
+                    <em id="statistics-training-view-visibility">Для всех</em>
+                </div>
+            </label>
+
+            <label class="calendar-create-modal__field">
+                <span>Комментарий</span>
+                <textarea class="calendar-create-modal__textarea statistics-training-view__textarea" id="statistics-training-view-comment" readonly>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы и поддержать высокий темп работы.</textarea>
+            </label>
+
+            <div class="calendar-create-modal__exercise-card">
+                <p class="calendar-create-modal__exercise-name" id="statistics-training-view-name">На все тело</p>
+                <div class="calendar-create-modal__exercise-grid">
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
+                        <span>Блок</span>
+                        <div class="calendar-create-modal__input calendar-create-modal__input--sm statistics-training-view__input">
+                            <em>Силовая</em>
+                        </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise">
+                        <span>Упражнение</span>
+                        <input class="calendar-create-modal__text-input" type="text" value="Смит 80%" readonly>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
+                        <span>Тип оценки</span>
+                        <div class="calendar-create-modal__input calendar-create-modal__input--sm statistics-training-view__input">
+                            <em>Время</em>
+                        </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
+                        <span>Количество</span>
+                        <div class="calendar-create-modal__count">
+                            <input class="calendar-create-modal__text-input" type="text" value="2 подхода" readonly>
+                            <small>по</small>
+                            <input class="calendar-create-modal__text-input" type="text" value="10 повторений" readonly>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="statistics-date-modal" id="statistics-date-modal" hidden>
+    <div class="statistics-date-modal__overlay" data-close-statistics-date></div>
+    <section class="statistics-date-modal__card" role="dialog" aria-modal="true" aria-label="Выберите дату">
+        <header class="statistics-date-modal__head">
+            <h3>Выберите дату</h3>
+            <button type="button" class="statistics-date-modal__close" data-close-statistics-date aria-label="Закрыть">×</button>
+        </header>
+        <div class="statistics-date-modal__calendar">
+            <div class="statistics-date-modal__month">
+                <button type="button" id="statistics-prev-month">‹</button>
+                <strong id="statistics-month-label"></strong>
+                <button type="button" id="statistics-next-month">›</button>
+            </div>
+            <div class="statistics-date-modal__weekdays">
+                <span>пн</span><span>вт</span><span>ср</span><span>чт</span><span>пт</span><span>сб</span><span>вс</span>
+            </div>
+            <div class="statistics-date-modal__grid" id="statistics-date-grid"></div>
+        </div>
+    </section>
+</div>
+
+<div class="statistics-reviews-modal" id="statistics-reviews-modal" hidden>
+    <div class="statistics-reviews-modal__overlay" data-close-reviews></div>
+    <section class="statistics-reviews-modal__card" role="dialog" aria-modal="true" aria-label="Отзывы о тренировке">
+        <header class="statistics-reviews-modal__head">
+            <h3>Отзывы о тренировке HIIT Training</h3>
+            <button type="button" class="statistics-reviews-modal__close" data-close-reviews aria-label="Закрыть">×</button>
+        </header>
+        <div class="statistics-reviews-modal__grid">
+            {% for _ in "123456" %}
+            <article class="statistics-review-card">
+                <div class="statistics-review-card__head">
+                    <div>
+                        <h4>HIIT Training</h4>
+                        <p>23 Февраля 2026</p>
+                    </div>
+                    <span class="statistics-review-card__eye">⊙</span>
+                </div>
+                <div class="statistics-review-card__ratings">
+                    <div><span>Силовая</span><b>★★★★★</b><strong>5,0</strong></div>
+                    <div><span>Кардио</span><b>★★★★★</b><strong>5,0</strong></div>
+                    <div><span>Метабол.</span><b>★★★★☆</b><strong>4,0</strong></div>
+                </div>
+                <div class="statistics-review-card__text">
+                    Отличная тренировка! Очень интенсивная, все упражнения выполнены качественно. Чувствую прилив энергии после каждой сессии.
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+</div>
+
+<script>
+    (function () {
+        const openBtn = document.getElementById("statistics-open-picker");
+        const modal = document.getElementById("statistics-date-modal");
+        const reviewsModal = document.getElementById("statistics-reviews-modal");
+        const trainingViewModal = document.getElementById("statistics-training-view-modal");
+        const trainingViewName = document.getElementById("statistics-training-view-name");
+        const sidebarReviewsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link:nth-child(3)");
+        const monthLabel = document.getElementById("statistics-month-label");
+        const grid = document.getElementById("statistics-date-grid");
+        const prevBtn = document.getElementById("statistics-prev-month");
+        const nextBtn = document.getElementById("statistics-next-month");
+
+        if (!openBtn || !modal || !monthLabel || !grid) return;
+
+        if (sidebarReviewsLink instanceof HTMLAnchorElement) {
+            sidebarReviewsLink.href = "{% url 'auth:reviews_overview' %}";
+        }
+
+        const months = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
+        let currentMonth = new Date(2026, 2, 1);
+        let selectedDate = new Date(2026, 2, 4);
+
+        function renderCalendar() {
+            monthLabel.textContent = `${months[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+            grid.innerHTML = "";
+
+            const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+            const startOffset = (firstDay.getDay() + 6) % 7;
+            const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1 - startOffset);
+
+            for (let i = 0; i < 35; i += 1) {
+                const date = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate() + i);
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "statistics-date-modal__day";
+                if (date.getMonth() !== currentMonth.getMonth()) {
+                    button.classList.add("statistics-date-modal__day--muted");
+                }
+                if (
+                    date.getFullYear() === selectedDate.getFullYear() &&
+                    date.getMonth() === selectedDate.getMonth() &&
+                    date.getDate() === selectedDate.getDate()
+                ) {
+                    button.classList.add("statistics-date-modal__day--selected");
+                }
+                button.textContent = String(date.getDate());
+                button.addEventListener("click", () => {
+                    selectedDate = date;
+                    renderCalendar();
+                });
+                grid.appendChild(button);
+            }
+        }
+
+        openBtn.addEventListener("click", () => {
+            modal.hidden = false;
+            document.body.style.overflow = "hidden";
+            renderCalendar();
+        });
+
+        prevBtn.addEventListener("click", () => {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+            renderCalendar();
+        });
+
+        nextBtn.addEventListener("click", () => {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+            renderCalendar();
+        });
+
+        modal.addEventListener("click", (event) => {
+            if (event.target.closest("[data-close-statistics-date]")) {
+                modal.hidden = true;
+                document.body.style.overflow = "";
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && !modal.hidden) {
+                modal.hidden = true;
+                document.body.style.overflow = "";
+            }
+            if (event.key === "Escape" && reviewsModal && !reviewsModal.hidden) {
+                reviewsModal.hidden = true;
+                document.body.style.overflow = "";
+            }
+            if (event.key === "Escape" && trainingViewModal && !trainingViewModal.hidden) {
+                trainingViewModal.hidden = true;
+                document.body.style.overflow = "";
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+
+            if (target.closest("[data-open-training-view]")) {
+                event.preventDefault();
+                const trainingLink = target.closest("[data-open-training-view]");
+                if (trainingLink && trainingViewName) {
+                    trainingViewName.textContent = trainingLink.textContent?.trim() || "На все тело";
+                }
+                if (trainingViewModal) {
+                    trainingViewModal.hidden = false;
+                    document.body.style.overflow = "hidden";
+                }
+                return;
+            }
+
+            if (target.closest("[data-open-reviews]")) {
+                event.preventDefault();
+                if (reviewsModal) {
+                    reviewsModal.hidden = false;
+                    document.body.style.overflow = "hidden";
+                }
+                return;
+            }
+
+            if (target.closest("[data-close-reviews]")) {
+                if (reviewsModal) {
+                    reviewsModal.hidden = true;
+                    document.body.style.overflow = "";
+                }
+                return;
+            }
+
+            if (target.closest("[data-close-training-view]")) {
+                if (trainingViewModal) {
+                    trainingViewModal.hidden = true;
+                    document.body.style.overflow = "";
+                }
+            }
+        });
+    })();
+</script>
+{% endblock %}

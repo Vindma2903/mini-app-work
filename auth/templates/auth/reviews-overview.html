@@ -1,0 +1,82 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Оценка и отзывы{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/reviews-overview.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop reviews-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content reviews-content">
+        <header class="calendar-content__header">
+            <div>
+                <h1>Оценка и отзывы</h1>
+                <p>Отслеживание рейтинга тренировок</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <b>AM</b>
+            </div>
+        </header>
+
+        <div class="reviews-shell">
+            <div class="reviews-toolbar">
+                <label class="reviews-search">
+                    <input type="text" placeholder="">
+                    <span class="reviews-search__icon">⌕</span>
+                </label>
+
+                <div class="reviews-toolbar__row">
+                    <button type="button" class="reviews-select">Общая <span>⌄</span></button>
+                    <div class="reviews-toolbar__actions">
+                        <button type="button" aria-label="Сортировка">⇅</button>
+                        <button type="button" aria-label="Фильтр">☰</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reviews-grid">
+                {% for card in review_cards %}
+                <article class="reviews-card reviews-card--{{ card.color }}">
+                    <div class="reviews-card__head">
+                        <div>
+                            <h3>HIIT Training</h3>
+                            <p>23 Февраля 2026</p>
+                        </div>
+                        <span class="reviews-card__eye">⊙</span>
+                    </div>
+
+                    <div class="reviews-card__ratings">
+                        <div><span>Общая:</span><b>★★★★★</b><strong>4,8</strong></div>
+                        <div><span>Силовая</span><b>★★★★★</b><strong>5,0</strong></div>
+                        <div><span>Кардио</span><b>★★★★★</b><strong>5,0</strong></div>
+                        <div><span>Метабол.</span><b>★★★★☆</b><strong>4,0</strong></div>
+                    </div>
+
+                    <div class="reviews-card__text">
+                        Отличная тренировка! Очень интенсивная, все упражнения выполнены качественно. Чувствую прилив энергии после каждой сессии.
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock %}

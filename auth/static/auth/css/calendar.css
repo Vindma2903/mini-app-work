@@ -68,16 +68,26 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 .calendar-results-modal[hidden]{display:none!important}
 .calendar-results-modal{position:fixed;inset:0;z-index:110}
 .calendar-results-modal__overlay{position:absolute;inset:0;background:rgba(16,24,40,.5)}
-.calendar-results-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(900px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border:1px solid #d0d5dd;border-radius:12px;box-shadow:0 24px 48px rgba(16,24,40,.2);overflow:hidden}
+.calendar-results-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(860px,calc(100vw - 32px));max-height:calc(100vh - 32px);background:#fff;border:1px solid #d0d5dd;border-radius:12px;box-shadow:0 24px 48px rgba(16,24,40,.2);overflow:hidden}
 .calendar-results-modal__close{position:absolute;top:12px;right:12px;width:32px;height:32px;border:0;border-radius:999px;background:#fff;color:#6b7280;font-size:22px;line-height:1;cursor:pointer;z-index:1}
 .calendar-results-modal__table-wrap{overflow:auto}
 .calendar-results-modal__table{width:100%;border-collapse:collapse;table-layout:fixed}
-.calendar-results-modal__table th,.calendar-results-modal__table td{padding:18px 20px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;text-align:center;color:#101828}
+.calendar-results-modal__table th,.calendar-results-modal__table td{padding:18px 24px;border-right:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;text-align:center;color:#101828}
 .calendar-results-modal__table th:last-child,.calendar-results-modal__table td:last-child{border-right:0}
 .calendar-results-modal__table tr:last-child td{border-bottom:0}
 .calendar-results-modal__table th{font:600 18px/24px Inter,Arial,sans-serif;background:#fff}
 .calendar-results-modal__table td{font:400 18px/22px Inter,Arial,sans-serif}
 .calendar-results-modal__table th span{color:#b1b7c3}
+
+.calendar-delete-modal[hidden]{display:none!important}
+.calendar-delete-modal{position:fixed;inset:0;z-index:115}
+.calendar-delete-modal__overlay{position:absolute;inset:0;background:rgba(16,24,40,.5)}
+.calendar-delete-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(592px,calc(100vw - 32px));background:#fff;border-radius:12px;box-shadow:0 24px 48px rgba(16,24,40,.2);padding:24px}
+.calendar-delete-modal__title{margin:0 0 28px;font:700 24px/32px Inter,Arial,sans-serif;color:#101828}
+.calendar-delete-modal__actions{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.calendar-delete-modal__button{height:56px;border-radius:12px;font:500 18px/24px Inter,Arial,sans-serif;cursor:pointer}
+.calendar-delete-modal__button--cancel{border:1.5px solid #2f67ff;background:#fff;color:#101828}
+.calendar-delete-modal__button--confirm{border:0;background:#2f67ff;color:#fff}
 
 .calendar-range-modal[hidden]{display:none!important}
 .calendar-range-modal{position:fixed;inset:0;z-index:90}

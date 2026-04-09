@@ -777,6 +777,56 @@ class CalendarView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/calendar.html'
 
 
+class StatisticsView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/statistics.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['exercise_rows'] = [
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+        ]
+        context['activity_rows'] = [
+            {'name': 'Виктория С.', 'trainings': 19, 'received': 12, 'sent': 72},
+            {'name': 'Сергей Т.', 'trainings': 20, 'received': 10, 'sent': 50},
+            {'name': 'Евгений Л.', 'trainings': 84, 'received': 9, 'sent': 38},
+            {'name': 'Виктория К.', 'trainings': 23, 'received': 8, 'sent': 35},
+            {'name': 'Семен Р.', 'trainings': 84, 'received': 6, 'sent': 21},
+            {'name': 'Анатолий Б.', 'trainings': 92, 'received': 5, 'sent': 20},
+        ]
+        context['achievement_rows'] = [
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'visited': 10, 'goal': 10},
+            {'name': 'РЎРµСЂРіРµР№ Рў.', 'visited': 8, 'goal': 8},
+            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'visited': 6, 'goal': 7},
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'visited': 6, 'goal': 7},
+            {'name': 'РЎРµРјРµРЅ Р .', 'visited': 5, 'goal': 6},
+            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'visited': 1, 'goal': 2},
+        ]
+        return context
+
+
+class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/reviews-overview.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['review_cards'] = [
+            {'color': 'orange'},
+            {'color': 'violet'},
+            {'color': 'orange'},
+            {'color': 'green'},
+            {'color': 'green'},
+            {'color': 'orange'},
+            {'color': 'violet'},
+            {'color': 'orange'},
+        ]
+        return context
+
+
 class SaveTrainingResultsView(View):
     http_method_names = ['post']
 

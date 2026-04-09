@@ -475,6 +475,17 @@
     </section>
 </div>
 
+<div class="calendar-delete-modal" id="calendar-delete-modal" hidden>
+    <div class="calendar-delete-modal__overlay" data-close-delete></div>
+    <section class="calendar-delete-modal__card" role="dialog" aria-modal="true" aria-label="Подтверждение удаления тренировки">
+        <h3 class="calendar-delete-modal__title">Вы уверены, что хотите удалить тренировку?</h3>
+        <div class="calendar-delete-modal__actions">
+            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--cancel" data-close-delete>Отменить</button>
+            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--confirm" id="calendar-confirm-delete">Удалить</button>
+        </div>
+    </section>
+</div>
+
 <script>
     (function () {
         const openBtn = document.getElementById("calendar-open-picker");
@@ -485,7 +496,10 @@
         const prevMonthBtn = document.getElementById("calendar-prev-month");
         const nextMonthBtn = document.getElementById("calendar-next-month");
         const createModal = document.getElementById("calendar-create-modal");
+        const createModalTitle = createModal?.querySelector(".calendar-create-modal__head h3");
         const readyModal = document.getElementById("calendar-ready-modal");
+        const sidebarStatsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link--wide");
+        const sidebarReviewsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link:nth-child(3)");
         const openCreateBtn = document.getElementById("calendar-open-create");
         const createMenu = document.getElementById("calendar-create-menu");
         const createFromScratchBtn = document.getElementById("calendar-create-from-scratch");
@@ -501,6 +515,8 @@
         const createDatePrevMonthBtn = document.getElementById("calendar-create-prev-month");
         const createDateNextMonthBtn = document.getElementById("calendar-create-next-month");
         const resultsModal = document.getElementById("calendar-results-modal");
+        const deleteModal = document.getElementById("calendar-delete-modal");
+        const confirmDeleteBtn = document.getElementById("calendar-confirm-delete");
         const readyDateTrigger = document.getElementById("calendar-ready-date-trigger");
         const readyDateValue = document.getElementById("calendar-ready-date-value");
         const readyWorkoutDropdown = document.getElementById("calendar-ready-workout-dropdown");
@@ -530,6 +546,7 @@
         const readyPlanInput = document.getElementById("calendar-ready-plan-input");
         const readyPlanOptions = readyPlanMenu?.querySelectorAll("[data-ready-plan-option]") || [];
         const createCommentInput = createModal?.querySelector(".calendar-create-modal__textarea");
+        const addExerciseBtn = createModal?.querySelector(".calendar-create-modal__add-exercise");
         const createExerciseInput = document.getElementById("calendar-create-exercise-input");
         const createSetsInput = document.getElementById("calendar-create-sets-input");
         const createRepsInput = document.getElementById("calendar-create-reps-input");
@@ -561,6 +578,8 @@
         const readySelectedColorInput = document.getElementById("calendar-ready-color");
         const readySelectedColorText = document.getElementById("calendar-ready-color-selected");
         const readyPreviewCard = document.getElementById("calendar-ready-preview-card");
+        let editingCard = null;
+        let deletingCard = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
 
         const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
@@ -569,6 +588,13 @@
         let toDate = new Date(2026, 2, 1);
         let draftFrom = new Date(fromDate);
         let draftTo = new Date(toDate);
+
+        if (sidebarStatsLink instanceof HTMLAnchorElement) {
+            sidebarStatsLink.href = "{% url 'auth:statistics' %}";
+        }
+        if (sidebarReviewsLink instanceof HTMLAnchorElement) {
+            sidebarReviewsLink.href = "{% url 'auth:reviews_overview' %}";
+        }
 
         function normalize(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
         function same(a, b) { return a && b && a.getTime() === b.getTime(); }
@@ -657,8 +683,18 @@
             closeResultTypeMenu();
         }
 
+        function setCreateModalMode(isEditing) {
+            if (createModalTitle) {
+                createModalTitle.textContent = isEditing ? "Редактирование тренировки" : "Добавление тренировки";
+            }
+            if (createSaveBtn) {
+                createSaveBtn.textContent = isEditing ? "Сохранить" : "Сохранить";
+            }
+        }
+
         function openCreateModal(fromReadyPlan = false) {
             if (!createModal) return;
+            setCreateModalMode(Boolean(editingCard));
             if (createMenu) createMenu.hidden = true;
             if (readyModal) readyModal.hidden = true;
             if (readyPlanField) readyPlanField.hidden = !fromReadyPlan;
@@ -682,6 +718,8 @@
             if (createDatePicker) createDatePicker.hidden = true;
             if (readyPlanMenu) readyPlanMenu.hidden = true;
             closeAllCreateDropdowns();
+            editingCard = null;
+            setCreateModalMode(false);
             document.body.style.overflow = "";
         }
 
@@ -695,6 +733,22 @@
             if (!resultsModal) return;
             resultsModal.hidden = true;
             if (createModal?.hidden !== false && readyModal?.hidden !== false) {
+                document.body.style.overflow = "";
+            }
+        }
+
+        function openDeleteModal(card) {
+            if (!deleteModal || !card) return;
+            deletingCard = card;
+            deleteModal.hidden = false;
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeDeleteModal() {
+            if (!deleteModal) return;
+            deleteModal.hidden = true;
+            deletingCard = null;
+            if (createModal?.hidden !== false && readyModal?.hidden !== false && resultsModal?.hidden !== false) {
                 document.body.style.overflow = "";
             }
         }
@@ -865,12 +919,96 @@
             if (target.closest("[data-close-results]")) {
                 closeResultsModal();
             }
+
+            if (target.closest("[data-close-delete]")) {
+                closeDeleteModal();
+            }
         });
 
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape" && resultsModal && !resultsModal.hidden) {
                 closeResultsModal();
             }
+            if (event.key === "Escape" && deleteModal && !deleteModal.hidden) {
+                closeDeleteModal();
+            }
+        });
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLImageElement)) return;
+            const src = target.getAttribute("src") || "";
+            if (!src.includes("calendar-edit-mini.svg")) return;
+
+            const card = target.closest(".calendar-day");
+            if (!(card instanceof HTMLElement)) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            editingCard = card;
+            populateCreateFormFromCard(card);
+            setCreateModalMode(true);
+            openCreateModal(false);
+        });
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLImageElement)) return;
+            const src = target.getAttribute("src") || "";
+            if (!src.includes("calendar-trash-mini.svg")) return;
+
+            const card = target.closest(".calendar-day");
+            if (!(card instanceof HTMLElement)) return;
+
+            event.preventDefault();
+            event.stopPropagation();
+            openDeleteModal(card);
+        });
+
+        confirmDeleteBtn?.addEventListener("click", () => {
+            if (deletingCard) {
+                deletingCard.remove();
+            }
+            closeDeleteModal();
+        });
+
+        initExerciseCard(createModal?.querySelector(".calendar-create-modal__exercise-card"));
+
+        addExerciseBtn?.addEventListener("click", () => {
+            const sourceCard = createModal?.querySelector(".calendar-create-modal__exercise-card");
+            if (!sourceCard || !addExerciseBtn?.parentElement) return;
+
+            const clone = sourceCard.cloneNode(true);
+            clone.querySelector(".calendar-create-modal__exercise-name")?.replaceChildren(document.createTextNode("Смит х2 (мин.)"));
+
+            const textInputs = clone.querySelectorAll("input[type='text']");
+            textInputs.forEach((input) => {
+                input.value = "";
+            });
+
+            const hiddenInputs = clone.querySelectorAll("input[type='hidden']");
+            hiddenInputs.forEach((input) => {
+                if (input.id === "calendar-block-input") input.value = "strength";
+                if (input.id === "calendar-result-type-input") input.value = "time";
+            });
+
+            const activeOptions = clone.querySelectorAll(".calendar-create-modal__dropdown-option.is-active");
+            activeOptions.forEach((option) => option.classList.remove("is-active"));
+            clone.querySelector("[data-block-option='strength']")?.classList.add("is-active");
+            clone.querySelector("[data-result-type-option='time']")?.classList.add("is-active");
+            const clonedBlockValue = clone.querySelector("#calendar-block-value");
+            if (clonedBlockValue) clonedBlockValue.textContent = "Силовая";
+            const clonedResultTypeValue = clone.querySelector("#calendar-result-type-value");
+            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Время";
+            const clonedCustomWrap = clone.querySelector("#calendar-block-custom-wrap");
+            if (clonedCustomWrap) clonedCustomWrap.hidden = true;
+            const clonedMenus = clone.querySelectorAll(".calendar-create-modal__dropdown-menu");
+            clonedMenus.forEach((menu) => {
+                menu.hidden = true;
+            });
+
+            addExerciseBtn.parentElement.insertBefore(clone, addExerciseBtn);
+            initExerciseCard(clone);
         });
 
         enhanceResultsLinks();
@@ -1272,6 +1410,210 @@
 
         applyReadyPreviewColor(readySelectedColorInput?.value || "blue");
 
+        function setActiveOption(optionButtons, attributeName, nextValue) {
+            optionButtons.forEach((button) => {
+                const value = button.getAttribute(attributeName) || "";
+                button.classList.toggle("is-active", value === nextValue);
+            });
+        }
+
+        function setCreateColor(colorKey) {
+            const normalized = colorKey || "blue";
+            const activeButton = Array.from(colorButtons).find((button) => (button.getAttribute("data-create-color") || "") === normalized) || colorButtons[0];
+            if (!activeButton) return;
+            const colorName = activeButton.getAttribute("aria-label") || "Синий";
+            updateSelectedColor(normalized, colorName, activeButton);
+        }
+
+        function initExerciseCard(card) {
+            if (!card || card.dataset.exerciseCardReady === "true") return;
+
+            const localBlockTrigger = card.querySelector("#calendar-block-trigger");
+            const localBlockMenu = card.querySelector("#calendar-block-menu");
+            const localBlockValue = card.querySelector("#calendar-block-value");
+            const localBlockInput = card.querySelector("#calendar-block-input");
+            const localBlockOptions = card.querySelectorAll("[data-block-option]");
+            const localCustomWrap = card.querySelector("#calendar-block-custom-wrap");
+            const localResultTypeTrigger = card.querySelector("#calendar-result-type-trigger");
+            const localResultTypeMenu = card.querySelector("#calendar-result-type-menu");
+            const localResultTypeValue = card.querySelector("#calendar-result-type-value");
+            const localResultTypeInput = card.querySelector("#calendar-result-type-input");
+            const localResultTypeOptions = card.querySelectorAll("[data-result-type-option]");
+            const localSaveButton = card.querySelector("#calendar-create-save");
+
+            const toggleLocalCustomField = (nextValue) => {
+                if (!localCustomWrap) return;
+                localCustomWrap.hidden = nextValue !== "custom";
+            };
+
+            localBlockTrigger?.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!localBlockMenu) return;
+                const isHidden = localBlockMenu.hidden;
+                localBlockMenu.hidden = !isHidden;
+                localBlockTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
+            });
+
+            localBlockOptions.forEach((optionButton) => {
+                optionButton.addEventListener("click", () => {
+                    const nextValue = optionButton.getAttribute("data-block-option") || "strength";
+                    const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
+                    localBlockOptions.forEach((button) => button.classList.remove("is-active"));
+                    optionButton.classList.add("is-active");
+                    if (localBlockValue) localBlockValue.textContent = nextLabel;
+                    if (localBlockInput) localBlockInput.value = nextValue;
+                    toggleLocalCustomField(nextValue);
+                    if (localBlockMenu) localBlockMenu.hidden = true;
+                    localBlockTrigger?.setAttribute("aria-expanded", "false");
+                });
+            });
+
+            localResultTypeTrigger?.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!localResultTypeMenu) return;
+                const isHidden = localResultTypeMenu.hidden;
+                localResultTypeMenu.hidden = !isHidden;
+                localResultTypeTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
+            });
+
+            localResultTypeOptions.forEach((optionButton) => {
+                optionButton.addEventListener("click", () => {
+                    const nextValue = optionButton.getAttribute("data-result-type-option") || "time";
+                    const nextLabel = optionButton.getAttribute("data-result-type-label") || "Время";
+                    localResultTypeOptions.forEach((button) => button.classList.remove("is-active"));
+                    optionButton.classList.add("is-active");
+                    if (localResultTypeValue) localResultTypeValue.textContent = nextLabel;
+                    if (localResultTypeInput) localResultTypeInput.value = nextValue;
+                    if (localResultTypeMenu) localResultTypeMenu.hidden = true;
+                    localResultTypeTrigger?.setAttribute("aria-expanded", "false");
+                });
+            });
+
+            document.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (localBlockTrigger && !localBlockTrigger.contains(target) && localBlockMenu && !localBlockMenu.contains(target)) {
+                    localBlockMenu.hidden = true;
+                    localBlockTrigger.setAttribute("aria-expanded", "false");
+                }
+                if (localResultTypeTrigger && !localResultTypeTrigger.contains(target) && localResultTypeMenu && !localResultTypeMenu.contains(target)) {
+                    localResultTypeMenu.hidden = true;
+                    localResultTypeTrigger.setAttribute("aria-expanded", "false");
+                }
+            });
+
+            if (localSaveButton && localSaveButton !== createSaveBtn) {
+                localSaveButton.removeAttribute("id");
+                localSaveButton.addEventListener("click", () => {
+                    createCalendarCard();
+                    closeCreateModal();
+                });
+            }
+
+            card.dataset.exerciseCardReady = "true";
+        }
+
+        function populateCreateFormFromCard(card) {
+            if (!card) return;
+
+            const dayNumberText = card.querySelector(".calendar-day__head b")?.textContent?.trim() || "";
+            if (createDateValue && dayNumberText) {
+                const currentText = String(createDateValue.textContent || "").trim();
+                const parts = currentText.split(".");
+                if (parts.length === 3) {
+                    createDateValue.textContent = `${String(dayNumberText).padStart(2, "0")}.${parts[1]}.${parts[2]}`;
+                }
+            }
+
+            const title = card.querySelector(".calendar-event h3")?.textContent?.trim() || "FBB";
+            const directionMatch = Array.from(directionOptions).find((button) => (button.getAttribute("data-direction-label") || "").trim() === title);
+            selectDirectionOption(directionMatch?.getAttribute("data-direction-option") || "fbb", title);
+
+            const description = Array.from(card.querySelectorAll(".calendar-event p")).find((item) => !item.classList.contains("calendar-event__comment"))?.textContent?.trim() || "";
+            if (createCommentInput) createCommentInput.value = description;
+
+            const compactSection = card.querySelector(".calendar-event__section--compact h4");
+            const firstSection = card.querySelector(".calendar-event__section h4");
+            const blockText = (compactSection || firstSection)?.childNodes[0]?.textContent?.trim() || "Силовая";
+            const blockMatch = Array.from(blockOptions).find((button) => (button.getAttribute("data-block-label") || "").trim() === blockText);
+            const blockValueText = blockMatch?.getAttribute("data-block-option") || "custom";
+            if (blockInput) blockInput.value = blockValueText;
+            if (blockValue) blockValue.textContent = blockText;
+            setActiveOption(blockOptions, "data-block-option", blockValueText);
+            toggleCustomBlockField(blockValueText);
+            if (blockCustomInput) blockCustomInput.value = blockValueText === "custom" ? blockText : "";
+
+            const volumeText = Array.from(card.querySelectorAll(".calendar-event__section p")).map((item) => item.innerHTML.replaceAll("<br>", "\n").trim()).find(Boolean) || "";
+            const firstLine = volumeText.split("\n").map((item) => item.trim()).find(Boolean) || "";
+            const volumeMatch = firstLine.match(/^(.*?)(?:\s+(\d+)\s*x\s*(\d+))?$/i);
+            if (createExerciseInput) createExerciseInput.value = volumeMatch?.[1]?.trim() || firstLine;
+            if (createSetsInput) createSetsInput.value = volumeMatch?.[2] || "";
+            if (createRepsInput) createRepsInput.value = volumeMatch?.[3] || "";
+
+            const colorClass = Array.from(card.classList).find((className) => className.startsWith("calendar-day--") && !["calendar-day--short", "calendar-day--full"].includes(className)) || "calendar-day--blue";
+            setCreateColor(colorClass.replace("calendar-day--", ""));
+
+            if (visibilityInput) visibilityInput.value = "all";
+            if (visibilityValue) visibilityValue.textContent = "Для всех";
+            setActiveOption(visibilityOptions, "data-visibility-option", "all");
+
+            if (resultTypeInput) resultTypeInput.value = "time";
+            if (resultTypeValue) resultTypeValue.textContent = "Время";
+            setActiveOption(resultTypeOptions, "data-result-type-option", "time");
+        }
+
+        function buildCalendarCardMarkup(data) {
+            return `
+                <div class="calendar-day__head"><span>${data.dayName}</span><b>${data.dayNumber}</b></div>
+                <div class="calendar-event">
+                    <h3>${data.direction}</h3>
+                    <p class="calendar-event__comment">Комментарий</p>
+                    <p>${data.comment}</p>
+                    <div class="calendar-event__section calendar-event__section--compact"><h4>${data.blockName} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                    <div class="calendar-event__section"><p>${data.volume}</p></div>
+                    <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                </div>
+            `;
+        }
+
+        function getCreateFormCardData() {
+            const colorKey = selectedColorInput?.value || "blue";
+            const colorClass = `calendar-day--${colorKey}`;
+            const fallbackDate = new Date();
+            const parsedDate = parseCreateDate(createDateValue?.textContent || "");
+            const date = parsedDate || fallbackDate;
+
+            const direction = escapeHtml((createDirectionValue?.textContent || "Training").trim());
+            const comment = escapeHtml((createCommentInput?.value || "").trim() || "Комментарий");
+            const exercise = escapeHtml((createExerciseInput?.value || "").trim() || "Упражнение");
+            const sets = escapeHtml((createSetsInput?.value || "").trim());
+            const reps = escapeHtml((createRepsInput?.value || "").trim());
+            const volume = sets && reps ? `${exercise} ${sets}x${reps}` : exercise;
+            const blockType = blockInput?.value || "strength";
+            const blockLabels = {
+                strength: "Силовая",
+                cardio: "Кардио",
+                gymnastics: "Гимнастика",
+                custom: "Свое название"
+            };
+            let selectedBlock = blockLabels[blockType] || "Силовая";
+            if (blockType === "custom") {
+                selectedBlock = (blockCustomInput?.value || "").trim() || "Свое название";
+            }
+
+            return {
+                colorClass,
+                dayNumber: date.getDate(),
+                dayName: getDayNameRussian(date),
+                direction,
+                comment,
+                volume,
+                blockName: escapeHtml(selectedBlock)
+            };
+        }
+
         function getDayNameRussian(dateValue) {
             const weekday = dateValue.toLocaleDateString("ru-RU", { weekday: "long" });
             return weekday.charAt(0).toUpperCase() + weekday.slice(1);
@@ -1345,6 +1687,23 @@
             calendarListDesktop.appendChild(card);
             enhanceResultsLinks(card);
         }
+
+        createCalendarCard = function () {
+            if (!calendarListDesktop) return;
+
+            const cardData = getCreateFormCardData();
+            const card = editingCard || document.createElement("article");
+            card.className = `calendar-day ${cardData.colorClass} calendar-day--short`;
+            card.innerHTML = buildCalendarCardMarkup(cardData);
+
+            if (!editingCard) {
+                calendarListDesktop.appendChild(card);
+            }
+
+            enhanceResultsLinks(card);
+            editingCard = null;
+            setCreateModalMode(false);
+        };
 
         createSaveBtn?.addEventListener("click", () => {
             createCalendarCard();

@@ -1,0 +1,50 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Поддержка сообщение отправлено{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/support-sent.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="support-sent-screen">
+    <header class="support-sent-header">
+        <div class="shared-profile-header__avatar" aria-hidden="true"></div>
+        <div class="support-sent-header__info">
+            <h1 class="shared-profile-header__name">{{ support_name }}</h1>
+            <p class="shared-profile-header__meta">В кроссфитнесе <span>{{ support_experience }}</span></p>
+        </div>
+        <a href="{% url 'auth:settings' %}" class="support-sent-header__settings-link" aria-label="Настройки">
+            <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        </a>
+    </header>
+
+    <section class="support-sent-success-card">
+        <h2>Сообщение отправлено!</h2>
+        <p>Мы получили ваше сообщение и ответим вам в течение 24 часов</p>
+        <a href="{% url 'auth:support' %}" class="support-sent-success-card__back-btn">Вернуться назад</a>
+    </section>
+
+    <section class="support-sent-next-card">
+        <h3>Что дальше?</h3>
+        <div class="support-sent-next-card__list">
+            <div class="support-sent-next-card__row">
+                <span class="support-sent-next-card__step">1</span>
+                <p>Наша команда рассмотрит ваше обращение</p>
+            </div>
+            <div class="support-sent-next-card__row">
+                <span class="support-sent-next-card__step">2</span>
+                <p>Вы получите ответ на указанную контактную информацию</p>
+            </div>
+            <div class="support-sent-next-card__row">
+                <span class="support-sent-next-card__step">3</span>
+                <p>Если потребуется, мы свяжемся с вами для уточнения деталей</p>
+            </div>
+        </div>
+    </section>
+
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='support-sent-bottom-nav' %}
+</main>
+{% endblock %}

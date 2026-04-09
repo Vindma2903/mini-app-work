@@ -1,7 +1,7 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РќР°СЃС‚СЂРѕР№РєРё{% endblock %}
+{% block title %}Настройки{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/settings.css' %}">
@@ -10,12 +10,11 @@
 {% block content %}
 <main class="settings-screen">
     <header class="settings-topbar">
-        <a href="{% url 'auth:profile' %}" class="settings-topbar__back">
-            <img src="{% static 'auth/img/register-back-arrow.svg' %}" alt="">
-            <span>РќР°Р·Р°Рґ</span>
+        <a href="{% url 'auth:profile' %}" class="settings-topbar__icon-link settings-topbar__back" aria-label="Назад">
+            <img src="{% static 'auth/img/settings-back.svg' %}" alt="">
         </a>
-        <a href="{% url 'auth:logout' %}" class="settings-topbar__logout" aria-label="Р’С‹Р№С‚Рё">
-            <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        <a href="{% url 'auth:logout' %}" class="settings-topbar__icon-link settings-topbar__logout" aria-label="Выйти">
+            <img src="{% static 'auth/img/settings-logout.svg' %}" alt="">
         </a>
     </header>
 
@@ -33,26 +32,26 @@
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ</h2>
-        <label class="settings-field"><span>РРјСЏ</span><input type="text" value="{{ settings_first_name }}" data-profile-first-name></label>
-        <label class="settings-field"><span>Р¤Р°РјРёР»РёСЏ</span><input type="text" value="{{ settings_last_name }}" data-profile-last-name></label>
-        <label class="settings-field"><span>Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span><input type="text" value="{{ settings_birth_date }}" placeholder="Р“Р“Р“Р“-РњРњ-Р”Р”" data-profile-birth-date></label>
-        <button type="button" class="settings-save" data-save-profile-data>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <h2>Сменить данные профиля</h2>
+        <label class="settings-field"><span>Имя</span><input type="text" value="{{ settings_first_name }}" data-profile-first-name></label>
+        <label class="settings-field"><span>Фамилия</span><input type="text" value="{{ settings_last_name }}" data-profile-last-name></label>
+        <label class="settings-field"><span>Дата рождения</span><input type="text" value="{{ settings_birth_date }}" placeholder="ДД.ММ.ГГГГ" data-profile-birth-date></label>
+        <button type="button" class="settings-save" data-save-profile-data>Сохранить</button>
         <p class="settings-block__msg" data-profile-save-msg hidden></p>
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РїРѕС‡С‚Сѓ</h2>
-        <label class="settings-field"><span>РџРѕС‡С‚Р°</span><input type="email" placeholder=""></label>
-        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <h2>Сменить почту</h2>
+        <label class="settings-field"><span>Почта</span><input type="email" placeholder=""></label>
+        <button type="button" class="settings-save">Сохранить</button>
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ</h2>
-        <label class="settings-field"><span>Р’РІРµРґРёС‚Рµ СЃС‚Р°СЂС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
-        <label class="settings-field"><span>Р’РІРµРґРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
-        <label class="settings-field"><span>РџРѕРІС‚РѕСЂРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span><input type="password" placeholder=""></label>
-        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <h2>Сменить пароль</h2>
+        <label class="settings-field"><span>Введите старый пароль</span><input type="password" placeholder=""></label>
+        <label class="settings-field"><span>Введите новый пароль</span><input type="password" placeholder=""></label>
+        <label class="settings-field"><span>Повторите новый пароль</span><input type="password" placeholder=""></label>
+        <button type="button" class="settings-save">Сохранить</button>
     </section>
 
     {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='settings-bottom-nav' %}
@@ -84,6 +83,20 @@
             messageNode.classList.toggle("settings-block__msg--ok", !isError);
         }
 
+        function formatBirthDateValue(value) {
+            const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+            if (digits.length <= 2) return digits;
+            if (digits.length <= 4) return `${digits.slice(0, 2)}.${digits.slice(2)}`;
+            return `${digits.slice(0, 2)}.${digits.slice(2, 4)}.${digits.slice(4)}`;
+        }
+
+        if (birthDateInput) {
+            birthDateInput.value = formatBirthDateValue(birthDateInput.value);
+            birthDateInput.addEventListener("input", () => {
+                birthDateInput.value = formatBirthDateValue(birthDateInput.value);
+            });
+        }
+
         saveBtn.addEventListener("click", async () => {
             const payload = {
                 first_name: (firstNameInput.value || "").trim(),
@@ -103,7 +116,7 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.ok) {
-                    showMessage("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ.", true);
+                    showMessage("Не удалось сохранить данные профиля.", true);
                     return;
                 }
 
@@ -111,9 +124,9 @@
                 if (data.birth_date) {
                     birthDateInput.value = data.birth_date;
                 }
-                showMessage("Р”Р°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ СЃРѕС…СЂР°РЅРµРЅС‹.", false);
+                showMessage("Данные профиля сохранены.", false);
             } catch (error) {
-                showMessage("РћС€РёР±РєР° СЃРµС‚Рё. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·.", true);
+                showMessage("Ошибка сети. Попробуйте еще раз.", true);
             } finally {
                 saveBtn.disabled = false;
             }

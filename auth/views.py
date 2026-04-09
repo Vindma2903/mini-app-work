@@ -1,4 +1,4 @@
-﻿import secrets
+import secrets
 import logging
 import json
 from datetime import timedelta
@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -25,16 +26,24 @@ from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from .forms import (
     AdminLoginForm,
     AdminPasswordResetConfirmForm,
+    AdminPasswordResetNewPasswordForm,
     AdminPasswordResetStartForm,
     LoginForm,
     RegisterPasswordForm,
     RegisterStepForm,
 )
 from .jwt_utils import build_token_pair_for_user, clear_jwt_cookies, get_jwt_cookie_names, set_jwt_cookies
-from .models import AdminPasswordResetRequest, TrainingRate, TrainingResult, UserProfile
+from .models import (
+    AdminPasswordResetRequest,
+    CommunityReaction,
+    TrainingRate,
+    TrainingResult,
+    UserProfile,
+)
 
 REGISTER_SESSION_KEY = 'register_step_data'
 ADMIN_PASSWORD_RESET_SESSION_KEY = 'admin_password_reset_request_id'
+ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY = 'admin_password_reset_code_verified'
 TELEGRAM_LINK_TTL_MINUTES = 10
 logger = logging.getLogger(__name__)
 
@@ -108,7 +117,7 @@ class LoginView(FormView):
 class AdminLoginView(FormView):
     template_name = 'auth/admin-login.html'
     form_class = AdminLoginForm
-    success_url = reverse_lazy('auth:profile')
+    success_url = reverse_lazy('auth:calendar')
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
@@ -147,12 +156,12 @@ class AdminPasswordResetStartView(FormView):
     success_url = reverse_lazy('auth:admin_password_reset_confirm')
 
     def form_valid(self, form):
-        contact = form.admin_contact
+        user = form.admin_user
         code = f'{secrets.randbelow(1000000):06d}'
         expires_at = timezone.now() + timedelta(minutes=10)
 
         reset_request = AdminPasswordResetRequest.objects.create(
-            user=contact.user,
+            user=user,
             code=code,
             expires_at=expires_at,
         )
@@ -165,14 +174,14 @@ class AdminPasswordResetStartView(FormView):
                 f'{code}\n\nThis code is valid for 10 minutes.'
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[contact.user.email],
+            recipient_list=[user.email],
             fail_silently=False,
         )
 
         logger.info(
             'Admin password reset code sent email=%s user_id=%s ip=%s',
-            contact.user.email,
-            contact.user.id,
+            user.email,
+            user.id,
             get_client_ip(self.request),
         )
         messages.success(self.request, 'Confirmation code has been sent to your email.')
@@ -180,8 +189,8 @@ class AdminPasswordResetStartView(FormView):
 
     def form_invalid(self, form):
         logger.warning(
-            'Admin password reset start failed phone=%s ip=%s errors=%s',
-            self.request.POST.get('phone', ''),
+            'Admin password reset start failed email=%s ip=%s errors=%s',
+            self.request.POST.get('email', ''),
             get_client_ip(self.request),
             form.errors.get_json_data(),
         )
@@ -191,12 +200,22 @@ class AdminPasswordResetStartView(FormView):
 class AdminPasswordResetConfirmView(FormView):
     template_name = 'auth/admin-password-reset-confirm.html'
     form_class = AdminPasswordResetConfirmForm
-    success_url = reverse_lazy('auth:admin_login')
+    success_url = reverse_lazy('auth:admin_password_reset_new_password')
 
     def dispatch(self, request, *args, **kwargs):
         if ADMIN_PASSWORD_RESET_SESSION_KEY not in request.session:
             return redirect('auth:admin_password_reset_start')
         return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        request_id = self.request.session.get(ADMIN_PASSWORD_RESET_SESSION_KEY)
+        reset_request = AdminPasswordResetRequest.objects.select_related('user').filter(
+            id=request_id,
+            is_used=False,
+        ).first()
+        context['admin_email'] = reset_request.user.email if reset_request else ''
+        return context
 
     def form_valid(self, form):
         request_id = self.request.session.get(ADMIN_PASSWORD_RESET_SESSION_KEY)
@@ -233,21 +252,14 @@ class AdminPasswordResetConfirmView(FormView):
             form.add_error('code', form.error_messages['invalid_code'])
             return self.form_invalid(form)
 
-        user = reset_request.user
-        user.set_password(form.cleaned_data['password'])
-        user.save(update_fields=['password'])
-
-        reset_request.is_used = True
-        reset_request.save(update_fields=['is_used'])
-        self.request.session.pop(ADMIN_PASSWORD_RESET_SESSION_KEY, None)
+        self.request.session[ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY] = True
 
         logger.info(
-            'Admin password updated email=%s user_id=%s ip=%s',
-            user.email,
-            user.id,
+            'Admin password reset code confirmed email=%s user_id=%s ip=%s',
+            reset_request.user.email,
+            reset_request.user.id,
             get_client_ip(self.request),
         )
-        messages.success(self.request, 'Password has been updated. You can sign in now.')
         return super().form_valid(form)
 
     def form_invalid(self, form):
@@ -258,6 +270,51 @@ class AdminPasswordResetConfirmView(FormView):
             form.errors.get_json_data(),
         )
         return super().form_invalid(form)
+
+
+class AdminPasswordResetNewPasswordView(FormView):
+    template_name = 'auth/admin-password-reset-new-password.html'
+    form_class = AdminPasswordResetNewPasswordForm
+    success_url = reverse_lazy('auth:admin_login')
+
+    def dispatch(self, request, *args, **kwargs):
+        if ADMIN_PASSWORD_RESET_SESSION_KEY not in request.session:
+            return redirect('auth:admin_password_reset_start')
+        if not request.session.get(ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY):
+            return redirect('auth:admin_password_reset_confirm')
+        return super().dispatch(request, *args, **kwargs)
+
+    def form_valid(self, form):
+        request_id = self.request.session.get(ADMIN_PASSWORD_RESET_SESSION_KEY)
+        reset_request = AdminPasswordResetRequest.objects.select_related('user').filter(
+            id=request_id,
+            is_used=False,
+        ).first()
+        if reset_request is None:
+            form.add_error(None, 'Invalid confirmation request.')
+            return self.form_invalid(form)
+
+        if reset_request.is_expired:
+            form.add_error(None, 'Confirmation code has expired. Request a new one.')
+            return self.form_invalid(form)
+
+        user = reset_request.user
+        user.set_password(form.cleaned_data['password'])
+        user.save(update_fields=['password'])
+
+        reset_request.is_used = True
+        reset_request.save(update_fields=['is_used'])
+        self.request.session.pop(ADMIN_PASSWORD_RESET_SESSION_KEY, None)
+        self.request.session.pop(ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY, None)
+
+        logger.info(
+            'Admin password updated email=%s user_id=%s ip=%s',
+            user.email,
+            user.id,
+            get_client_ip(self.request),
+        )
+        messages.success(self.request, 'Password has been updated. You can sign in now.')
+        return super().form_valid(form)
 
 
 class RegisterView(FormView):
@@ -351,7 +408,7 @@ class RegisterSuccessView(TemplateView):
         return super().dispatch(request, *args, **kwargs)
 
 
-class JwtProtectedMixin:
+class UserProtectedMixin:
     login_url = reverse_lazy('auth:login')
 
     def dispatch(self, request, *args, **kwargs):
@@ -360,11 +417,25 @@ class JwtProtectedMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class ProfileView(JwtProtectedMixin, TemplateView):
+class AdminProtectedMixin:
+    login_url = reverse_lazy('auth:admin_login')
+    fallback_url = reverse_lazy('auth:profile')
+    permission_denied_message = 'Недостаточно прав для просмотра этой страницы.'
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect(self.login_url)
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, self.permission_denied_message)
+            return redirect(self.fallback_url)
+        return super().dispatch(request, *args, **kwargs)
+
+
+class ProfileView(UserProtectedMixin, TemplateView):
     template_name = 'auth/profile.html'
 
 
-class SettingsView(JwtProtectedMixin, TemplateView):
+class SettingsView(UserProtectedMixin, TemplateView):
     template_name = 'auth/settings.html'
 
     def get_context_data(self, **kwargs):
@@ -374,10 +445,37 @@ class SettingsView(JwtProtectedMixin, TemplateView):
         context['settings_email'] = self.request.user.email
         context['settings_first_name'] = self.request.user.first_name or ''
         context['settings_last_name'] = self.request.user.last_name or ''
-        context['settings_birth_date'] = profile.birth_date.isoformat() if profile.birth_date else ''
+        context['settings_birth_date'] = profile.birth_date.strftime('%d.%m.%Y') if profile.birth_date else ''
         context['telegram_linked'] = bool(profile.telegram_user_id)
         context['telegram_display'] = f"@{profile.telegram_username}" if profile.telegram_username else ''
         return context
+
+
+class SupportView(UserProtectedMixin, TemplateView):
+    template_name = 'auth/support.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
+        context['support_experience'] = '8 лет'
+        return context
+
+
+class SupportMessageSentView(UserProtectedMixin, TemplateView):
+    template_name = 'auth/support-sent.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
+        context['support_experience'] = '8 лет'
+        return context
+
+
+class SupportSubmitView(UserProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        return redirect('auth:support_sent')
 
 
 class UpdateProfileDataView(View):
@@ -439,7 +537,7 @@ class UpdateProfileDataView(View):
             'ok': True,
             'first_name': user.first_name,
             'last_name': user.last_name,
-            'birth_date': profile.birth_date.isoformat() if profile.birth_date else '',
+            'birth_date': profile.birth_date.strftime('%d.%m.%Y') if profile.birth_date else '',
         })
 
 
@@ -610,11 +708,11 @@ class TelegramWebhookView(View):
         return JsonResponse({'ok': True})
 
 
-class ProfileAwardsTestsView(JwtProtectedMixin, TemplateView):
+class ProfileAwardsTestsView(UserProtectedMixin, TemplateView):
     template_name = 'auth/profile-awards-tests.html'
 
 
-class ProfileAwardWorkoutView(JwtProtectedMixin, TemplateView):
+class ProfileAwardWorkoutView(UserProtectedMixin, TemplateView):
     template_name = 'auth/profile-award-workout.html'
 
     @staticmethod
@@ -675,7 +773,7 @@ class ProfileAwardWorkoutView(JwtProtectedMixin, TemplateView):
         return context
 
 
-class CalendarView(JwtProtectedMixin, TemplateView):
+class CalendarView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/calendar.html'
 
 
@@ -988,23 +1086,157 @@ class LogoutView(View):
         return response
 
 
-class LeaderboardDayView(JwtProtectedMixin, TemplateView):
+class LeaderboardDayView(UserProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-day.html'
 
 
-class CommunityView(JwtProtectedMixin, TemplateView):
+class CommunityView(UserProtectedMixin, TemplateView):
     template_name = 'auth/community.html'
 
+    @staticmethod
+    def _format_training_value(result):
+        minutes = result.minutes
+        seconds = result.seconds
+        if minutes is None and seconds is None:
+            return '--'
+        if minutes is not None and seconds is not None:
+            return f'{minutes} min {seconds} sec'
+        if minutes is not None:
+            return f'{minutes} min'
+        return f'{seconds} sec'
 
-class TrainingPlanTodayView(JwtProtectedMixin, TemplateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['community_name'] = (
+            f'{self.request.user.first_name} {self.request.user.last_name}'.strip()
+            or self.request.user.email
+        )
+        context['community_experience'] = '8 years'
+
+        today = timezone.localdate()
+        section_meta = [
+            (TrainingResult.SECTION_STRENGTH, 'Strength'),
+            (TrainingResult.SECTION_CARDIO, 'Cardio'),
+            (TrainingResult.SECTION_METABOLIC, 'Metabolic'),
+        ]
+        section_titles = dict(section_meta)
+        reaction_counts = dict(
+            CommunityReaction.objects
+            .filter(training_date=today)
+            .values('target_user_id')
+            .annotate(total=Count('id'))
+            .values_list('target_user_id', 'total')
+        )
+        my_reacted_user_ids = set(
+            CommunityReaction.objects
+            .filter(training_date=today, sender=self.request.user)
+            .values_list('target_user_id', flat=True)
+        )
+
+        grouped = {}
+        day_results = (
+            TrainingResult.objects
+            .select_related('user')
+            .filter(training_date=today)
+            .order_by('-updated_at', 'user_id')
+        )
+        for item in day_results:
+            user_id = item.user_id
+            if user_id not in grouped:
+                user_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+                grouped[user_id] = {
+                    'target_user_id': user_id,
+                    'user_name': user_name,
+                    'sections': {key: {'title': title, 'value': '--', 'mode': '--'} for key, title in section_meta},
+                }
+
+            grouped[user_id]['sections'][item.section] = {
+                'title': section_titles[item.section],
+                'value': self._format_training_value(item),
+                'mode': item.get_mode_display(),
+            }
+
+        cards = []
+        for payload in grouped.values():
+            cards.append(
+                {
+                    'target_user_id': payload['target_user_id'],
+                    'user_name': payload['user_name'],
+                    'reactions_count': reaction_counts.get(payload['target_user_id'], 0),
+                    'reacted_by_me': payload['target_user_id'] in my_reacted_user_ids,
+                    'sections': [
+                        payload['sections'][TrainingResult.SECTION_STRENGTH],
+                        payload['sections'][TrainingResult.SECTION_CARDIO],
+                        payload['sections'][TrainingResult.SECTION_METABOLIC],
+                    ],
+                }
+            )
+
+        context['community_date'] = today.strftime('%d.%m.%Y')
+        context['community_cards'] = cards
+        return context
+
+
+class ToggleCommunityReactionView(View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        user, _ = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        target_user_id_raw = payload.get('target_user_id')
+        try:
+            target_user_id = int(target_user_id_raw)
+        except (TypeError, ValueError):
+            return JsonResponse({'ok': False, 'error': 'invalid_target_user_id'}, status=400)
+
+        target_user = User.objects.filter(id=target_user_id).first()
+        if target_user is None:
+            return JsonResponse({'ok': False, 'error': 'target_user_not_found'}, status=404)
+
+        today = timezone.localdate()
+        if not TrainingResult.objects.filter(user=target_user, training_date=today).exists():
+            return JsonResponse({'ok': False, 'error': 'target_has_no_results_today'}, status=400)
+
+        reaction, created = CommunityReaction.objects.get_or_create(
+            sender=user,
+            target_user=target_user,
+            training_date=today,
+        )
+        if created:
+            reacted = True
+        else:
+            reaction.delete()
+            reacted = False
+
+        reactions_count = CommunityReaction.objects.filter(
+            target_user=target_user,
+            training_date=today,
+        ).count()
+        return JsonResponse({
+            'ok': True,
+            'reacted': reacted,
+            'reactions_count': reactions_count,
+            'target_user_id': target_user_id,
+            'date': today.isoformat(),
+        })
+
+
+class TrainingPlanTodayView(UserProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
 
 
-class AchievementsView(JwtProtectedMixin, TemplateView):
+class AchievementsView(UserProtectedMixin, TemplateView):
     template_name = 'auth/achievements.html'
 
 
-class AchievementExerciseView(JwtProtectedMixin, TemplateView):
+class AchievementExerciseView(UserProtectedMixin, TemplateView):
     template_name = 'auth/achievement-exercise.html'
 
     EXERCISE_DATA = {

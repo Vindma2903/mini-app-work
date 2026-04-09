@@ -1,10 +1,45 @@
+import os
+from threading import Lock
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
+from django.db.utils import OperationalError, ProgrammingError
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .jwt_utils import get_jwt_cookie_names
+from .seeds import ensure_default_users
+
+
+class EnsureDefaultAdminMiddleware:
+    _init_lock = Lock()
+    _initialized = False
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @staticmethod
+    def _is_enabled() -> bool:
+        return (os.getenv('AUTO_CREATE_ADMIN', '1') or '').strip().lower() in {'1', 'true', 'yes', 'on'}
+
+    @classmethod
+    def _ensure_once(cls) -> None:
+        if cls._initialized or not cls._is_enabled():
+            return
+        with cls._init_lock:
+            if cls._initialized:
+                return
+            try:
+                ensure_default_users()
+                cls._initialized = True
+            except (OperationalError, ProgrammingError):
+                # DB may be temporarily unavailable; retry on next request.
+                return
+
+    def __call__(self, request):
+        self._ensure_once()
+        return self.get_response(request)
 
 
 class JwtCookieAuthMiddleware:

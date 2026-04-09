@@ -43,7 +43,11 @@
     display: block;
 }
 
+.shared-profile-header__support-link,
 .shared-profile-header__settings-link {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
 }

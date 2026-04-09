@@ -100,6 +100,31 @@ class TrainingRate(models.Model):
         return f'{self.user.email}: {self.training_date} rate={self.overall}'
 
 
+class CommunityReaction(models.Model):
+    sender = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='community_reactions_sent',
+    )
+    target_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='community_reactions_received',
+    )
+    training_date = models.DateField(default=timezone.localdate, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        unique_together = ('sender', 'target_user', 'training_date')
+
+    def __str__(self):
+        return (
+            f'{self.sender.email} -> {self.target_user.email}: '
+            f'{self.training_date.isoformat()}'
+        )
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(
         User,

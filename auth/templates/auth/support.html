@@ -1,0 +1,42 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Поддержка{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/support.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="support-screen">
+    <header class="support-header">
+        <div class="shared-profile-header__avatar" aria-hidden="true"></div>
+        <div class="support-header__info">
+            <h1 class="shared-profile-header__name">{{ support_name }}</h1>
+            <p class="shared-profile-header__meta">В кроссфитнесе <span>{{ support_experience }}</span></p>
+        </div>
+        <a href="{% url 'auth:settings' %}" class="support-header__settings-link" aria-label="Настройки">
+            <img src="{% static 'auth/img/profile-settings.svg' %}" alt="">
+        </a>
+    </header>
+
+    <section class="support-info-card">
+        <div class="support-info-card__title">
+            <img src="{% static 'auth/img/profile-support.svg' %}" alt="">
+            <h2>Служба поддержки</h2>
+        </div>
+        <p>Здесь вы можете написать любые свои жалобы, предложения или вопросы</p>
+        <p>Мы ответим в течение 24 часов</p>
+    </section>
+
+    <form class="support-form-card" method="post" action="{% url 'auth:support_send' %}">
+        {% csrf_token %}
+        <label for="support-message">Ваше сообщение</label>
+        <textarea id="support-message" name="message" placeholder="Опишите вашу проблему или вопрос..." required></textarea>
+        <button type="submit">Отправить</button>
+    </form>
+
+    {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='support-bottom-nav' %}
+</main>
+{% endblock %}

@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Комьюнити{% endblock %}
+{% block title %}Community{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
@@ -10,97 +10,105 @@
 
 {% block content %}
 <main class="community-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name=community_name experience=community_experience %}
 
     <section class="community-date">
-        <h2 class="community-date__title">Дата</h2>
-        <a href="#" class="community-date__all">см.все</a>
+        <h2 class="community-date__title">Date</h2>
+        <a href="#" class="community-date__all">{{ community_date }}</a>
         {% include 'auth/components/day_picker.html' with wrapper_class='community-days' item_class='community-days__item' active_day=4 %}
         <span class="community-date__dot" aria-hidden="true"></span>
     </section>
 
     <section class="community-feed">
+        {% for card in community_cards %}
         <article class="community-card">
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>Вероника В.</h3>
-                    <p>Онлайн</p>
+                    <h3>{{ card.user_name }}</h3>
+                    <p>Online</p>
                 </div>
             </div>
-            <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">Силовая</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__type">Кардио</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <a href="#" class="community-card__reactions">14 <span>›</span></a>
+            <p class="community-card__heading">Training results:</p>
+            {% for section in card.sections %}
+            <div class="community-card__type">{{ section.title }}</div>
+            <div class="community-card__line"><span>Result</span><b>{{ section.value }} ({{ section.mode }})</b></div>
+            {% endfor %}
+            <a
+                href="#"
+                class="community-card__reactions{% if card.reacted_by_me %} community-card__reactions--active{% endif %}"
+                aria-label="Reactions"
+                data-community-reaction
+                data-target-user-id="{{ card.target_user_id }}"
+            >
+                <img src="{% static 'auth/img/community-fist.svg' %}" alt="">
+                <span data-reaction-count>{{ card.reactions_count }}</span>
+            </a>
         </article>
-
+        {% empty %}
         <article class="community-card">
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>Евгения В.</h3>
-                    <p>Онлайн</p>
+                    <h3>No data</h3>
+                    <p>Online</p>
                 </div>
             </div>
-            <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">Силовая</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__type">Кардио</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <a href="#" class="community-card__reactions">14 <span>›</span></a>
+            <p class="community-card__heading">No training results for today yet.</p>
+            <a href="#" class="community-card__reactions" aria-label="Reactions">
+                <img src="{% static 'auth/img/community-fist.svg' %}" alt="">
+                <span>0</span>
+            </a>
         </article>
-
-        <article class="community-card">
-            <div class="community-card__profile">
-                <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
-                <div>
-                    <h3>Кристина В.</h3>
-                    <p>Онлайн</p>
-                </div>
-            </div>
-            <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">Силовая</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__type">Кардио</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <a href="#" class="community-card__reactions">14 <span>›</span></a>
-        </article>
-
-        <article class="community-card">
-            <div class="community-card__profile">
-                <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
-                <div>
-                    <h3>Кирилл В.</h3>
-                    <p>Онлайн</p>
-                </div>
-            </div>
-            <p class="community-card__heading">Hiit Training:</p>
-            <div class="community-card__type">Силовая</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__type">Кардио</div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>50 кг</b></div>
-            <div class="community-card__line"><span>Присед 10 x2</span><b>29 сек</b></div>
-            <div class="community-card__line"><span>Отжимания 10 x2</span><b>29 сек</b></div>
-            <a href="#" class="community-card__reactions">14 <span>›</span></a>
-        </article>
+        {% endfor %}
     </section>
 
     {% include 'auth/components/bottom_nav.html' with active='community' nav_block='community-bottom-nav' %}
 </main>
+<script>
+    (function () {
+        const reactionButtons = document.querySelectorAll("[data-community-reaction]");
+        if (!reactionButtons.length) return;
+
+        const reactUrl = "{% url 'auth:community_react' %}";
+        const csrfTokenFallback = "{{ csrf_token }}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
+        reactionButtons.forEach((button) => {
+            button.addEventListener("click", async (event) => {
+                event.preventDefault();
+                const targetUserId = button.getAttribute("data-target-user-id");
+                if (!targetUserId) return;
+
+                button.style.pointerEvents = "none";
+                try {
+                    const response = await fetch(reactUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: JSON.stringify({ target_user_id: targetUserId }),
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.ok) return;
+
+                    const countNode = button.querySelector("[data-reaction-count]");
+                    if (countNode) {
+                        countNode.textContent = String(data.reactions_count ?? 0);
+                    }
+                    button.classList.toggle("community-card__reactions--active", Boolean(data.reacted));
+                } finally {
+                    button.style.pointerEvents = "";
+                }
+            });
+        });
+    })();
+</script>
 {% endblock %}

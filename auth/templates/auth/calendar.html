@@ -1,493 +1,283 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Календарь{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/components-my-results-modal.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/components-result-saved-modal.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/components-share-results-modal.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-modal.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-thanks-modal.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
 {% endblock %}
 
 {% block content %}
-<main class="calendar-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+<main class="calendar-desktop">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <nav class="calendar-sidebar__nav">
+            <a href="#" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="#" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+        </div>
+    </aside>
 
-    <section class="calendar-header-card">
-        <h1 class="calendar-title">Расписание тренировок</h1>
-        {% include 'auth/components/day_picker.html' with wrapper_class='calendar-days' item_class='calendar-days__item' active_day=4 show_wednesday='0' %}
-    </section>
+    <section class="calendar-content">
+        <header class="calendar-content__header">
+            <div>
+                <h1>Календарь</h1>
+                <p>Запрограммировать тренировку</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <b>AM</b>
+            </div>
+        </header>
 
-    <section class="calendar-training-card">
-        <div class="calendar-training-card__head">
-            <a href="{% url 'auth:training_plan_today' %}" class="calendar-plan" id="calendar-plan-toggle">
-                <span>HIIT Training</span>
-                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-            </a>
-            <div class="calendar-lang-switch" aria-label="Язык">
-                <img class="calendar-lang-switch__img" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="Русский и английский">
+        <div class="calendar-card">
+            <div class="calendar-card__top">
+                <div class="calendar-card__title-row">
+                    <img class="calendar-card__arrow" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="">
+                    <span class="calendar-card__range" id="calendar-range-label">23 Февраля - 1 Марта 2026</span>
+                    <img class="calendar-card__arrow" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="">
+                    <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Выбрать диапазон дат">
+                        <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                    </button>
+                </div>
+                <button type="button"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
+            </div>
+
+            <div class="calendar-list-desktop">
+                <article class="calendar-day calendar-day--orange calendar-day--full">
+                    <div class="calendar-day__head"><span>Понедельник</span><b>23</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section">
+                            <h4>Силовая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Кардио</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Метаболическая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__result">Результаты <span>✎ 🗑</span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--green calendar-day--short">
+                    <div class="calendar-day__head"><span>Вторник</span><b>24</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Силовая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Кардио <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Метаболическая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--blue calendar-day--short">
+                    <div class="calendar-day__head"><span>Среда</span><b>25</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Силовая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Кардио <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Метаболическая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--purple calendar-day--full">
+                    <div class="calendar-day__head"><span>Четверг</span><b>26</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section">
+                            <h4>Силовая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Кардио</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Метаболическая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--green calendar-day--short">
+                    <div class="calendar-day__head"><span>Пятница</span><b>27</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Силовая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Кардио <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Метаболическая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--blue calendar-day--short">
+                    <div class="calendar-day__head"><span>Суббота</span><b>28</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Силовая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Кардио <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__section calendar-event__section--compact"><h4>Метаболическая <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4></div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
+                <article class="calendar-day calendar-day--orange calendar-day--full">
+                    <div class="calendar-day__head"><span>Воскресенье</span><b>1</b></div>
+                    <div class="calendar-event">
+                        <h3>HIIT Training</h3>
+                        <p class="calendar-event__comment">Комментарий</p>
+                        <p>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы</p>
+                        <div class="calendar-event__section">
+                            <h4>Силовая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Кардио</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__section">
+                            <h4>Метаболическая</h4>
+                            <p>Присед 10 x2<br>Прыжки 10 x2<br>Отжимания 10 x2</p>
+                        </div>
+                        <div class="calendar-event__result">Результаты <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                    </div>
+                </article>
             </div>
         </div>
-
-        <button type="button" class="calendar-add-result" data-open-result-modal>Добавить результат</button>
-
-        <div id="calendar-training-details" hidden>
-            <div class="calendar-training-block">
-                <h2 class="calendar-stats-card__title">Силовая</h2>
-                <div class="calendar-stats-card__timeline">
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
-                    </div>
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                    </div>
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="calendar-training-block">
-                <h2 class="calendar-stats-card__title">Силовая</h2>
-                <div class="calendar-stats-card__timeline">
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                    </div>
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                        <button type="button" class="calendar-watch-video" data-video-url="https://www.youtube.com/embed/dQw4w9WgXcQ"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="Посмотреть видео"></button>
-                    </div>
-                    <div class="calendar-stats-card__point">
-                        <i></i>
-                        <span>15 раз на скакалке</span>
-                    </div>
-                </div>
-            </div>
-        </div>
     </section>
-
-    <section class="calendar-list">
-        <h2>Февраль 2025</h2>
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='calendar-item' title='HIIT Training / Силовая' date='21.02.2025' result='100 кг' %}
-    </section>
-
-    {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
 
-<div class="calendar-video-modal" id="calendar-video-modal" hidden>
-    <div class="calendar-video-modal__overlay" data-close-video-modal></div>
-    <section class="calendar-video-modal__card">
-        <button type="button" class="calendar-video-modal__close" data-close-video-modal>
-            <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="Закрыть">
-        </button>
-        <div class="calendar-video-modal__frame-wrap">
-            <iframe
-                id="calendar-video-frame"
-                class="calendar-video-modal__frame"
-                src=""
-                title="Видео тренировки"
-                loading="lazy"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                referrerpolicy="strict-origin-when-cross-origin"
-                allowfullscreen>
-            </iframe>
+<div class="calendar-range-modal" id="calendar-range-modal" hidden>
+    <div class="calendar-range-modal__overlay" data-close-range></div>
+    <section class="calendar-range-modal__card" role="dialog" aria-modal="true" aria-label="Выбор диапазона дат">
+        <header class="calendar-range-modal__head">
+            <h3>Выберите диапазон</h3>
+            <button type="button" class="calendar-range-modal__close" data-close-range>×</button>
+        </header>
+        <div class="calendar-range-modal__month">
+            <button type="button" id="calendar-prev-month">‹</button>
+            <strong id="calendar-month-label"></strong>
+            <button type="button" id="calendar-next-month">›</button>
         </div>
+        <div class="calendar-range-modal__weekdays">
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+        </div>
+        <div class="calendar-range-modal__grid" id="calendar-range-grid"></div>
     </section>
 </div>
 
-{% include 'auth/components/my_results_modal.html' %}
-{% include 'auth/components/result_saved_modal.html' %}
-{% include 'auth/components/share_results_modal.html' %}
-{% include 'auth/components/training_rate_modal.html' %}
-{% include 'auth/components/training_rate_thanks_modal.html' %}
-
 <script>
     (function () {
-        const videoModal = document.getElementById("calendar-video-modal");
-        const frame = document.getElementById("calendar-video-frame");
+        const openBtn = document.getElementById("calendar-open-picker");
+        const modal = document.getElementById("calendar-range-modal");
+        const grid = document.getElementById("calendar-range-grid");
+        const monthLabel = document.getElementById("calendar-month-label");
+        const rangeLabel = document.getElementById("calendar-range-label");
+        const prevMonthBtn = document.getElementById("calendar-prev-month");
+        const nextMonthBtn = document.getElementById("calendar-next-month");
+        if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
 
-        const resultModal = document.getElementById("my-results-modal");
-        const resultSavedModal = document.getElementById("result-saved-modal");
-        const shareResultsModal = document.getElementById("share-results-modal");
-        const trainingRateModal = document.getElementById("training-rate-modal");
-        const trainingRateThanksModal = document.getElementById("training-rate-thanks-modal");
-        const openResultButton = document.querySelector("[data-open-result-modal]");
-        const saveResultsUrl = "{% url 'auth:calendar_save_results' %}";
-        const saveTrainingRateUrl = "{% url 'auth:calendar_save_training_rate' %}";
-        const downloadResultsImageUrl = "{% url 'auth:calendar_download_results_image' %}";
-        const leaderboardDayUrl = "{% url 'auth:leaderboard_day' %}";
-        const csrfTokenFallback = "{{ csrf_token }}";
-        let lastSavedResults = null;
-        let lastSavedDate = null;
+        const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
+        let current = new Date(2026, 1, 1);
+        let fromDate = new Date(2026, 1, 23);
+        let toDate = new Date(2026, 2, 1);
+        let draftFrom = new Date(fromDate);
+        let draftTo = new Date(toDate);
 
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length !== 2) return "";
-            return parts.pop().split(";").shift();
+        function normalize(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+        function same(a, b) { return a && b && a.getTime() === b.getTime(); }
+        function inRange(day, a, b) {
+            if (!a || !b) return false;
+            const t = day.getTime();
+            return t >= Math.min(a.getTime(), b.getTime()) && t <= Math.max(a.getTime(), b.getTime());
         }
+        function fmt(d) { return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; }
+        function updateRangeLabel() {
+            rangeLabel.textContent = `${fmt(fromDate)} - ${fmt(toDate)}`;
+        }
+        function render() {
+            monthLabel.textContent = `${months[current.getMonth()]} ${current.getFullYear()}`;
+            grid.innerHTML = "";
+            const firstDay = new Date(current.getFullYear(), current.getMonth(), 1);
+            const daysInMonth = new Date(current.getFullYear(), current.getMonth() + 1, 0).getDate();
+            const offset = (firstDay.getDay() + 6) % 7;
 
-        document.querySelectorAll(".calendar-watch-video").forEach((trigger) => {
-            trigger.addEventListener("click", (event) => {
-                event.preventDefault();
-                frame.src = trigger.dataset.videoUrl || "";
-                videoModal.hidden = false;
-            });
-        });
-
-        videoModal.addEventListener("click", (event) => {
-            if (!event.target.closest("[data-close-video-modal]")) return;
-            videoModal.hidden = true;
-            frame.src = "";
-        });
-
-        if (openResultButton && resultModal) {
-            const sectionTitle = resultModal.querySelector("[data-results-section-title]");
-            const minutesInput = resultModal.querySelector("[data-results-minutes]");
-            const secondsInput = resultModal.querySelector("[data-results-seconds]");
-            const nextButton = resultModal.querySelector("[data-results-next]");
-            const skipButton = resultModal.querySelector("[data-results-skip]");
-            openResultButton.addEventListener("click", () => {
-                resetWizard();
-                resultModal.hidden = false;
-            });
-
-            resultModal.addEventListener("click", (event) => {
-                if (!event.target.closest("[data-close-results-modal]")) return;
-                resultModal.hidden = true;
-            });
-
-            const modeButtons = resultModal.querySelectorAll("[data-results-mode]");
-            modeButtons.forEach((button) => {
-                button.addEventListener("click", () => {
-                    modeButtons.forEach((item) => {
-                        item.classList.toggle("my-results-chip--active", item === button);
-                    });
-                });
-            });
-
-            const sections = [
-                { key: "strength", title: "Силовая" },
-                { key: "cardio", title: "Кардио" },
-                { key: "metabolic", title: "Метаболическая" },
-            ];
-            const draftResults = {};
-            let sectionIndex = 0;
-
-            function getActiveMode() {
-                const active = resultModal.querySelector(".my-results-chip--active");
-                return (active?.dataset?.resultsMode || "rx").toLowerCase();
+            for (let i = 0; i < offset; i += 1) {
+                const filler = document.createElement("span");
+                filler.className = "calendar-range-modal__cell calendar-range-modal__cell--empty";
+                grid.appendChild(filler);
             }
 
-            function setMode(mode) {
-                modeButtons.forEach((button) => {
-                    button.classList.toggle("my-results-chip--active", (button.dataset.resultsMode || "").toLowerCase() === mode);
-                });
-            }
-
-            function readCurrentValues() {
-                const minutes = (minutesInput.value || "").trim();
-                const seconds = (secondsInput.value || "").trim();
-
-                if (minutes && !/^\d+$/.test(minutes)) {
-                    alert("Поле минут должно содержать только цифры.");
-                    return null;
-                }
-                if (seconds && !/^\d+$/.test(seconds)) {
-                    alert("Поле секунд должно содержать только цифры.");
-                    return null;
-                }
-                if (seconds && Number(seconds) > 59) {
-                    alert("Секунды должны быть в диапазоне от 0 до 59.");
-                    return null;
-                }
-
-                return {
-                    minutes: minutes || null,
-                    seconds: seconds || null,
-                    mode: getActiveMode(),
-                };
-            }
-
-            function writeCurrentValues() {
-                const currentSection = sections[sectionIndex];
-                const data = draftResults[currentSection.key] || {};
-                minutesInput.value = data.minutes || "";
-                secondsInput.value = data.seconds || "";
-                setMode((data.mode || "rx").toLowerCase());
-            }
-
-            function renderStep() {
-                const isLastStep = sectionIndex === sections.length - 1;
-                sectionTitle.textContent = sections[sectionIndex].title;
-                nextButton.textContent = isLastStep ? "Сохранить" : "Далее";
-                writeCurrentValues();
-            }
-
-            function resetWizard() {
-                sectionIndex = 0;
-                Object.keys(draftResults).forEach((key) => delete draftResults[key]);
-                renderStep();
-            }
-
-            function saveCurrentStep(allowEmpty) {
-                const values = readCurrentValues();
-                if (!values) return false;
-                if (!allowEmpty && values.minutes === null && values.seconds === null) {
-                    alert("Введите результат или нажмите «Пропустить».");
-                    return false;
-                }
-                draftResults[sections[sectionIndex].key] = values;
-                return true;
-            }
-
-            async function submitResults() {
-                nextButton.disabled = true;
-                skipButton.disabled = true;
-                try {
-                    const response = await fetch(saveResultsUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
-                        },
-                        body: JSON.stringify({
-                            results: draftResults,
-                            date: new Date().toISOString().slice(0, 10),
-                        }),
-                    });
-                    const payload = await response.json().catch(() => ({}));
-                    if (!response.ok || !payload.ok) {
-                        alert("Не удалось сохранить результаты. Попробуйте еще раз.");
+            for (let day = 1; day <= daysInMonth; day += 1) {
+                const date = normalize(new Date(current.getFullYear(), current.getMonth(), day));
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "calendar-range-modal__cell";
+                if (inRange(date, draftFrom, draftTo)) btn.classList.add("calendar-range-modal__cell--in-range");
+                if (same(date, draftFrom) || same(date, draftTo)) btn.classList.add("calendar-range-modal__cell--edge");
+                btn.textContent = String(day);
+                btn.addEventListener("click", () => {
+                    if (!draftFrom || (draftFrom && draftTo)) {
+                        draftFrom = date;
+                        draftTo = null;
+                    } else if (date.getTime() < draftFrom.getTime()) {
+                        draftTo = draftFrom;
+                        draftFrom = date;
+                    } else {
+                        draftTo = date;
+                    }
+                    if (draftFrom && draftTo) {
+                        fromDate = normalize(draftFrom);
+                        toDate = normalize(draftTo);
+                        updateRangeLabel();
+                        modal.hidden = true;
                         return;
                     }
-                    lastSavedResults = JSON.parse(JSON.stringify(draftResults));
-                    lastSavedDate = payload.date || new Date().toISOString().slice(0, 10);
-                    resultModal.hidden = true;
-                    if (resultSavedModal) {
-                        resultSavedModal.hidden = false;
-                    }
-                    resetWizard();
-                } catch (error) {
-                    alert("Ошибка сети при сохранении результатов.");
-                } finally {
-                    nextButton.disabled = false;
-                    skipButton.disabled = false;
-                }
+                    render();
+                });
+                grid.appendChild(btn);
             }
-
-            nextButton.addEventListener("click", async () => {
-                if (!saveCurrentStep(false)) return;
-                if (sectionIndex < sections.length - 1) {
-                    sectionIndex += 1;
-                    renderStep();
-                    return;
-                }
-                await submitResults();
-            });
-
-            skipButton.addEventListener("click", async () => {
-                saveCurrentStep(true);
-                if (sectionIndex < sections.length - 1) {
-                    sectionIndex += 1;
-                    renderStep();
-                    return;
-                }
-                await submitResults();
-            });
-
-            resetWizard();
         }
 
-        if (resultSavedModal) {
-            resultSavedModal.addEventListener("click", (event) => {
-                if (!event.target.closest("[data-close-result-saved-modal]")) return;
-                resultSavedModal.hidden = true;
-            });
-
-            resultSavedModal.querySelector("[data-open-share-results-modal]")?.addEventListener("click", () => {
-                if (!shareResultsModal) return;
-
-                const formatValue = (entry) => {
-                    if (!entry) return "--";
-                    const minutes = entry.minutes ?? "";
-                    const seconds = entry.seconds ?? "";
-                    if (!minutes && !seconds) return "--";
-                    if (minutes && seconds) return `${minutes}x${seconds}`;
-                    return minutes || seconds;
-                };
-
-                shareResultsModal.querySelector("[data-share-value='cardio']").textContent =
-                    formatValue(lastSavedResults?.cardio);
-                shareResultsModal.querySelector("[data-share-value='strength']").textContent =
-                    formatValue(lastSavedResults?.strength);
-                shareResultsModal.querySelector("[data-share-value='metabolic']").textContent =
-                    formatValue(lastSavedResults?.metabolic);
-                shareResultsModal.querySelector("[data-share-date]").textContent =
-                    new Date(lastSavedDate || Date.now()).toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) + " г.";
-
-                resultSavedModal.hidden = true;
-                shareResultsModal.hidden = false;
-            });
-
-            resultSavedModal.querySelector("[data-open-training-rate-modal]")?.addEventListener("click", () => {
-                if (!trainingRateModal) return;
-                trainingRateModal.querySelector("[data-training-rate-comment]").value = "";
-                resultSavedModal.hidden = true;
-                trainingRateModal.hidden = false;
-            });
+        function openModal() {
+            draftFrom = new Date(fromDate);
+            draftTo = new Date(toDate);
+            current = new Date(draftFrom.getFullYear(), draftFrom.getMonth(), 1);
+            modal.hidden = false;
+            render();
         }
 
-        if (trainingRateModal) {
-            const rateSaveButton = trainingRateModal.querySelector("[data-save-training-rate]");
-            const rateCommentInput = trainingRateModal.querySelector("[data-training-rate-comment]");
-
-            const readRatings = () => {
-                const ratings = {};
-                trainingRateModal.querySelectorAll("[data-rating-category]").forEach((group) => {
-                    const category = group.dataset.ratingCategory;
-                    const value = group.querySelectorAll(".training-rate-modal__star--active").length;
-                    ratings[category] = value;
-                });
-                return ratings;
-            };
-
-            trainingRateModal.querySelectorAll("[data-rating-category]").forEach((group) => {
-                group.addEventListener("click", (event) => {
-                    const star = event.target.closest(".training-rate-modal__star");
-                    if (!star) return;
-                    const selected = Number(star.dataset.ratingValue || "0");
-                    if (!selected) return;
-                    group.querySelectorAll(".training-rate-modal__star").forEach((item) => {
-                        const value = Number(item.dataset.ratingValue || "0");
-                        item.classList.toggle("training-rate-modal__star--active", value <= selected);
-                    });
-                });
-            });
-
-            trainingRateModal.addEventListener("click", (event) => {
-                if (!event.target.closest("[data-close-training-rate-modal]")) return;
-                trainingRateModal.hidden = true;
-            });
-
-            rateSaveButton?.addEventListener("click", async () => {
-                const ratings = readRatings();
-                if (!ratings.overall || !ratings.strength || !ratings.cardio || !ratings.metabolic) {
-                    alert("Пожалуйста, поставьте оценку по всем разделам.");
-                    return;
-                }
-
-                rateSaveButton.disabled = true;
-                try {
-                    const response = await fetch(saveTrainingRateUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
-                        },
-                        body: JSON.stringify({
-                            date: lastSavedDate || new Date().toISOString().slice(0, 10),
-                            ratings,
-                            comment: (rateCommentInput?.value || "").trim(),
-                        }),
-                    });
-                    const payload = await response.json().catch(() => ({}));
-                    if (!response.ok || !payload.ok) {
-                        alert("Не удалось сохранить оценку. Попробуйте еще раз.");
-                        return;
-                    }
-
-                    trainingRateModal.hidden = true;
-                    if (trainingRateThanksModal) {
-                        trainingRateThanksModal.hidden = false;
-                    }
-                } catch (error) {
-                    alert("Ошибка сети при сохранении оценки.");
-                } finally {
-                    rateSaveButton.disabled = false;
-                }
-            });
-        }
-
-        if (trainingRateThanksModal) {
-            trainingRateThanksModal.addEventListener("click", (event) => {
-                const closeTarget = event.target.closest("[data-close-training-rate-thanks-modal]");
-                if (!closeTarget) return;
-                if (closeTarget.classList.contains("training-rate-thanks-modal__btn")) {
-                    window.location.href = leaderboardDayUrl;
-                    return;
-                }
-                trainingRateThanksModal.hidden = true;
-            });
-        }
-
-        if (shareResultsModal) {
-            shareResultsModal.addEventListener("click", (event) => {
-                if (!event.target.closest("[data-close-share-results-modal]")) return;
-                shareResultsModal.hidden = true;
-            });
-
-            shareResultsModal.querySelector("[data-open-share-native]")?.addEventListener("click", async () => {
-                if (!navigator.share) return;
-                try {
-                    await navigator.share({
-                        title: "Результаты тренировки",
-                        text: "Делюсь результатами тренировки!",
-                        url: window.location.href,
-                    });
-                } catch (error) {
-                    // ignore cancellation
-                }
-            });
-
-            shareResultsModal.querySelector("[data-share-download]")?.addEventListener("click", () => {
-                fetch(downloadResultsImageUrl, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
-                    },
-                    body: JSON.stringify({
-                        results: lastSavedResults || {},
-                        date: lastSavedDate || new Date().toISOString().slice(0, 10),
-                    }),
-                })
-                    .then((response) => {
-                        if (!response.ok) {
-                            throw new Error("download_failed");
-                        }
-                        return Promise.all([response.blob(), response.headers.get("Content-Disposition")]);
-                    })
-                    .then(([blob, disposition]) => {
-                        const filenameMatch = disposition && disposition.match(/filename=\"?([^\";]+)\"?/i);
-                        const filename = filenameMatch ? filenameMatch[1] : "training-results.png";
-                        const url = URL.createObjectURL(blob);
-                        const link = document.createElement("a");
-                        link.href = url;
-                        link.download = filename;
-                        document.body.appendChild(link);
-                        link.click();
-                        link.remove();
-                        URL.revokeObjectURL(url);
-                    })
-                    .catch(() => {
-                        alert("Не удалось скачать изображение. Попробуйте еще раз.");
-                    });
-            });
-        }
+        openBtn.addEventListener("click", openModal);
+        modal.addEventListener("click", (event) => {
+            if (event.target.closest("[data-close-range]")) modal.hidden = true;
+        });
+        prevMonthBtn?.addEventListener("click", () => {
+            current = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+            render();
+        });
+        nextMonthBtn?.addEventListener("click", () => {
+            current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+            render();
+        });
+        updateRangeLabel();
     })();
 </script>
 {% endblock %}

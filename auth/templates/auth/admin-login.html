@@ -1,32 +1,47 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
+{% load static %}
 
-{% block title %}Admin Login{% endblock %}
+{% block title %}Admin Sign In{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/admin-login.css' %}">
+{% endblock %}
 
 {% block content %}
-<main class="screen">
-    <section class="auth-card" aria-label="Admin login">
-        <h1 class="auth-card__title">Admin Login</h1>
+<main class="admin-auth-screen">
+    <section class="admin-auth-card" aria-label="Admin login">
+        <div class="admin-auth-card__illustration" aria-hidden="true">
+            <img src="{% static 'auth/img/admin-login-illustration.svg' %}" alt="">
+        </div>
 
-        <form class="auth-form" method="post">
+        <div class="admin-auth-form-wrap">
+            <h1 class="admin-auth-title">Admin Sign In</h1>
+            <form class="admin-auth-form" method="post">
             {% csrf_token %}
             {% if form.non_field_errors %}
-                <p class="auth-form__error">{{ form.non_field_errors.0 }}</p>
+                <p class="admin-auth-form__error">{{ form.non_field_errors.0 }}</p>
             {% endif %}
-            <label class="auth-form__field">
-                <span class="auth-form__label">Email</span>
-                <input class="auth-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" required>
-            </label>
+                <label class="admin-auth-form__field">
+                    <span class="admin-auth-form__label">Email</span>
+                    <span class="admin-auth-form__input-wrap">
+                        <input class="admin-auth-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" placeholder="Enter your email" required>
+                        <img class="admin-auth-form__icon" src="{% static 'auth/img/admin-login-envelope.svg' %}" alt="">
+                    </span>
+                </label>
 
-            <label class="auth-form__field">
-                <span class="auth-form__label">Password</span>
-                <input class="auth-form__input" type="password" name="password" required>
-            </label>
+                <label class="admin-auth-form__field">
+                    <span class="admin-auth-form__label">Password</span>
+                    <span class="admin-auth-form__input-wrap">
+                        <input class="admin-auth-form__input" type="password" name="password" placeholder="Enter your password" required>
+                        <img class="admin-auth-form__icon" src="{% static 'auth/img/admin-login-lock.svg' %}" alt="">
+                    </span>
+                </label>
 
-            <button class="auth-form__submit" type="submit">Sign In</button>
-        </form>
+                <button class="admin-auth-form__submit" type="submit">Sign In</button>
+            </form>
 
-        <a class="auth-card__register" href="{% url 'auth:admin_password_reset_start' %}">Forgot password?</a>
-        <a class="auth-card__register" href="{% url 'auth:login' %}">Back to user login</a>
+            <a class="admin-auth-form__forgot" href="{% url 'auth:admin_password_reset_start' %}">Can not sign in? Forgot password</a>
+        </div>
     </section>
 </main>
 {% endblock %}

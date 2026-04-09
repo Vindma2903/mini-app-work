@@ -1,64 +1,181 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}План тренировок на сегодня{% endblock %}
 
 {% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/training-plan-today.css' %}">
 {% endblock %}
 
 {% block content %}
 <main class="plan-today-screen">
+    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+
+    <section class="plan-today-date">
+        <h2 class="plan-today-date__title">Расписание тренировок</h2>
+        {% include 'auth/components/day_picker.html' with wrapper_class='plan-today-days' item_class='plan-today-days__item' active_day=4 %}
+        <span class="plan-today-date__dot" aria-hidden="true"></span>
+    </section>
+
     <h1 class="plan-today-title">План тренировок на сегодня</h1>
 
-    <section class="plan-card plan-card--expanded">
-        <div class="plan-card__head">
+    <section class="plan-card plan-card--expanded" data-plan-card>
+        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="true">
             <span>HIIT Training</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
 
-        <div class="plan-card__block">
-            <h2>Силовая</h2>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-        </div>
+        <div class="plan-card__details" data-plan-details>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            </div>
 
-        <div class="plan-card__block">
-            <h2>Силовая</h2>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-        </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
 
-        <div class="plan-card__block">
-            <h2>Силовая</h2>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-        </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
 
-        <button type="button" class="plan-card__add">Добавить результат</button>
-        <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+            <button type="button" class="plan-card__add">Добавить результат</button>
+            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+        </div>
     </section>
 
-    <section class="plan-card plan-card--collapsed">
-        <div class="plan-card__head">
+    <section class="plan-card plan-card--collapsed" data-plan-card>
+        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
             <span>HIIT Training</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
+        <div class="plan-card__details" data-plan-details hidden>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <button type="button" class="plan-card__add">Добавить результат</button>
+            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+        </div>
     </section>
-    <section class="plan-card plan-card--collapsed">
-        <div class="plan-card__head">
+    <section class="plan-card plan-card--collapsed" data-plan-card>
+        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
             <span>HIIT Training</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
+        <div class="plan-card__details" data-plan-details hidden>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <button type="button" class="plan-card__add">Добавить результат</button>
+            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+        </div>
     </section>
-    <section class="plan-card plan-card--collapsed">
-        <div class="plan-card__head">
+    <section class="plan-card plan-card--collapsed" data-plan-card>
+        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
             <span>HIIT Training</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
+        <div class="plan-card__details" data-plan-details hidden>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <div class="plan-card__block">
+                <h2>Силовая</h2>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
+            </div>
+            <button type="button" class="plan-card__add">Добавить результат</button>
+            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+        </div>
     </section>
+
+    {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='plan-today-bottom-nav' %}
 </main>
+<script>
+    (function () {
+        const cards = Array.from(document.querySelectorAll("[data-plan-card]"));
+        if (!cards.length) return;
+
+        function setExpanded(card, expanded) {
+            const toggle = card.querySelector("[data-plan-toggle]");
+            const details = card.querySelector("[data-plan-details]");
+            if (!toggle || !details) return;
+
+            toggle.setAttribute("aria-expanded", expanded ? "true" : "false");
+            details.hidden = !expanded;
+            card.classList.toggle("plan-card--expanded", expanded);
+            card.classList.toggle("plan-card--collapsed", !expanded);
+        }
+
+        function expandOnly(targetCard) {
+            cards.forEach((card) => setExpanded(card, card === targetCard));
+        }
+
+        cards.forEach((card) => {
+            const toggle = card.querySelector("[data-plan-toggle]");
+            if (!toggle) return;
+
+            toggle.addEventListener("click", () => {
+                const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+                if (!isExpanded) expandOnly(card);
+            });
+
+            toggle.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+                if (!isExpanded) expandOnly(card);
+            });
+        });
+    })();
+</script>
 {% endblock %}

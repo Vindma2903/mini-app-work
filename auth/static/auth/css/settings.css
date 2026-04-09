@@ -30,24 +30,30 @@ body {
 }
 
 .settings-topbar__back {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    color: #a9a9a9;
-    font-size: 12px;
-    line-height: 15px;
+    margin-left: -2px;
 }
 
-.settings-topbar__back img {
-    width: 12px;
-    height: 12px;
+.settings-topbar__icon-link {
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.settings-topbar__icon-link img {
+    width: 24px;
+    height: 24px;
+    display: block;
+}
+
+.settings-topbar__logout {
+    margin-right: -2px;
 }
 
 .settings-topbar__logout img {
-    width: 18px;
-    height: 18px;
-    display: block;
+    transform: rotate(180deg);
 }
 
 .settings-user {

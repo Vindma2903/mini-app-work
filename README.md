@@ -1,117 +1,78 @@
-# Mini App маршруты
+﻿# Mini App
 
-Ниже перечислены доступные маршруты проекта на текущий момент.
+## Запуск проекта
 
-## Как запустить проект
-
+```powershell
+cd C:\Users\Public\mini-app-work
+.\.venv\Scripts\Activate.ps1
+docker compose up -d
+python manage.py migrate
 python manage.py runserver 127.0.0.1:8000 --noreload
+```
 
+## Все экраны (быстрые ссылки)
 
-1. Установить зависимости Python:
-   - `pip install -r requirements.txt`
-2. Заполнить `.env` (БД, SMTP и др. переменные).
-   - Для реальной отправки писем укажи SMTP backend, например:
-   - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
-3. Запустить PostgreSQL (если используешь Docker):
-   - `docker compose up -d`
-4. Применить миграции:
-   - `python manage.py migrate`
-5. Запустить сервер:
-   - `python manage.py runserver`
-6. Открыть приложение:
-   - `http://127.0.0.1:8000/`
+### Пользовательские экраны
+- Вход: http://localhost:8000/
+- Регистрация (шаг 1): http://localhost:8000/register/
+- Регистрация (шаг 2): http://localhost:8000/register/password/
+- Успех регистрации: http://localhost:8000/register/success/
+- Профиль: http://localhost:8000/profile/
+- Настройки: http://localhost:8000/settings/
+- Комьюнити: http://localhost:8000/community/
+- План тренировок на сегодня: http://localhost:8000/training-plan/today/
+- Достижения: http://localhost:8000/achievements/
+- Достижение по упражнению: http://localhost:8000/achievements/exercise/back-pause-squat/
+- Лидерборд дня: http://localhost:8000/leaderboard/day/
+- Награды по тестам: http://localhost:8000/profile/awards-tests/
+- Детали тренировки за награду: http://localhost:8000/profile/awards-tests/workout/
+- Поддержка: http://localhost:8000/support/
+- Поддержка (отправлено): http://localhost:8000/support/sent/
 
-## Как запустить Cypress
+### Админские экраны
+- Админ-авторизация: http://localhost:8000/admin-auth/
+- Сброс пароля админа (email): http://localhost:8000/admin-auth/password-reset/
+- Подтверждение кода: http://localhost:8000/admin-auth/password-reset/confirm/
+- Новый пароль: http://localhost:8000/admin-auth/password-reset/new-password/
+- Админский экран тренировок (календарь): http://localhost:8000/calendar/
+- Django admin: http://localhost:8000/admin/
 
-1. Установить Node.js (проверка: `node -v` и `npm -v`).
-2. В корне проекта установить Cypress:
-   - `npm init -y`
-   - `npm install -D cypress`
-3. Первый запуск (создаст структуру папок Cypress):
-   - `npx cypress open`
-4. Добавить скрипты в `package.json`:
-   - `cy:open` = `cypress open`
-   - `cy:run` = `cypress run`
-5. Убедиться, что Django-сервер запущен (`python manage.py runserver`), затем запускать:
-   - `npm run cy:open` (интерактивно)
-   - `npm run cy:run` (в консоли)
+## Что важно по тренировочным экранам
 
-## Быстрый старт по экранам
+В проекте сейчас есть **два разных** экрана, связанных с тренировками:
+- `http://localhost:8000/training-plan/today/` — пользовательский экран (из нижнего меню «Тренировки»).
+- `http://localhost:8000/calendar/` — админский экран календаря тренировок.
 
-- `/` — вход
-- `/register/` — регистрация (шаг 1)
-- `/register/password/` — регистрация (шаг 2)
-- `/register/success/` — успех регистрации
-- `/profile/` — профиль
-- `/achievements/` — достижения
-- `/calendar/` — календарь
-- `/training-plan/today/` — план тренировок на сегодня
-- `/community/` — комьюнити
-- `/leaderboard/day/` — лидерборд дня
+## API и документация
 
-## Экраны mini app
+- OpenAPI schema: http://localhost:8000/api/schema/
+- Swagger UI: http://localhost:8000/api/schema/swagger-ui/
+- ReDoc: http://localhost:8000/api/schema/redoc/
 
-- `/` — вход (`login`)
-- `/register/` — регистрация, шаг 1 (`register`)
-- `/register/password/` — регистрация, шаг 2 (`register_password`)
-- `/register/success/` — экран успеха регистрации (`register_success`)
-- `/calendar/` — календарь (`calendar`)
-- `/community/` — комьюнити (`community`)
-- `/training-plan/today/` — план тренировок на сегодня (`training_plan_today`)
-- `/leaderboard/day/` — лидерборд дня (`leaderboard_day`)
-- `/profile/` — профиль (`profile`)
-- `/achievements/` — достижения (`achievements`)
-- `/achievements/exercise/<slug:exercise_slug>/` — достижение по выбранному упражнению (`achievement_exercise`)
-- `/profile/awards-tests/` — награды по тестам (`profile_awards_tests`)
-- `/profile/awards-tests/workout/` — деталка тренировки за награду (`profile_award_workout`)
+### API auth (dj-rest-auth + JWT)
+- POST login: http://localhost:8000/api/auth/login/
+- POST logout: http://localhost:8000/api/auth/logout/
+- GET/PUT user: http://localhost:8000/api/auth/user/
+- POST password change: http://localhost:8000/api/auth/password/change/
+- POST password reset: http://localhost:8000/api/auth/password/reset/
+- POST password reset confirm: http://localhost:8000/api/auth/password/reset/confirm/
+- POST token refresh: http://localhost:8000/api/auth/token/refresh/
+- POST token verify: http://localhost:8000/api/auth/token/verify/
 
-## Кастомная admin авторизация
+### API registration
+- Регистрация: http://localhost:8000/api/auth/registration/
+- Подтверждение email: http://localhost:8000/api/auth/registration/verify-email/
+- Повторная отправка письма: http://localhost:8000/api/auth/registration/resend-email/
+- Подтверждение по ключу: http://localhost:8000/api/auth/registration/account-confirm-email/<key>/
 
-- `/admin-auth/` — вход администратора (`admin_login`)
-- `/admin-auth/password-reset/` — старт сброса пароля админа (`admin_password_reset_start`)
-- `/admin-auth/password-reset/confirm/` — подтверждение кода и новый пароль (`admin_password_reset_confirm`)
+## Пользователи по умолчанию
 
-## Админка
+Создаются автоматически при старте приложения (если `AUTO_CREATE_ADMIN=1`):
+- Админ: `DEFAULT_ADMIN_EMAIL` / `DEFAULT_ADMIN_PASSWORD`
+- Обычный пользователь: `DEFAULT_USER_EMAIL` / `DEFAULT_USER_PASSWORD`
 
-- `/admin/` — Django admin
+Также можно создать вручную:
 
-## Allauth (web auth)
-
-- `/accounts/login/`
-- `/accounts/logout/`
-- `/accounts/signup/`
-- `/accounts/email/`
-- `/accounts/confirm-email/`
-- `/accounts/confirm-email/<key>/`
-- `/accounts/password/change/`
-- `/accounts/password/reset/`
-- `/accounts/password/reset/done/`
-- `/accounts/password/reset/key/<uidb36>-<key>/`
-- `/accounts/password/reset/key/done/`
-- `/accounts/password/set/`
-- `/accounts/reauthenticate/`
-- `/accounts/inactive/`
-
-## API auth (dj-rest-auth + JWT)
-
-- `/api/auth/login/` — вход
-- `/api/auth/logout/` — выход
-- `/api/auth/user/` — профиль пользователя
-- `/api/auth/password/change/` — смена пароля
-- `/api/auth/password/reset/` — сброс пароля
-- `/api/auth/password/reset/confirm/` — подтверждение сброса
-- `/api/auth/token/refresh/` — refresh JWT
-- `/api/auth/token/verify/` — проверка JWT
-
-## API registration
-
-- `/api/auth/registration/` — регистрация (custom `EmailRegisterView`)
-- `/api/auth/registration/verify-email/` — подтверждение email
-- `/api/auth/registration/resend-email/` — повторная отправка письма
-- `/api/auth/registration/account-confirm-email/<key>/` — подтверждение email по ключу
-
-## API документация (Swagger / ReDoc)
-
-- `/api/schema/` — OpenAPI schema (JSON)
-- `/api/schema/swagger-ui/` — Swagger UI (интерактивные запросы)
-- `/api/schema/redoc/` — ReDoc
+```powershell
+python manage.py seed_admin
+```

@@ -180,6 +180,18 @@ body {
     line-height: 10px;
     color: var(--community-muted);
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+}
+
+.community-card__reactions--active {
+    color: var(--community-blue);
+}
+
+.community-card__reactions img {
+    width: 12px;
+    height: 12px;
+    display: block;
 }
 
 .community-card__reactions span {

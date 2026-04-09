@@ -1,0 +1,210 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@500&family=Montserrat:wght@400;500;700&display=swap");
+
+:root {
+    --admin-bg: #f1f5f9;
+    --admin-card-bg: #ffffff;
+    --admin-border: #e2e8f0;
+    --admin-text: #212b36;
+    --admin-muted: #64748b;
+    --admin-dark: #1c2434;
+    --admin-primary: #155dfc;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--admin-bg);
+    font-family: "Montserrat", Arial, sans-serif;
+    color: var(--admin-text);
+}
+
+.admin-auth-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+}
+
+.admin-auth-card {
+    width: 1125px;
+    height: 870px;
+    background: var(--admin-card-bg);
+    border: 1px solid var(--admin-border);
+    border-radius: 2px;
+    box-shadow: 0 8px 13px -3px rgba(0, 0, 0, 0.07);
+    background-image: url("../img/admin-login-card-base.svg");
+    background-size: 1145px 890px;
+    background-position: center;
+    background-repeat: no-repeat;
+    display: grid;
+    grid-template-columns: 557px 1fr;
+}
+
+.admin-auth-card__illustration {
+    position: relative;
+    overflow: hidden;
+    border-right: 1px solid var(--admin-border);
+}
+
+.admin-auth-card__illustration img {
+    position: absolute;
+    left: 70px;
+    top: 226px;
+    width: 417px;
+    height: 418px;
+    display: block;
+}
+
+.admin-auth-form-wrap {
+    padding: 228px 70px 0;
+}
+
+.admin-auth-title {
+    margin: 0 0 32px;
+    font-size: 33px;
+    line-height: 45px;
+    font-weight: 700;
+}
+
+.admin-auth-title--smaller {
+    margin-bottom: 16px;
+    font-size: 30px;
+    line-height: 40px;
+}
+
+.admin-auth-subtitle {
+    margin: 0 0 32px;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--admin-muted);
+}
+
+.admin-auth-form {
+    display: grid;
+    gap: 24px;
+}
+
+.admin-auth-form__error {
+    margin: 0;
+    color: #dc2626;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.admin-auth-form__field {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-auth-form__label {
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--admin-dark);
+}
+
+.admin-auth-form__input-wrap {
+    position: relative;
+    display: block;
+}
+
+.admin-auth-form__input {
+    width: 100%;
+    height: 56px;
+    border-radius: 8px;
+    border: 1px solid var(--admin-border);
+    background: #ffffff;
+    padding: 0 56px 0 24px;
+    font-size: 16px;
+    line-height: 24px;
+    font-family: "Montserrat", Arial, sans-serif;
+    color: var(--admin-text);
+}
+
+.admin-auth-form__field:first-of-type .admin-auth-form__input {
+    border-color: #3c50e0;
+}
+
+.admin-auth-form__input::placeholder {
+    color: var(--admin-muted);
+    opacity: .5;
+}
+
+.admin-auth-form__input:focus {
+    outline: none;
+    border-color: #3c50e0;
+}
+
+.admin-auth-form__icon {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 22px;
+    height: 22px;
+    display: block;
+}
+
+.admin-auth-form__submit {
+    margin-top: 8px;
+    width: 100%;
+    height: 44px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--admin-primary);
+    color: #ffffff;
+    font-family: "Inter", Arial, sans-serif;
+    font-size: 14px;
+    line-height: 24px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.admin-auth-form__submit--tight {
+    margin-top: 0;
+}
+
+.admin-auth-form__forgot,
+.admin-auth-form__back {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    line-height: 24px;
+    font-weight: 500;
+    color: var(--admin-muted);
+}
+
+.admin-auth-form__forgot {
+    margin-top: 32px;
+}
+
+.admin-auth-form__back {
+    margin-top: 8px;
+}
+
+.admin-auth-form__back--spaced {
+    margin-top: 24px;
+}
+
+@media (max-width: 1200px) {
+    .admin-auth-card {
+        width: 100%;
+        min-height: auto;
+        grid-template-columns: 1fr;
+    }
+
+    .admin-auth-card__illustration {
+        display: none;
+    }
+
+    .admin-auth-form-wrap {
+        padding: 40px 24px;
+    }
+}

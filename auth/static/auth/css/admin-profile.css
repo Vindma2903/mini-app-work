@@ -1,0 +1,15 @@
+.admin-profile-page{background:#eef3f9}
+.admin-profile-content{width:1175px}
+.admin-profile-card{margin-top:26px;min-height:768px;border:2px solid #2f97ff;background:#fff;padding:22px}
+.admin-profile-card__inner{border:2px dotted #72b9ff;padding:0 0 24px}
+.admin-profile-card__hero{display:flex;align-items:center;gap:22px;padding:0 0 28px}
+.admin-profile-card__avatar-wrap{position:relative;display:flex;align-items:center;justify-content:center;width:108px;height:108px}
+.admin-profile-card__avatar{width:88px;height:88px;border-radius:999px;background:linear-gradient(135deg,#ad46ff 0%,#f6339a 100%);color:#fff;display:flex;align-items:center;justify-content:center;font:600 34px/40px Montserrat,Arial,sans-serif;text-transform:uppercase}
+.admin-profile-card__camera{position:absolute;right:6px;bottom:6px;width:28px;height:28px;border:0;border-radius:999px;background:#2563eb;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 18px rgba(37,99,235,.3);cursor:pointer}
+.admin-profile-card__camera span{font-size:14px;line-height:1}
+.admin-profile-card__upload h2{margin:0 0 6px;font:400 16px/22px Inter,Arial,sans-serif;color:#98a2b3}
+.admin-profile-card__upload p{margin:0;font:400 14px/20px Inter,Arial,sans-serif;color:#98a2b3}
+.admin-profile-form{display:grid;grid-template-columns:1fr 1fr;gap:18px 20px}
+.admin-profile-form__field{display:grid;gap:10px}
+.admin-profile-form__field span{font:500 14px/20px Inter,Arial,sans-serif;color:#101828}
+.admin-profile-form__field input{width:100%;height:38px;border:1px solid #dbe2ea;border-radius:8px;background:#fff;padding:0 14px;font:400 14px/20px Inter,Arial,sans-serif;color:#344054}

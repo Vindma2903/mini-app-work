@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Оценка и отзывы{% endblock %}
+{% block title %}РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
@@ -11,28 +11,28 @@
 {% block content %}
 <main class="calendar-desktop reviews-page">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="???????">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
-            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>??????????</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>?????????</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>?????? ? ??????</span></a>
+            <a href="{% url 'auth:library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>??????????</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>?????????</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>?????</span></a>
         </div>
     </aside>
 
     <section class="calendar-content reviews-content">
         <header class="calendar-content__header">
             <div>
-                <h1>Оценка и отзывы</h1>
-                <p>Отслеживание рейтинга тренировок</p>
+                <h1>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</h1>
+                <p>РћС‚СЃР»РµР¶РёРІР°РЅРёРµ СЂРµР№С‚РёРЅРіР° С‚СЂРµРЅРёСЂРѕРІРѕРє</p>
             </div>
             <div class="calendar-content__user">
-                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
-                <b>AM</b>
+                <div><strong>РљСЃРµРЅРёСЏ РРІР°РЅРѕРІР°</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar-link" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°"><b>AM</b></a>
             </div>
         </header>
 
@@ -40,38 +40,56 @@
             <div class="reviews-toolbar">
                 <label class="reviews-search">
                     <input type="text" placeholder="">
-                    <span class="reviews-search__icon">⌕</span>
+                    <span class="reviews-search__icon">вЊ•</span>
                 </label>
 
                 <div class="reviews-toolbar__row">
-                    <button type="button" class="reviews-select">Общая <span>⌄</span></button>
+                    <div class="reviews-filter" id="reviews-filter">
+                        <button type="button" class="reviews-select" id="reviews-filter-trigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span id="reviews-filter-label">РћР±С‰Р°СЏ</span>
+                            <span>вЊ„</span>
+                        </button>
+                        <div class="reviews-filter__menu" id="reviews-filter-menu" role="listbox" hidden>
+                            <button type="button" class="reviews-filter__option is-active" data-review-filter="all" data-review-filter-label="РћР±С‰Р°СЏ">РћР±С‰Р°СЏ</button>
+                            <button type="button" class="reviews-filter__option" data-review-filter="cardio" data-review-filter-label="РљР°СЂРґРёРѕ">РљР°СЂРґРёРѕ</button>
+                            <button type="button" class="reviews-filter__option" data-review-filter="metabolic" data-review-filter-label="РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ">РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ</button>
+                            <button type="button" class="reviews-filter__option" data-review-filter="strength" data-review-filter-label="РЎРёР»РѕРІР°СЏ">РЎРёР»РѕРІР°СЏ</button>
+                        </div>
+                    </div>
+
                     <div class="reviews-toolbar__actions">
-                        <button type="button" aria-label="Сортировка">⇅</button>
-                        <button type="button" aria-label="Фильтр">☰</button>
+                        <div class="reviews-sort" id="reviews-sort">
+                            <button type="button" class="reviews-toolbar__icon-button" id="reviews-sort-trigger" aria-label="РЎРѕСЂС‚РёСЂРѕРІРєР°" aria-haspopup="listbox" aria-expanded="false">в‡…</button>
+                            <div class="reviews-sort__menu" id="reviews-sort-menu" role="listbox" hidden>
+                                <button type="button" class="reviews-sort__option is-active" data-review-sort="date">РџРѕ РґР°С‚Рµ</button>
+                                <button type="button" class="reviews-sort__option" data-review-sort="rating">РџРѕ СЂРµР№С‚РёРЅРіСѓ</button>
+                            </div>
+                        </div>
+                        <button type="button" class="reviews-toolbar__icon-button" aria-label="Р¤РёР»СЊС‚СЂ">в°</button>
                     </div>
                 </div>
             </div>
 
             <div class="reviews-grid">
                 {% for card in review_cards %}
-                <article class="reviews-card reviews-card--{{ card.color }}">
+                <article class="reviews-card reviews-card--{{ card.color }}" data-review-card data-rating-general="4.8" data-rating-strength="5.0" data-rating-cardio="5.0" data-rating-metabolic="4.0">
                     <div class="reviews-card__head">
                         <div>
                             <h3>HIIT Training</h3>
-                            <p>23 Февраля 2026</p>
+                            <p>23 Р¤РµРІСЂР°Р»СЏ 2026</p>
                         </div>
-                        <span class="reviews-card__eye">⊙</span>
+                        <span class="reviews-card__eye">вЉ™</span>
                     </div>
 
                     <div class="reviews-card__ratings">
-                        <div><span>Общая:</span><b>★★★★★</b><strong>4,8</strong></div>
-                        <div><span>Силовая</span><b>★★★★★</b><strong>5,0</strong></div>
-                        <div><span>Кардио</span><b>★★★★★</b><strong>5,0</strong></div>
-                        <div><span>Метабол.</span><b>★★★★☆</b><strong>4,0</strong></div>
+                        <div><span>РћР±С‰Р°СЏ:</span><b>в…в…в…в…в…</b><strong>4,8</strong></div>
+                        <div><span>РЎРёР»РѕРІР°СЏ</span><b>в…в…в…в…в…</b><strong>5,0</strong></div>
+                        <div><span>РљР°СЂРґРёРѕ</span><b>в…в…в…в…в…</b><strong>5,0</strong></div>
+                        <div><span>РњРµС‚Р°Р±РѕР».</span><b>в…в…в…в…в†</b><strong>4,0</strong></div>
                     </div>
 
                     <div class="reviews-card__text">
-                        Отличная тренировка! Очень интенсивная, все упражнения выполнены качественно. Чувствую прилив энергии после каждой сессии.
+                        РћС‚Р»РёС‡РЅР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°! РћС‡РµРЅСЊ РёРЅС‚РµРЅСЃРёРІРЅР°СЏ, РІСЃРµ СѓРїСЂР°Р¶РЅРµРЅРёСЏ РІС‹РїРѕР»РЅРµРЅС‹ РєР°С‡РµСЃС‚РІРµРЅРЅРѕ. Р§СѓРІСЃС‚РІСѓСЋ РїСЂРёР»РёРІ СЌРЅРµСЂРіРёРё РїРѕСЃР»Рµ РєР°Р¶РґРѕР№ СЃРµСЃСЃРёРё.
                     </div>
                 </article>
                 {% endfor %}
@@ -79,4 +97,103 @@
         </div>
     </section>
 </main>
+
+<script>
+    (function () {
+        const filter = document.getElementById("reviews-filter");
+        const trigger = document.getElementById("reviews-filter-trigger");
+        const menu = document.getElementById("reviews-filter-menu");
+        const label = document.getElementById("reviews-filter-label");
+        const sort = document.getElementById("reviews-sort");
+        const sortTrigger = document.getElementById("reviews-sort-trigger");
+        const sortMenu = document.getElementById("reviews-sort-menu");
+        const cards = Array.from(document.querySelectorAll("[data-review-card]"));
+
+        if (!filter || !trigger || !menu || !label || !sort || !sortTrigger || !sortMenu || !cards.length) {
+            return;
+        }
+
+        function setFilter(filterKey, filterLabel) {
+            label.textContent = filterLabel;
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
+
+            menu.querySelectorAll("[data-review-filter]").forEach((option) => {
+                option.classList.toggle("is-active", option.getAttribute("data-review-filter") === filterKey);
+            });
+
+            cards.forEach((card) => {
+                if (filterKey === "all") {
+                    card.hidden = false;
+                    return;
+                }
+
+                const value = Number(card.dataset[`rating${filterKey.charAt(0).toUpperCase()}${filterKey.slice(1)}`] || 0);
+                card.hidden = value <= 0;
+            });
+        }
+
+        trigger.addEventListener("click", () => {
+            const shouldOpen = menu.hidden;
+            menu.hidden = !shouldOpen;
+            trigger.setAttribute("aria-expanded", String(shouldOpen));
+            sortMenu.hidden = true;
+            sortTrigger.setAttribute("aria-expanded", "false");
+        });
+
+        sortTrigger.addEventListener("click", () => {
+            const shouldOpen = sortMenu.hidden;
+            sortMenu.hidden = !shouldOpen;
+            sortTrigger.setAttribute("aria-expanded", String(shouldOpen));
+            menu.hidden = true;
+            trigger.setAttribute("aria-expanded", "false");
+        });
+
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) {
+                return;
+            }
+
+            const option = target.closest("[data-review-filter]");
+            if (option) {
+                setFilter(
+                    option.getAttribute("data-review-filter") || "all",
+                    option.getAttribute("data-review-filter-label") || "РћР±С‰Р°СЏ",
+                );
+                return;
+            }
+
+            const sortOption = target.closest("[data-review-sort]");
+            if (sortOption) {
+                sortMenu.querySelectorAll("[data-review-sort]").forEach((optionNode) => {
+                    optionNode.classList.toggle("is-active", optionNode === sortOption);
+                });
+                sortMenu.hidden = true;
+                sortTrigger.setAttribute("aria-expanded", "false");
+                return;
+            }
+
+            if (!target.closest("#reviews-filter")) {
+                menu.hidden = true;
+                trigger.setAttribute("aria-expanded", "false");
+            }
+
+            if (!target.closest("#reviews-sort")) {
+                sortMenu.hidden = true;
+                sortTrigger.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                menu.hidden = true;
+                trigger.setAttribute("aria-expanded", "false");
+                sortMenu.hidden = true;
+                sortTrigger.setAttribute("aria-expanded", "false");
+            }
+        });
+    })();
+</script>
 {% endblock %}
+

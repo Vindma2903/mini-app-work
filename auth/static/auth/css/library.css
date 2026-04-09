@@ -1,0 +1,26 @@
+.library-page{background:#eef3f9}
+.library-content{width:1175px}
+.library-card{margin-top:28px;min-height:724px;background:#fff;border:1px solid #dbe2ea;padding:22px 20px 28px}
+.library-card__top{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.library-tabs{display:flex;align-items:center;gap:24px}
+.library-tabs__link{position:relative;padding:0 20px 10px;color:#667085;text-decoration:none;font:400 14px/20px Inter,Arial,sans-serif}
+.library-tabs__link--active{color:#155dfc}
+.library-tabs__link--active::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:#155dfc;border-radius:999px}
+.library-card__add-button{height:36px;border:1px solid #cbd5e1;border-radius:10px;background:#fff;color:#344054;padding:0 16px;display:inline-flex;align-items:center;gap:8px;font:500 14px/20px Inter,Arial,sans-serif;cursor:pointer}
+.library-card__add-button span:first-child{font-size:16px;line-height:1}
+.library-table-wrap{overflow:auto}
+.library-table{width:100%;border-collapse:collapse;table-layout:fixed}
+.library-table th,.library-table td{padding:12px 18px;border-bottom:1px solid #e8edf3;text-align:left;vertical-align:top}
+.library-table th{background:#fafbfc;color:#101828;font:600 14px/20px Inter,Arial,sans-serif}
+.library-table td{color:#475467;font:400 13px/19px Inter,Arial,sans-serif}
+.library-table tbody tr:last-child td{border-bottom:0}
+.library-table th:nth-child(1),.library-table td:nth-child(1){width:14%}
+.library-table th:nth-child(2),.library-table td:nth-child(2){width:14%}
+.library-table th:nth-child(3),.library-table td:nth-child(3){width:28%}
+.library-table th:nth-child(4),.library-table td:nth-child(4){width:28%}
+.library-table th:nth-child(5),.library-table td:nth-child(5){width:7%;text-align:center}
+.library-table th:nth-child(6),.library-table td:nth-child(6){width:9%;text-align:center}
+.library-table__video-link{color:#155dfc;text-decoration:underline}
+.library-table__actions{display:flex;align-items:center;justify-content:center;gap:14px}
+.library-table__actions button{border:0;background:transparent;padding:0;color:#667085;font:400 16px/16px Inter,Arial,sans-serif;cursor:pointer}
+.library-table__actions button:last-child{color:#ef4444}

@@ -12,10 +12,10 @@
     <aside class="calendar-sidebar">
         <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
         <nav class="calendar-sidebar__nav">
-            <a href="#" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
-            <a href="#" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="{% url 'auth:library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
             <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
@@ -31,7 +31,7 @@
             </div>
             <div class="calendar-content__user">
                 <div><strong>Ксения Иванова</strong><span>Admin</span></div>
-                <b>AM</b>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar-link" aria-label="Открыть профиль администратора"><b>AM</b></a>
             </div>
         </header>
 
@@ -176,7 +176,7 @@
     <section class="calendar-range-modal__card" role="dialog" aria-modal="true" aria-label="Выбор диапазона дат">
         <header class="calendar-range-modal__head">
             <h3>Выберите диапазон</h3>
-            <button type="button" class="calendar-range-modal__close" data-close-range>×</button>
+            <button type="button" class="calendar-range-modal__close" data-close-range>Г—</button>
         </header>
         <div class="calendar-range-modal__month">
             <button type="button" id="calendar-prev-month">‹</button>
@@ -184,7 +184,7 @@
             <button type="button" id="calendar-next-month">›</button>
         </div>
         <div class="calendar-range-modal__weekdays">
-            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+            <span>РџРЅ</span><span>Р'С'</span><span>РЎСЂ</span><span>Р§С'</span><span>РџС'</span><span>РЎР±</span><span>Р'СЃ</span>
         </div>
         <div class="calendar-range-modal__grid" id="calendar-range-grid"></div>
     </section>
@@ -260,7 +260,7 @@
             </label>
 
             <div class="calendar-create-modal__exercise-card">
-                <p class="calendar-create-modal__exercise-name">Смит х2 (мин.)</p>
+                <p class="calendar-create-modal__exercise-name">РЎРјРёС' С…2 (РјРёРЅ.)</p>
                 <div class="calendar-create-modal__exercise-grid">
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
                         <span>Блок</span>
@@ -288,8 +288,8 @@
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
                         <span>Количество</span>
                         <div class="calendar-create-modal__count">
-                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" placeholder="Подходов">
-                            <small>по</small>
+                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" placeholder="РџРѕРґС…РѕРґРѕРІ">
+                            <small>РїРѕ</small>
                             <input id="calendar-create-reps-input" class="calendar-create-modal__text-input" type="text" placeholder="Повторений">
                         </div>
                     </label>
@@ -319,7 +319,7 @@
             <div class="calendar-create-modal__colors">
                 <p>Цвет тренировки в админ панели</p>
                 <div>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-create-color="blue"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="РЎРёРЅРёР№" aria-pressed="true" data-create-color="blue"></button>
                     <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-create-color="orange"></button>
                     <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-create-color="green"></button>
                     <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-create-color="pink"></button>
@@ -335,7 +335,7 @@
                 <article id="calendar-create-preview-card" class="calendar-create-modal__preview-card calendar-create-modal__preview-card--blue">
                     <h4>HIIT Training</h4>
                     <ul>
-                        <li>Смит 10 х1</li>
+                        <li>РЎРјРёС' 10 С…1</li>
                         <li>Присед 10 х1</li>
                         <li>Отжимания 10 х1</li>
                     </ul>
@@ -394,18 +394,18 @@
             </label>
             <div class="calendar-ready-modal__list">
                 <button type="button" class="calendar-ready-modal__plan is-active" aria-pressed="true">Тренировка с Ксенией</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
                 <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
                 <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
                 <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
             </div>
             <div class="calendar-ready-modal__colors">
                 <p>Цвет тренировки в админ панели</p>
                 <div>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-ready-color="blue"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--blue is-active" aria-label="РЎРёРЅРёР№" aria-pressed="true" data-ready-color="blue"></button>
                     <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-ready-color="orange"></button>
                     <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-ready-color="green"></button>
                     <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-ready-color="pink"></button>
@@ -420,7 +420,7 @@
                 <article id="calendar-ready-preview-card" class="calendar-ready-modal__preview-card calendar-ready-modal__preview-card--blue">
                     <h4>Тренировка с Ксенией</h4>
                     <ul>
-                        <li>Смит 10 х1</li>
+                        <li>РЎРјРёС' 10 С…1</li>
                         <li>Присед 10 х1</li>
                         <li>Отжимания 10 х1</li>
                     </ul>
@@ -442,7 +442,7 @@
             <button type="button" id="calendar-create-next-month">›</button>
         </div>
         <div class="calendar-create-date-picker__weekdays">
-            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+            <span>РџРЅ</span><span>Р'С'</span><span>РЎСЂ</span><span>Р§С'</span><span>РџС'</span><span>РЎР±</span><span>Р'СЃ</span>
         </div>
         <div class="calendar-create-date-picker__grid" id="calendar-create-date-grid"></div>
     </section>
@@ -1393,7 +1393,7 @@
         colorButtons.forEach((button) => {
             button.addEventListener("click", () => {
                 const colorKey = button.getAttribute("data-create-color") || "blue";
-                const colorName = button.getAttribute("aria-label") || "Синий";
+                const colorName = button.getAttribute("aria-label") || "РЎРёРЅРёР№";
                 updateSelectedColor(colorKey, colorName, button);
             });
         });
@@ -1403,7 +1403,7 @@
         readyColorButtons.forEach((button) => {
             button.addEventListener("click", () => {
                 const colorKey = button.getAttribute("data-ready-color") || "blue";
-                const colorName = button.getAttribute("aria-label") || "Синий";
+                const colorName = button.getAttribute("aria-label") || "РЎРёРЅРёР№";
                 updateReadySelectedColor(colorKey, colorName, button);
             });
         });
@@ -1421,7 +1421,7 @@
             const normalized = colorKey || "blue";
             const activeButton = Array.from(colorButtons).find((button) => (button.getAttribute("data-create-color") || "") === normalized) || colorButtons[0];
             if (!activeButton) return;
-            const colorName = activeButton.getAttribute("aria-label") || "Синий";
+            const colorName = activeButton.getAttribute("aria-label") || "РЎРёРЅРёР№";
             updateSelectedColor(normalized, colorName, activeButton);
         }
 
@@ -1712,3 +1712,4 @@
     })();
 </script>
 {% endblock %}
+

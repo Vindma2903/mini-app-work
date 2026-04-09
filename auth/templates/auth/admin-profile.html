@@ -1,0 +1,77 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}РџСЂРѕС„РёР»СЊ{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/admin-profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop admin-profile-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="???????">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>??????????</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>?????????</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>?????? ? ??????</span></a>
+            <a href="{% url 'auth:library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>??????????</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>?????????</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>?????</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content admin-profile-content">
+        <header class="calendar-content__header">
+            <div>
+                <h1>РџСЂРѕС„РёР»СЊ</h1>
+                <p>Р”Р°РЅРЅС‹Рµ Р°РєРєР°СѓРЅС‚Р°</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>{{ admin_profile.first_name }} {{ admin_profile.last_name }}</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar-link" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂР°"><b>{{ admin_profile.initials }}</b></a>
+            </div>
+        </header>
+
+        <section class="admin-profile-card">
+            <div class="admin-profile-card__inner">
+                <div class="admin-profile-card__hero">
+                    <div class="admin-profile-card__avatar-wrap">
+                        <div class="admin-profile-card__avatar">{{ admin_profile.initials }}</div>
+                        <button type="button" class="admin-profile-card__camera" aria-label="Р—Р°РіСЂСѓР·РёС‚СЊ С„РѕС‚Рѕ">
+                            <span>рџ“·</span>
+                        </button>
+                    </div>
+                    <div class="admin-profile-card__upload">
+                        <h2>Р—Р°РіСЂСѓР·РёС‚Рµ С„РѕС‚РѕРіСЂР°С„РёСЋ РїСЂРѕС„РёР»СЏ</h2>
+                        <p>JPG, PNG РёР»Рё GIF (РјР°РєСЃ. 5 MB)</p>
+                    </div>
+                </div>
+
+                <div class="admin-profile-form">
+                    <label class="admin-profile-form__field">
+                        <span>РРјСЏ</span>
+                        <input type="text" value="{{ admin_profile.first_name }}" readonly>
+                    </label>
+                    <label class="admin-profile-form__field">
+                        <span>Р¤Р°РјРёР»РёСЏ</span>
+                        <input type="text" value="{{ admin_profile.last_name }}" readonly>
+                    </label>
+                    <label class="admin-profile-form__field">
+                        <span>Р­Р»РµРєС‚СЂРѕРЅРЅР°СЏ РїРѕС‡С‚Р°</span>
+                        <input type="email" value="{{ admin_profile.email }}" readonly>
+                    </label>
+                    <label class="admin-profile-form__field">
+                        <span>РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°</span>
+                        <input type="text" value="{{ admin_profile.phone }}" readonly>
+                    </label>
+                </div>
+            </div>
+        </section>
+    </section>
+</main>
+{% endblock %}
+

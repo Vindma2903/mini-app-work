@@ -11,16 +11,16 @@
 {% block content %}
 <main class="calendar-desktop statistics-page">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="???????">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
-            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>??????????</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>?????????</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>?????? ? ??????</span></a>
+            <a href="{% url 'auth:library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>??????????</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>?????????</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>?????</span></a>
         </div>
     </aside>
 
@@ -32,7 +32,7 @@
             </div>
             <div class="calendar-content__user">
                 <div><strong>Ксения Иванова</strong><span>Admin</span></div>
-                <b>AM</b>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar-link" aria-label="Открыть профиль администратора"><b>AM</b></a>
             </div>
         </header>
 
@@ -368,17 +368,12 @@
         const reviewsModal = document.getElementById("statistics-reviews-modal");
         const trainingViewModal = document.getElementById("statistics-training-view-modal");
         const trainingViewName = document.getElementById("statistics-training-view-name");
-        const sidebarReviewsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link:nth-child(3)");
         const monthLabel = document.getElementById("statistics-month-label");
         const grid = document.getElementById("statistics-date-grid");
         const prevBtn = document.getElementById("statistics-prev-month");
         const nextBtn = document.getElementById("statistics-next-month");
 
         if (!openBtn || !modal || !monthLabel || !grid) return;
-
-        if (sidebarReviewsLink instanceof HTMLAnchorElement) {
-            sidebarReviewsLink.href = "{% url 'auth:reviews_overview' %}";
-        }
 
         const months = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
         let currentMonth = new Date(2026, 2, 1);

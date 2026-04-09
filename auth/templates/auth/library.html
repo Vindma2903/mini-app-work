@@ -1,0 +1,88 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Библиотека{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/library.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop library-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="???????">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>??????????</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>?????????</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>?????? ? ??????</span></a>
+            <a href="{% url 'auth:library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>??????????</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>?????????</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>?????</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content library-content">
+        <header class="calendar-content__header">
+            <div>
+                <h1>Библиотека</h1>
+                <p>Информация об упражнениях</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar-link" aria-label="Открыть профиль администратора"><b>AM</b></a>
+            </div>
+        </header>
+
+        <section class="library-card">
+            <div class="library-card__top">
+                <nav class="library-tabs" aria-label="Разделы библиотеки">
+                    <a href="#" class="library-tabs__link library-tabs__link--active">Упражнения</a>
+                    <a href="#" class="library-tabs__link">Тренировки</a>
+                    <a href="#" class="library-tabs__link">Barbell PRs</a>
+                    <a href="#" class="library-tabs__link">Benchmarks</a>
+                </nav>
+
+                <button type="button" class="library-card__add-button">
+                    <span>＋</span>
+                    <span>Добавить</span>
+                </button>
+            </div>
+
+            <div class="library-table-wrap">
+                <table class="library-table">
+                    <thead>
+                        <tr>
+                            <th>Название Русский</th>
+                            <th>Название Английский</th>
+                            <th>Описание Русский</th>
+                            <th>Описание Английский</th>
+                            <th>Видео</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in library_items %}
+                        <tr>
+                            <td>{{ item.name_ru }}</td>
+                            <td>{{ item.name_en }}</td>
+                            <td>{{ item.description_ru }}</td>
+                            <td>{{ item.description_en }}</td>
+                            <td><a href="#" class="library-table__video-link">{{ item.video_count }}</a></td>
+                            <td>
+                                <div class="library-table__actions">
+                                    <button type="button" aria-label="Редактировать">✎</button>
+                                    <button type="button" aria-label="Удалить">🗑</button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</main>
+{% endblock %}

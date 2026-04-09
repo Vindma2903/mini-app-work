@@ -34,6 +34,7 @@ from .forms import (
 )
 from .jwt_utils import build_token_pair_for_user, clear_jwt_cookies, get_jwt_cookie_names, set_jwt_cookies
 from .models import (
+    AdminContact,
     AdminPasswordResetRequest,
     CommunityReaction,
     TrainingRate,
@@ -823,6 +824,64 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
             {'color': 'orange'},
             {'color': 'violet'},
             {'color': 'orange'},
+        ]
+        return context
+
+
+class AdminProfileView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/admin-profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        admin_contact = AdminContact.objects.filter(user=user).first()
+
+        first_name = (user.first_name or 'Ксения').strip() or 'Ксения'
+        last_name = (user.last_name or 'Иванова').strip() or 'Иванова'
+        email = (user.email or 'admin@example.com').strip() or 'admin@example.com'
+        phone = '+7 (999) 123-45-67'
+        if admin_contact and admin_contact.phone:
+            phone = admin_contact.phone
+
+        initials = ''.join(part[:1] for part in [first_name, last_name] if part).upper()[:2] or 'AM'
+
+        context['admin_profile'] = {
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'phone': phone,
+            'initials': initials,
+        }
+        return context
+
+
+class LibraryView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/library.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['library_items'] = [
+            {
+                'name_ru': 'Аманда',
+                'name_en': 'Amanda',
+                'description_ru': '9-7-5 повторений на время: Выходы на кольцах Приседания со штангой (61/43 кг)',
+                'description_en': '9-7-5 reps for time: Ring muscle-ups Squats with a barbell (61/43 kg)',
+                'video_count': 5,
+            },
+            {
+                'name_ru': 'Синди',
+                'name_en': 'Cindy',
+                'description_ru': '20 минут AMRAP: 5 подтягиваний 10 отжиманий 15 приседаний',
+                'description_en': '20 minutes AMRAP: 5 pull-ups 10 push-ups 15 squats',
+                'video_count': 3,
+            },
+            {
+                'name_ru': 'Фрэн',
+                'name_en': 'Fran',
+                'description_ru': '21-15-9 повторений на время: Трастеры (43/29 кг) Подтягивания',
+                'description_en': '21-15-9 reps for time: Thrusters (43/29 kg) Pull-ups',
+                'video_count': 8,
+            },
         ]
         return context
 

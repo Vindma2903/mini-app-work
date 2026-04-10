@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Профиль админа{% endblock %}
@@ -48,25 +48,148 @@
                 </div>
             </div>
 
-            <form class="admin-profile-form" action="#" method="post" novalidate>
+            <form class="admin-profile-form" id="admin-profile-data-form" action="#" method="post" novalidate>
                 <label class="admin-profile-form__field">
                     <span>Имя</span>
-                    <input type="text" value="Ксения">
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="text" value="Ксения" data-initial-value="Ксения">
+                        <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
+                    </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Фамилия</span>
-                    <input type="text" value="Иванова">
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="text" value="Иванова" data-initial-value="Иванова">
+                        <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
+                    </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Электронная почта</span>
-                    <input type="email" value="admin@example.com">
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="email" value="admin@example.com" data-initial-value="admin@example.com">
+                        <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
+                    </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Номер телефона</span>
-                    <input type="text" value="+7 (999) 123-45-67">
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="text" value="+7 (999) 123-45-67" data-initial-value="+7 (999) 123-45-67">
+                        <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
+                    </span>
                 </label>
+                <div class="admin-profile-actions" id="admin-profile-data-actions" hidden>
+                    <button type="button" class="admin-profile-actions__btn admin-profile-actions__btn--ghost" id="admin-profile-data-cancel">Отмена</button>
+                    <button type="button" class="admin-profile-actions__btn admin-profile-actions__btn--primary" id="admin-profile-data-save">Сохранить изменения</button>
+                </div>
+            </form>
+
+            <form class="admin-profile-form admin-profile-form--password" id="admin-profile-password-form" action="#" method="post" novalidate>
+                <label class="admin-profile-form__field">
+                    <span>Введите старый пароль</span>
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="password" id="admin-old-password" autocomplete="current-password">
+                        <button class="admin-profile-form__icon" type="button" data-toggle-password="admin-old-password" aria-label="Показать пароль">👁</button>
+                    </span>
+                </label>
+                <label class="admin-profile-form__field admin-profile-form__field--empty"></label>
+                <label class="admin-profile-form__field">
+                    <span>Придумайте новый пароль</span>
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="password" id="admin-new-password" autocomplete="new-password">
+                        <button class="admin-profile-form__icon" type="button" data-toggle-password="admin-new-password" aria-label="Показать пароль">👁</button>
+                    </span>
+                </label>
+                <label class="admin-profile-form__field">
+                    <span>Повторите новый пароль</span>
+                    <span class="admin-profile-form__input-wrap">
+                        <input type="password" id="admin-repeat-password" autocomplete="new-password">
+                        <button class="admin-profile-form__icon" type="button" data-toggle-password="admin-repeat-password" aria-label="Показать пароль">👁</button>
+                    </span>
+                </label>
+                <div class="admin-profile-actions" id="admin-profile-password-actions" hidden>
+                    <button type="button" class="admin-profile-actions__btn admin-profile-actions__btn--ghost" id="admin-profile-password-cancel">Отмена</button>
+                    <button type="button" class="admin-profile-actions__btn admin-profile-actions__btn--primary" id="admin-profile-password-save">Сохранить изменения</button>
+                </div>
             </form>
         </section>
     </section>
 </main>
+
+<script>
+    (function () {
+        const dataForm = document.getElementById("admin-profile-data-form");
+        const dataActions = document.getElementById("admin-profile-data-actions");
+        const dataCancel = document.getElementById("admin-profile-data-cancel");
+        const dataSave = document.getElementById("admin-profile-data-save");
+        const dataInputs = dataForm?.querySelectorAll("input[data-initial-value]") || [];
+
+        const passwordForm = document.getElementById("admin-profile-password-form");
+        const passwordActions = document.getElementById("admin-profile-password-actions");
+        const passwordCancel = document.getElementById("admin-profile-password-cancel");
+        const passwordSave = document.getElementById("admin-profile-password-save");
+        const passwordInputs = passwordForm?.querySelectorAll("input[type='password'],input[type='text']") || [];
+
+        function updateDataActions() {
+            const isDirty = Array.from(dataInputs).some((input) => input.value !== (input.getAttribute("data-initial-value") || ""));
+            if (dataActions) dataActions.hidden = !isDirty;
+        }
+
+        function updatePasswordActions() {
+            const isDirty = Array.from(passwordInputs).some((input) => String(input.value || "").trim() !== "");
+            if (passwordActions) passwordActions.hidden = !isDirty;
+        }
+
+        dataInputs.forEach((input) => {
+            input.addEventListener("input", updateDataActions);
+            input.addEventListener("change", updateDataActions);
+        });
+
+        dataCancel?.addEventListener("click", () => {
+            dataInputs.forEach((input) => {
+                input.value = input.getAttribute("data-initial-value") || "";
+            });
+            updateDataActions();
+        });
+
+        dataSave?.addEventListener("click", () => {
+            dataInputs.forEach((input) => {
+                input.setAttribute("data-initial-value", input.value);
+            });
+            updateDataActions();
+        });
+
+        passwordInputs.forEach((input) => {
+            input.addEventListener("input", updatePasswordActions);
+            input.addEventListener("change", updatePasswordActions);
+        });
+
+        passwordCancel?.addEventListener("click", () => {
+            passwordInputs.forEach((input) => {
+                input.value = "";
+                input.type = "password";
+            });
+            updatePasswordActions();
+        });
+
+        passwordSave?.addEventListener("click", () => {
+            passwordInputs.forEach((input) => {
+                input.value = "";
+                input.type = "password";
+            });
+            updatePasswordActions();
+        });
+
+        document.querySelectorAll("[data-toggle-password]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const targetId = button.getAttribute("data-toggle-password") || "";
+                const input = document.getElementById(targetId);
+                if (!input) return;
+                input.type = input.type === "password" ? "text" : "password";
+            });
+        });
+
+        updateDataActions();
+        updatePasswordActions();
+    })();
+</script>
 {% endblock %}

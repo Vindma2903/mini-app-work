@@ -82,6 +82,10 @@
     margin: 2px 0 14px;
 }
 
+.admin-library-benchmark-filters[hidden] {
+    display: none !important;
+}
+
 .admin-library-benchmark-filters__item {
     height: 32px;
     border: 1px solid #d0d5dd;

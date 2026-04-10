@@ -120,3 +120,70 @@
     color: #101828;
     background: #fff;
 }
+
+.admin-profile-form__input-wrap {
+    position: relative;
+    display: block;
+}
+
+.admin-profile-form__input-wrap input {
+    padding-right: 44px;
+}
+
+.admin-profile-form__icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #98a2b3;
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0;
+}
+
+.admin-profile-actions {
+    grid-column: 2 / 3;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.admin-profile-actions[hidden] {
+    display: none !important;
+}
+
+.admin-profile-actions__btn {
+    height: 40px;
+    min-width: 160px;
+    border-radius: 8px;
+    font: 500 14px/20px Inter, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.admin-profile-actions__btn--ghost {
+    border: 1.5px solid #155dfc;
+    background: #fff;
+    color: #101828;
+}
+
+.admin-profile-actions__btn--primary {
+    border: 0;
+    background: #155dfc;
+    color: #fff;
+}
+
+.admin-profile-form--password {
+    margin-top: 18px;
+}
+
+.admin-profile-form--password .admin-profile-form__field:first-child {
+    grid-column: 1 / 2;
+}
+
+.admin-profile-form__field--empty {
+    visibility: hidden;
+}

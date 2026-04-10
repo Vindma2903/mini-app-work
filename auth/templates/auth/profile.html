@@ -10,7 +10,7 @@
 
 {% block content %}
 <main class="profile-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name=shared_profile_name experience=shared_profile_experience %}
 
     <section class="card">
         <div class="card__head">
@@ -29,7 +29,7 @@
                 </div>
             </article>
             <article class="activity-grid__item activity-grid__item--blue" data-column="goal">
-                <strong class="activity-grid__value" data-activity="goal">6 тренировок</strong>
+                <strong class="activity-grid__value" data-activity="goal">{{ profile_week_goal }} тренировок</strong>
                 <div class="activity-grid__bar">
                     <span>Цель</span>
                 </div>
@@ -113,23 +113,27 @@
 
 <script>
     (function () {
+        const initialWeeklyGoal = Number.parseInt("{{ profile_week_goal|default:6 }}", 10) || 6;
         const activityValues = {
-            week: { visits: "3 тренировки", goal: "6 тренировок" },
+            week: { visits: "3 тренировки", goal: `${initialWeeklyGoal} тренировок` },
             month: { visits: "12 тренировок", goal: "20 тренировок" },
             all: { visits: "84 тренировки", goal: "150 тренировок" }
         };
 
-        const statsValues = {
-            week: { given: "0", received: "0" },
-            month: { given: "7", received: "5" },
-            all: { given: "31", received: "26" }
-        };
-        let selectedGoal = 7;
+        const statsValues = {{ profile_stats_values_json|safe }};
+        let selectedGoal = initialWeeklyGoal;
 
         function activateTab(group, period) {
             group.querySelectorAll(".tabs__item").forEach((button) => {
                 button.classList.toggle("tabs__item--active", button.dataset.period === period);
             });
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
         }
 
         function parseCount(value) {
@@ -218,14 +222,33 @@
             button.addEventListener("click", () => updateGoalModalValue(Number(button.dataset.goalPreset)));
         });
 
-        goalModal.querySelector("[data-goal-save]").addEventListener("click", () => {
-            activityValues.week.goal = `${selectedGoal} тренировок`;
-            const activeActivityPeriod = document.querySelector("[data-tabs='activity'] .tabs__item--active")?.dataset.period || "week";
-            renderActivity(activeActivityPeriod);
-            goalModal.hidden = true;
+        goalModal.querySelector("[data-goal-save]").addEventListener("click", async () => {
+            try {
+                const response = await fetch("{% url 'auth:profile_goal' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    body: JSON.stringify({ weekly_goal: selectedGoal }),
+                });
+                const payload = await response.json().catch(() => ({}));
+                if (!response.ok || !payload.ok) {
+                    alert("Не удалось сохранить цель. Попробуйте еще раз.");
+                    return;
+                }
+
+                activityValues.week.goal = `${payload.weekly_goal} тренировок`;
+                const activeActivityPeriod = document.querySelector("[data-tabs='activity'] .tabs__item--active")?.dataset.period || "week";
+                renderActivity(activeActivityPeriod);
+                goalModal.hidden = true;
+            } catch (_error) {
+                alert("Не удалось сохранить цель. Попробуйте еще раз.");
+            }
         });
 
         renderActivity("week");
+        renderStats("week");
     })();
 </script>
 {% endblock %}

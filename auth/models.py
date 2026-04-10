@@ -125,6 +125,113 @@ class CommunityReaction(models.Model):
         )
 
 
+class AdminTraining(models.Model):
+    VISIBILITY_COACHES = 'coaches'
+    VISIBILITY_ALL = 'all'
+    VISIBILITY_CHOICES = (
+        (VISIBILITY_COACHES, 'Only for coaches'),
+        (VISIBILITY_ALL, 'For all'),
+    )
+
+    SOURCE_MANUAL = 'manual'
+    SOURCE_READY = 'ready'
+    SOURCE_CHOICES = (
+        (SOURCE_MANUAL, 'Manual'),
+        (SOURCE_READY, 'Ready complex'),
+    )
+
+    DIRECTION_FBB = 'fbb'
+    DIRECTION_CROSSFIT = 'crossfit'
+    DIRECTION_GYMNASTICS = 'gymnastics'
+    DIRECTION_WORKOUT = 'workout'
+    DIRECTION_CHOICES = (
+        (DIRECTION_FBB, 'FBB'),
+        (DIRECTION_CROSSFIT, 'Crossfit with Denis Zalozniy'),
+        (DIRECTION_GYMNASTICS, 'Gymnastics'),
+        (DIRECTION_WORKOUT, 'Workout of the day'),
+    )
+
+    COLOR_BLUE = 'blue'
+    COLOR_ORANGE = 'orange'
+    COLOR_GREEN = 'green'
+    COLOR_PINK = 'pink'
+    COLOR_VIOLET = 'violet'
+    COLOR_CHOICES = (
+        (COLOR_BLUE, 'Blue'),
+        (COLOR_ORANGE, 'Orange'),
+        (COLOR_GREEN, 'Green'),
+        (COLOR_PINK, 'Pink'),
+        (COLOR_VIOLET, 'Violet'),
+    )
+
+    training_date = models.DateField(default=timezone.localdate, db_index=True)
+    direction = models.CharField(max_length=32, choices=DIRECTION_CHOICES, default=DIRECTION_FBB)
+    visibility = models.CharField(max_length=16, choices=VISIBILITY_CHOICES, default=VISIBILITY_ALL)
+    comment = models.TextField(blank=True, default='')
+    color = models.CharField(max_length=16, choices=COLOR_CHOICES, default=COLOR_BLUE)
+    source_type = models.CharField(max_length=16, choices=SOURCE_CHOICES, default=SOURCE_MANUAL)
+    ready_workout_type = models.CharField(max_length=32, blank=True, default='')
+    ready_complex_type = models.CharField(max_length=32, blank=True, default='')
+    ready_complex_name = models.CharField(max_length=255, blank=True, default='')
+    ready_plan_title = models.CharField(max_length=255, blank=True, default='')
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='admin_trainings_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-training_date', '-updated_at']
+
+    def __str__(self):
+        return f'{self.training_date.isoformat()} {self.get_direction_display()}'
+
+
+class AdminTrainingExercise(models.Model):
+    BLOCK_STRENGTH = 'strength'
+    BLOCK_CARDIO = 'cardio'
+    BLOCK_GYMNASTICS = 'gymnastics'
+    BLOCK_CUSTOM = 'custom'
+    BLOCK_CHOICES = (
+        (BLOCK_STRENGTH, 'Strength'),
+        (BLOCK_CARDIO, 'Cardio'),
+        (BLOCK_GYMNASTICS, 'Gymnastics'),
+        (BLOCK_CUSTOM, 'Custom'),
+    )
+
+    RESULT_TIME = 'time'
+    RESULT_WEIGHT = 'weight'
+    RESULT_REPS = 'reps'
+    RESULT_CHOICES = (
+        (RESULT_TIME, 'Time'),
+        (RESULT_WEIGHT, 'Weight'),
+        (RESULT_REPS, 'Reps count'),
+    )
+
+    training = models.ForeignKey(
+        AdminTraining,
+        on_delete=models.CASCADE,
+        related_name='exercises',
+    )
+    block_type = models.CharField(max_length=16, choices=BLOCK_CHOICES, default=BLOCK_STRENGTH)
+    block_custom_name = models.CharField(max_length=255, blank=True, default='')
+    exercise_name = models.CharField(max_length=255)
+    sets = models.PositiveSmallIntegerField(null=True, blank=True)
+    reps = models.PositiveSmallIntegerField(null=True, blank=True)
+    result_type = models.CharField(max_length=16, choices=RESULT_CHOICES, default=RESULT_TIME)
+    order = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return f'{self.training_id}: {self.exercise_name}'
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(
         User,
@@ -132,6 +239,7 @@ class UserProfile(models.Model):
         related_name='profile',
     )
     birth_date = models.DateField(null=True, blank=True)
+    weekly_goal = models.PositiveSmallIntegerField(default=6)
     telegram_user_id = models.BigIntegerField(null=True, blank=True, unique=True)
     telegram_username = models.CharField(max_length=255, blank=True, default='')
     telegram_first_name = models.CharField(max_length=255, blank=True, default='')

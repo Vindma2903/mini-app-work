@@ -1,143 +1,69 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}План тренировок на сегодня{% endblock %}
+{% block title %}РџР»Р°РЅ С‚СЂРµРЅРёСЂРѕРІРѕРє РЅР° СЃРµРіРѕРґРЅСЏ{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
 <link rel="stylesheet" href="{% static 'auth/css/training-plan-today.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-my-results-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-result-saved-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-share-results-modal.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/components-training-rate-thanks-modal.css' %}">
 {% endblock %}
 
 {% block content %}
 <main class="plan-today-screen">
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name=shared_profile_name experience=shared_profile_experience %}
 
     <section class="plan-today-date">
-        <h2 class="plan-today-date__title">Расписание тренировок</h2>
+        <h2 class="plan-today-date__title">Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє</h2>
         {% include 'auth/components/day_picker.html' with wrapper_class='plan-today-days' item_class='plan-today-days__item' active_day=4 %}
         <span class="plan-today-date__dot" aria-hidden="true"></span>
     </section>
 
-    <h1 class="plan-today-title">План тренировок на сегодня</h1>
-
+    <h1 class="plan-today-title">РџР»Р°РЅ С‚СЂРµРЅРёСЂРѕРІРѕРє РЅР° СЃРµРіРѕРґРЅСЏ</h1>
+    {% for card in plan_cards %}
+    <section class="plan-card {% if forloop.first %}plan-card--expanded{% else %}plan-card--collapsed{% endif %}" data-plan-card>
+        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
+            <span>{{ card.title }}</span>
+            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+        </div>
+        <div class="plan-card__details" data-plan-details {% if not forloop.first %}hidden{% endif %}>
+            {% for section in card.sections %}
+            <div class="plan-card__block">
+                <h2>{{ section.title }}</h2>
+                {% for line in section.lines %}
+                <div class="plan-card__line"><i></i><span>{{ line.text }}</span>{% if line.show_video %}<button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button>{% endif %}</div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <button type="button" class="plan-card__add">Добавить результат</button>
+            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
+        </div>
+    </section>
+    {% empty %}
     <section class="plan-card plan-card--expanded" data-plan-card>
         <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="true">
-            <span>HIIT Training</span>
+            <span>Сегодня тренировок нет</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
-
         <div class="plan-card__details" data-plan-details>
             <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
+                <h2>Расписание</h2>
+                <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на сегодня</span></div>
             </div>
-
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-
-            <button type="button" class="plan-card__add">Добавить результат</button>
-            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
         </div>
     </section>
+    {% endfor %}
 
-    <section class="plan-card plan-card--collapsed" data-plan-card>
-        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
-            <span>HIIT Training</span>
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </div>
-        <div class="plan-card__details" data-plan-details hidden>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <button type="button" class="plan-card__add">Добавить результат</button>
-            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
-        </div>
-    </section>
-    <section class="plan-card plan-card--collapsed" data-plan-card>
-        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
-            <span>HIIT Training</span>
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </div>
-        <div class="plan-card__details" data-plan-details hidden>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <button type="button" class="plan-card__add">Добавить результат</button>
-            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
-        </div>
-    </section>
-    <section class="plan-card plan-card--collapsed" data-plan-card>
-        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
-            <span>HIIT Training</span>
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </div>
-        <div class="plan-card__details" data-plan-details hidden>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span><button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <div class="plan-card__block">
-                <h2>Силовая</h2>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-                <div class="plan-card__line"><i></i><span>15 раз на скакалке</span></div>
-            </div>
-            <button type="button" class="plan-card__add">Добавить результат</button>
-            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
-        </div>
-    </section>
 
+    {% include 'auth/components/my_results_modal.html' %}
+    {% include 'auth/components/result_saved_modal.html' %}
+    {% include 'auth/components/training_rate_modal.html' %}
+    {% include 'auth/components/share_results_modal.html' %}
+    {% include 'auth/components/training_rate_thanks_modal.html' %}
     {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='plan-today-bottom-nav' %}
 </main>
 <script>
@@ -178,4 +104,305 @@
         });
     })();
 </script>
+<script>
+    (function () {
+        const sections = [
+            { key: "strength", title: "РЎРёР»РѕРІР°СЏ" },
+            { key: "cardio", title: "РљР°СЂРґРёРѕ" },
+            { key: "metabolic", title: "РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ" }
+        ];
+        const resultsDraft = {};
+        let currentSectionIndex = 0;
+
+        const myResultsModal = document.getElementById("my-results-modal");
+        const resultSavedModal = document.getElementById("result-saved-modal");
+        const trainingRateModal = document.getElementById("training-rate-modal");
+        const shareResultsModal = document.getElementById("share-results-modal");
+        const thanksModal = document.getElementById("training-rate-thanks-modal");
+
+        if (!myResultsModal || !resultSavedModal || !trainingRateModal) return;
+
+        const sectionTitle = myResultsModal.querySelector("[data-results-section-title]");
+        const minutesInput = myResultsModal.querySelector("[data-results-minutes]");
+        const secondsInput = myResultsModal.querySelector("[data-results-seconds]");
+        const modeButtons = Array.from(myResultsModal.querySelectorAll("[data-results-mode]"));
+        const nextButton = myResultsModal.querySelector("[data-results-next]");
+        const skipButton = myResultsModal.querySelector("[data-results-skip]");
+
+        const openRateButton = resultSavedModal.querySelector("[data-open-training-rate-modal]");
+        const openShareButton = resultSavedModal.querySelector("[data-open-share-results-modal]");
+
+        const rateComment = trainingRateModal.querySelector("[data-training-rate-comment]");
+        const saveRateButton = trainingRateModal.querySelector("[data-save-training-rate]");
+        const ratingStarsByCategory = {};
+        trainingRateModal.querySelectorAll("[data-rating-category]").forEach((row) => {
+            const category = row.getAttribute("data-rating-category") || "";
+            ratingStarsByCategory[category] = Array.from(row.querySelectorAll(".training-rate-modal__star"));
+        });
+
+        const addResultButtons = Array.from(document.querySelectorAll(".plan-card__add"));
+        const shareDateLabel = shareResultsModal?.querySelector("[data-share-date]");
+        const shareValueNodes = {
+            strength: shareResultsModal?.querySelector("[data-share-value='strength']"),
+            cardio: shareResultsModal?.querySelector("[data-share-value='cardio']"),
+            metabolic: shareResultsModal?.querySelector("[data-share-value='metabolic']")
+        };
+
+        function getCsrfToken() {
+            const chunks = document.cookie.split(";").map((chunk) => chunk.trim());
+            for (const chunk of chunks) {
+                if (chunk.startsWith("csrftoken=")) return decodeURIComponent(chunk.slice("csrftoken=".length));
+            }
+            return "";
+        }
+
+        function isoDateToday() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, "0");
+            const d = String(now.getDate()).padStart(2, "0");
+            return `${y}-${m}-${d}`;
+        }
+
+        function dateLabelRu() {
+            return new Date().toLocaleDateString("ru-RU");
+        }
+
+        function setModalVisible(modalNode, visible) {
+            if (!modalNode) return;
+            modalNode.hidden = !visible;
+            document.body.style.overflow = visible ? "hidden" : "";
+        }
+
+        function parsePositiveInt(value) {
+            const normalized = String(value || "").trim();
+            if (!normalized) return null;
+            const parsed = Number.parseInt(normalized, 10);
+            if (!Number.isFinite(parsed) || parsed < 0) return null;
+            return parsed;
+        }
+
+        function getActiveMode() {
+            return modeButtons.find((button) => button.classList.contains("my-results-chip--active"))?.getAttribute("data-results-mode") || "rx";
+        }
+
+        function setActiveMode(nextMode) {
+            modeButtons.forEach((button) => {
+                button.classList.toggle("my-results-chip--active", (button.getAttribute("data-results-mode") || "rx") === nextMode);
+            });
+        }
+
+        function renderSectionStep() {
+            const section = sections[currentSectionIndex];
+            if (!section) return;
+            if (sectionTitle) sectionTitle.textContent = section.title;
+            const stored = resultsDraft[section.key] || {};
+            if (minutesInput) minutesInput.value = stored.minutes ?? "";
+            if (secondsInput) secondsInput.value = stored.seconds ?? "";
+            setActiveMode(stored.mode || "rx");
+        }
+
+        function rememberSectionInput() {
+            const section = sections[currentSectionIndex];
+            if (!section) return;
+            const minutes = parsePositiveInt(minutesInput?.value);
+            const seconds = parsePositiveInt(secondsInput?.value);
+            if (minutes === null && seconds === null) {
+                delete resultsDraft[section.key];
+                return;
+            }
+            resultsDraft[section.key] = {
+                minutes,
+                seconds,
+                mode: getActiveMode()
+            };
+        }
+
+        function formatResultForShare(entry) {
+            if (!entry || (entry.minutes === null && entry.seconds === null)) return "--";
+            if (entry.minutes === null) return `${entry.seconds} СЃРµРє`;
+            if (entry.seconds === null) return `${entry.minutes} РјРёРЅ`;
+            return `${entry.minutes}Рј ${entry.seconds}СЃ`;
+        }
+
+        function applySharePreview() {
+            if (shareDateLabel) shareDateLabel.textContent = dateLabelRu();
+            Object.keys(shareValueNodes).forEach((key) => {
+                const node = shareValueNodes[key];
+                if (!node) return;
+                node.textContent = formatResultForShare(resultsDraft[key]);
+            });
+        }
+
+        async function saveResultsToServer() {
+            const response = await fetch("{% url 'auth:calendar_save_results' %}", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCsrfToken()
+                },
+                body: JSON.stringify({
+                    date: isoDateToday(),
+                    results: resultsDraft
+                })
+            });
+            if (!response.ok) throw new Error("save_results_failed");
+        }
+
+        function initializeRateStars() {
+            Object.values(ratingStarsByCategory).forEach((stars) => {
+                stars.forEach((star, index) => {
+                    star.classList.toggle("training-rate-modal__star--active", index < 4);
+                });
+            });
+            if (rateComment) rateComment.value = "";
+        }
+
+        function extractRatings() {
+            const ratings = {};
+            Object.entries(ratingStarsByCategory).forEach(([category, stars]) => {
+                const activeCount = stars.filter((star) => star.classList.contains("training-rate-modal__star--active")).length;
+                ratings[category] = activeCount || 1;
+            });
+            return ratings;
+        }
+
+        async function saveRateToServer() {
+            const response = await fetch("{% url 'auth:calendar_save_training_rate' %}", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": getCsrfToken()
+                },
+                body: JSON.stringify({
+                    date: isoDateToday(),
+                    ratings: extractRatings(),
+                    comment: String(rateComment?.value || "").trim()
+                })
+            });
+            if (!response.ok) throw new Error("save_rate_failed");
+        }
+
+        addResultButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                currentSectionIndex = 0;
+                Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
+                renderSectionStep();
+                setModalVisible(myResultsModal, true);
+            });
+        });
+
+        modeButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const mode = button.getAttribute("data-results-mode") || "rx";
+                setActiveMode(mode);
+            });
+        });
+
+        nextButton?.addEventListener("click", async () => {
+            rememberSectionInput();
+            if (currentSectionIndex < sections.length - 1) {
+                currentSectionIndex += 1;
+                renderSectionStep();
+                return;
+            }
+
+            try {
+                await saveResultsToServer();
+                applySharePreview();
+                setModalVisible(myResultsModal, false);
+                setModalVisible(resultSavedModal, true);
+            } catch (_error) {
+                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+            }
+        });
+
+        skipButton?.addEventListener("click", async () => {
+            delete resultsDraft[sections[currentSectionIndex].key];
+            if (currentSectionIndex < sections.length - 1) {
+                currentSectionIndex += 1;
+                renderSectionStep();
+                return;
+            }
+            try {
+                await saveResultsToServer();
+                applySharePreview();
+                setModalVisible(myResultsModal, false);
+                setModalVisible(resultSavedModal, true);
+            } catch (_error) {
+                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+            }
+        });
+
+        myResultsModal.querySelectorAll("[data-close-results-modal]").forEach((node) => {
+            node.addEventListener("click", () => setModalVisible(myResultsModal, false));
+        });
+
+        resultSavedModal.querySelectorAll("[data-close-result-saved-modal]").forEach((node) => {
+            node.addEventListener("click", () => setModalVisible(resultSavedModal, false));
+        });
+
+        openRateButton?.addEventListener("click", () => {
+            initializeRateStars();
+            setModalVisible(resultSavedModal, false);
+            setModalVisible(trainingRateModal, true);
+        });
+
+        openShareButton?.addEventListener("click", () => {
+            setModalVisible(resultSavedModal, false);
+            setModalVisible(shareResultsModal, true);
+        });
+
+        if (shareResultsModal) {
+            shareResultsModal.querySelectorAll("[data-close-share-results-modal]").forEach((node) => {
+                node.addEventListener("click", () => setModalVisible(shareResultsModal, false));
+            });
+            shareResultsModal.querySelector("[data-open-share-native]")?.addEventListener("click", async () => {
+                if (!navigator.share) return;
+                try {
+                    await navigator.share({
+                        title: "Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚СЂРµРЅРёСЂРѕРІРєРё",
+                        text: `РЎРёР»РѕРІР°СЏ: ${formatResultForShare(resultsDraft.strength)}, РљР°СЂРґРёРѕ: ${formatResultForShare(resultsDraft.cardio)}, РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ: ${formatResultForShare(resultsDraft.metabolic)}`
+                    });
+                } catch (_error) {
+                }
+            });
+        }
+
+        Object.values(ratingStarsByCategory).forEach((stars) => {
+            stars.forEach((star) => {
+                star.addEventListener("click", () => {
+                    const starValue = Number.parseInt(star.getAttribute("data-rating-value") || "1", 10) || 1;
+                    stars.forEach((item) => {
+                        const currentValue = Number.parseInt(item.getAttribute("data-rating-value") || "1", 10) || 1;
+                        item.classList.toggle("training-rate-modal__star--active", currentValue <= starValue);
+                    });
+                });
+            });
+        });
+
+        saveRateButton?.addEventListener("click", async () => {
+            try {
+                await saveRateToServer();
+                setModalVisible(trainingRateModal, false);
+                setModalVisible(thanksModal, true);
+            } catch (_error) {
+                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РѕС†РµРЅРєСѓ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+            }
+        });
+
+        trainingRateModal.querySelectorAll("[data-close-training-rate-modal]").forEach((node) => {
+            node.addEventListener("click", () => setModalVisible(trainingRateModal, false));
+        });
+
+        if (thanksModal) {
+            thanksModal.querySelectorAll("[data-close-training-rate-thanks-modal]").forEach((node) => {
+                node.addEventListener("click", () => setModalVisible(thanksModal, false));
+            });
+        }
+    })();
+</script>
 {% endblock %}
+

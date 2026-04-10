@@ -11,7 +11,7 @@
 {% block content %}
 <main class="leaderboard-screen">
     <p class="leaderboard-screen__label">Лидер борд дня</p>
-    {% include 'auth/components/profile_header.html' with name='Виктория Иванова' experience='8 лет' %}
+    {% include 'auth/components/profile_header.html' with name=shared_profile_name experience=shared_profile_experience %}
 
     <section class="leaderboard-date">
         <div class="leaderboard-date__head">

@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db import transaction
 from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -34,6 +35,8 @@ from .forms import (
 )
 from .jwt_utils import build_token_pair_for_user, clear_jwt_cookies, get_jwt_cookie_names, set_jwt_cookies
 from .models import (
+    AdminTraining,
+    AdminTrainingExercise,
     AdminPasswordResetRequest,
     CommunityReaction,
     TrainingRate,
@@ -46,6 +49,99 @@ ADMIN_PASSWORD_RESET_SESSION_KEY = 'admin_password_reset_request_id'
 ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY = 'admin_password_reset_code_verified'
 TELEGRAM_LINK_TTL_MINUTES = 10
 logger = logging.getLogger(__name__)
+
+RU_WEEKDAY = {
+    0: 'Понедельник',
+    1: 'Вторник',
+    2: 'Среда',
+    3: 'Четверг',
+    4: 'Пятница',
+    5: 'Суббота',
+    6: 'Воскресенье',
+}
+
+TRAINING_DIRECTION_LABELS = {
+    AdminTraining.DIRECTION_FBB: 'FBB',
+    AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
+    AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
+    AdminTraining.DIRECTION_WORKOUT: 'Воркаут дня',
+}
+
+TRAINING_BLOCK_LABELS = {
+    AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+    AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+    AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
+    AdminTrainingExercise.BLOCK_CUSTOM: 'Свое название',
+}
+
+TRAINING_RESULT_TYPE_LABELS = {
+    AdminTrainingExercise.RESULT_TIME: 'Время',
+    AdminTrainingExercise.RESULT_WEIGHT: 'Вес',
+    AdminTrainingExercise.RESULT_REPS: 'Кол-во повторений',
+}
+
+
+def format_admin_training_volume(exercise):
+    sets = exercise.sets
+    reps = exercise.reps
+    if sets is None and reps is None:
+        return exercise.exercise_name
+    if sets is None or reps is None:
+        return exercise.exercise_name
+    return f'{exercise.exercise_name} {sets}x{reps}'
+
+
+def serialize_admin_training(training):
+    date_value = training.training_date
+    exercises_payload = []
+    grouped_sections = []
+    section_index = {}
+
+    for item in training.exercises.all():
+        block_label = item.block_custom_name.strip() if item.block_type == AdminTrainingExercise.BLOCK_CUSTOM else TRAINING_BLOCK_LABELS.get(item.block_type, 'Силовая')
+        exercise_payload = {
+            'id': item.id,
+            'block_type': item.block_type,
+            'block_custom_name': item.block_custom_name,
+            'block_label': block_label,
+            'exercise_name': item.exercise_name,
+            'sets': item.sets,
+            'reps': item.reps,
+            'result_type': item.result_type,
+            'result_type_label': TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Время'),
+            'order': item.order,
+            'volume': format_admin_training_volume(item),
+        }
+        exercises_payload.append(exercise_payload)
+
+        if block_label not in section_index:
+            section_index[block_label] = len(grouped_sections)
+            grouped_sections.append({'title': block_label, 'items': []})
+        grouped_sections[section_index[block_label]]['items'].append(exercise_payload['volume'])
+
+    first_exercise = exercises_payload[0] if exercises_payload else None
+    return {
+        'id': training.id,
+        'date': date_value.isoformat(),
+        'date_label': date_value.strftime('%d.%m.%Y'),
+        'day_name': RU_WEEKDAY.get(date_value.weekday(), ''),
+        'day_number': date_value.day,
+        'direction': training.direction,
+        'direction_label': TRAINING_DIRECTION_LABELS.get(training.direction, training.direction),
+        'visibility': training.visibility,
+        'comment': training.comment,
+        'color': training.color,
+        'source_type': training.source_type,
+        'ready_workout_type': training.ready_workout_type,
+        'ready_complex_type': training.ready_complex_type,
+        'ready_complex_name': training.ready_complex_name,
+        'ready_plan_title': training.ready_plan_title,
+        'created_by_id': training.created_by_id,
+        'block_name': first_exercise['block_label'] if first_exercise else 'Силовая',
+        'volume': first_exercise['volume'] if first_exercise else '',
+        'sections': grouped_sections,
+        'exercises': exercises_payload,
+    }
 
 
 def get_client_ip(request):
@@ -417,6 +513,18 @@ class UserProtectedMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
+class SharedProfileHeaderMixin:
+    @staticmethod
+    def _build_profile_name(user):
+        return f'{user.first_name} {user.last_name}'.strip() or user.email
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['shared_profile_name'] = self._build_profile_name(self.request.user)
+        context['shared_profile_experience'] = '8 лет'
+        return context
+
+
 class AdminProtectedMixin:
     login_url = reverse_lazy('auth:admin_login')
     fallback_url = reverse_lazy('auth:profile')
@@ -431,8 +539,67 @@ class AdminProtectedMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class ProfileView(UserProtectedMixin, TemplateView):
+class ProfileView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
+        context['profile_week_goal'] = profile.weekly_goal or 6
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+        month_start = today - timedelta(days=29)
+
+        context['profile_stats_values_json'] = json.dumps(
+            {
+                'week': {
+                    'given': str(
+                        CommunityReaction.objects.filter(
+                            sender=self.request.user,
+                            training_date__gte=week_start,
+                            training_date__lte=today,
+                        ).count()
+                    ),
+                    'received': str(
+                        CommunityReaction.objects.filter(
+                            target_user=self.request.user,
+                            training_date__gte=week_start,
+                            training_date__lte=today,
+                        ).count()
+                    ),
+                },
+                'month': {
+                    'given': str(
+                        CommunityReaction.objects.filter(
+                            sender=self.request.user,
+                            training_date__gte=month_start,
+                            training_date__lte=today,
+                        ).count()
+                    ),
+                    'received': str(
+                        CommunityReaction.objects.filter(
+                            target_user=self.request.user,
+                            training_date__gte=month_start,
+                            training_date__lte=today,
+                        ).count()
+                    ),
+                },
+                'all': {
+                    'given': str(
+                        CommunityReaction.objects.filter(
+                            sender=self.request.user,
+                        ).count()
+                    ),
+                    'received': str(
+                        CommunityReaction.objects.filter(
+                            target_user=self.request.user,
+                        ).count()
+                    ),
+                },
+            },
+            ensure_ascii=False,
+        )
+        return context
 
 
 class SettingsView(UserProtectedMixin, TemplateView):
@@ -539,6 +706,43 @@ class UpdateProfileDataView(View):
             'last_name': user.last_name,
             'birth_date': profile.birth_date.strftime('%d.%m.%Y') if profile.birth_date else '',
         })
+
+
+class UpdateProfileGoalView(View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        user, auth_type = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        raw_goal = payload.get('weekly_goal')
+        try:
+            weekly_goal = int(raw_goal)
+        except (TypeError, ValueError):
+            return JsonResponse({'ok': False, 'error': 'invalid_weekly_goal'}, status=400)
+
+        if weekly_goal < 1 or weekly_goal > 30:
+            return JsonResponse({'ok': False, 'error': 'weekly_goal_out_of_range'}, status=400)
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        profile.weekly_goal = weekly_goal
+        profile.save(update_fields=['weekly_goal', 'updated_at'])
+
+        logger.info(
+            'Profile weekly goal updated user_id=%s email=%s weekly_goal=%s auth=%s ip=%s',
+            user.id,
+            user.email,
+            weekly_goal,
+            auth_type,
+            get_client_ip(request),
+        )
+        return JsonResponse({'ok': True, 'weekly_goal': weekly_goal})
 
 
 class StartTelegramLinkView(View):
@@ -776,6 +980,20 @@ class ProfileAwardWorkoutView(UserProtectedMixin, TemplateView):
 class CalendarView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/calendar.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        trainings = (
+            AdminTraining.objects
+            .select_related('created_by')
+            .prefetch_related('exercises')
+            .order_by('-training_date', '-updated_at', '-id')
+        )
+        context['calendar_trainings_json'] = json.dumps(
+            [serialize_admin_training(training) for training in trainings],
+            ensure_ascii=False,
+        )
+        return context
+
 
 class AdminProfileView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/admin-profile.html'
@@ -847,19 +1065,349 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
 class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/reviews-overview.html'
 
+    COLOR_CYCLE = ('orange', 'violet', 'green')
+    LOAD_TYPE_TO_FIELD = {
+        'all': 'overall',
+        'strength': 'strength',
+        'cardio': 'cardio',
+        'metabolic': 'metabolic',
+    }
+
+    @staticmethod
+    def _stars(value):
+        rating = max(1, min(5, int(value)))
+        return ('★' * rating) + ('☆' * (5 - rating))
+
+    @staticmethod
+    def _rating_label(value):
+        return f'{float(value):.1f}'.replace('.', ',')
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['review_cards'] = [
-            {'color': 'orange'},
-            {'color': 'violet'},
-            {'color': 'orange'},
-            {'color': 'green'},
-            {'color': 'green'},
-            {'color': 'orange'},
-            {'color': 'violet'},
-            {'color': 'orange'},
-        ]
+        load_type = (self.request.GET.get('load_type') or 'all').strip().lower()
+        order_by = (self.request.GET.get('order_by') or 'date').strip().lower()
+        if load_type not in self.LOAD_TYPE_TO_FIELD:
+            load_type = 'all'
+        if order_by not in {'date', 'rating'}:
+            order_by = 'date'
+
+        rating_field = self.LOAD_TYPE_TO_FIELD[load_type]
+        rates = TrainingRate.objects.select_related('user')
+        if order_by == 'rating':
+            rates = rates.order_by(f'-{rating_field}', '-training_date', '-updated_at')
+        else:
+            rates = rates.order_by('-training_date', '-updated_at')
+
+        review_cards = []
+        for index, rate in enumerate(rates):
+            full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+            review_cards.append(
+                {
+                    'color': self.COLOR_CYCLE[index % len(self.COLOR_CYCLE)],
+                    'training_title': 'HIIT Training',
+                    'date_label': rate.training_date.strftime('%d.%m.%Y'),
+                    'author_name': full_name,
+                    'comment': rate.comment.strip() or 'Без комментария',
+                    'overall_stars': self._stars(rate.overall),
+                    'strength_stars': self._stars(rate.strength),
+                    'cardio_stars': self._stars(rate.cardio),
+                    'metabolic_stars': self._stars(rate.metabolic),
+                    'overall_value': self._rating_label(rate.overall),
+                    'strength_value': self._rating_label(rate.strength),
+                    'cardio_value': self._rating_label(rate.cardio),
+                    'metabolic_value': self._rating_label(rate.metabolic),
+                }
+            )
+
+        context['selected_load_type'] = load_type
+        context['selected_order_by'] = order_by
+        context['review_cards'] = review_cards
         return context
+
+
+class AdminTrainingBaseView(AdminProtectedMixin, View):
+    http_method_names = ['post', 'get']
+
+    @staticmethod
+    def _parse_date(raw_date):
+        value = str(raw_date or '').strip()
+        if not value:
+            return None
+        try:
+            return timezone.datetime.strptime(value, '%Y-%m-%d').date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _parse_positive_int(value):
+        if value in (None, ''):
+            return None
+        try:
+            parsed = int(str(value).strip())
+        except (TypeError, ValueError):
+            return None
+        if parsed <= 0:
+            return None
+        return parsed
+
+    def _collect_exercises(self, payload):
+        raw_exercises = payload.get('exercises') or []
+        if not isinstance(raw_exercises, list):
+            return None, {'exercises': 'invalid_exercises'}
+
+        valid_block_values = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
+        valid_result_values = {key for key, _ in AdminTrainingExercise.RESULT_CHOICES}
+        parsed_exercises = []
+        errors = {}
+
+        for index, raw_item in enumerate(raw_exercises):
+            if not isinstance(raw_item, dict):
+                errors[f'exercises.{index}'] = 'invalid_exercise_item'
+                continue
+
+            block_type = str(raw_item.get('block_type') or AdminTrainingExercise.BLOCK_STRENGTH).strip().lower()
+            if block_type not in valid_block_values:
+                errors[f'exercises.{index}.block_type'] = 'invalid_block_type'
+                continue
+
+            result_type = str(raw_item.get('result_type') or AdminTrainingExercise.RESULT_TIME).strip().lower()
+            if result_type not in valid_result_values:
+                errors[f'exercises.{index}.result_type'] = 'invalid_result_type'
+                continue
+
+            block_custom_name = str(raw_item.get('block_custom_name') or '').strip()
+            if block_type == AdminTrainingExercise.BLOCK_CUSTOM and not block_custom_name:
+                errors[f'exercises.{index}.block_custom_name'] = 'block_custom_name_required'
+                continue
+
+            exercise_name = str(raw_item.get('exercise_name') or '').strip()
+            sets = self._parse_positive_int(raw_item.get('sets'))
+            reps = self._parse_positive_int(raw_item.get('reps'))
+
+            # Ignore empty placeholder rows from UI.
+            if not exercise_name and sets is None and reps is None:
+                continue
+            if not exercise_name:
+                errors[f'exercises.{index}.exercise_name'] = 'exercise_name_required'
+                continue
+            if (sets is None) != (reps is None):
+                errors[f'exercises.{index}.sets_reps'] = 'sets_and_reps_must_be_together'
+                continue
+
+            parsed_exercises.append(
+                {
+                    'block_type': block_type,
+                    'block_custom_name': block_custom_name,
+                    'exercise_name': exercise_name,
+                    'sets': sets,
+                    'reps': reps,
+                    'result_type': result_type,
+                    'order': len(parsed_exercises),
+                }
+            )
+
+        return parsed_exercises, errors
+
+    def _validate_payload(self, payload):
+        valid_directions = {key for key, _ in AdminTraining.DIRECTION_CHOICES}
+        valid_visibility = {key for key, _ in AdminTraining.VISIBILITY_CHOICES}
+        valid_color = {key for key, _ in AdminTraining.COLOR_CHOICES}
+        valid_source = {key for key, _ in AdminTraining.SOURCE_CHOICES}
+
+        training_date = self._parse_date(payload.get('date'))
+        direction = str(payload.get('direction') or AdminTraining.DIRECTION_FBB).strip().lower()
+        visibility = str(payload.get('visibility') or AdminTraining.VISIBILITY_ALL).strip().lower()
+        color = str(payload.get('color') or AdminTraining.COLOR_BLUE).strip().lower()
+        source_type = str(payload.get('source_type') or AdminTraining.SOURCE_MANUAL).strip().lower()
+        comment = str(payload.get('comment') or '').strip()
+        ready_workout_type = str(payload.get('ready_workout_type') or '').strip()
+        ready_complex_type = str(payload.get('ready_complex_type') or '').strip()
+        ready_complex_name = str(payload.get('ready_complex_name') or '').strip()
+        ready_plan_title = str(payload.get('ready_plan_title') or '').strip()
+
+        field_errors = {}
+        if not training_date:
+            field_errors['date'] = 'invalid_date'
+        if direction not in valid_directions:
+            field_errors['direction'] = 'invalid_direction'
+        if visibility not in valid_visibility:
+            field_errors['visibility'] = 'invalid_visibility'
+        if color not in valid_color:
+            field_errors['color'] = 'invalid_color'
+        if source_type not in valid_source:
+            field_errors['source_type'] = 'invalid_source_type'
+        if len(comment) > 1000:
+            field_errors['comment'] = 'comment_too_long'
+
+        exercises, exercise_errors = self._collect_exercises(payload)
+        field_errors.update(exercise_errors)
+
+        if source_type == AdminTraining.SOURCE_READY and not ready_plan_title:
+            field_errors['ready_plan_title'] = 'ready_plan_title_required'
+
+        if not exercises:
+            if source_type == AdminTraining.SOURCE_READY and ready_plan_title:
+                exercises = [
+                    {
+                        'block_type': AdminTrainingExercise.BLOCK_STRENGTH,
+                        'block_custom_name': '',
+                        'exercise_name': ready_plan_title,
+                        'sets': None,
+                        'reps': None,
+                        'result_type': AdminTrainingExercise.RESULT_TIME,
+                        'order': 0,
+                    }
+                ]
+            else:
+                field_errors['exercises'] = 'at_least_one_exercise_required'
+
+        if field_errors:
+            return None, field_errors
+
+        return {
+            'training_date': training_date,
+            'direction': direction,
+            'visibility': visibility,
+            'comment': comment,
+            'color': color,
+            'source_type': source_type,
+            'ready_workout_type': ready_workout_type,
+            'ready_complex_type': ready_complex_type,
+            'ready_complex_name': ready_complex_name,
+            'ready_plan_title': ready_plan_title,
+            'exercises': exercises,
+        }, {}
+
+    @staticmethod
+    def _replace_exercises(training, exercises):
+        training.exercises.all().delete()
+        AdminTrainingExercise.objects.bulk_create(
+            [
+                AdminTrainingExercise(
+                    training=training,
+                    block_type=item['block_type'],
+                    block_custom_name=item['block_custom_name'],
+                    exercise_name=item['exercise_name'],
+                    sets=item['sets'],
+                    reps=item['reps'],
+                    result_type=item['result_type'],
+                    order=item['order'],
+                )
+                for item in exercises
+            ]
+        )
+
+
+class AdminTrainingCreateView(AdminTrainingBaseView):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        parsed_payload, field_errors = self._validate_payload(payload)
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        with transaction.atomic():
+            training = AdminTraining.objects.create(
+                training_date=parsed_payload['training_date'],
+                direction=parsed_payload['direction'],
+                visibility=parsed_payload['visibility'],
+                comment=parsed_payload['comment'],
+                color=parsed_payload['color'],
+                source_type=parsed_payload['source_type'],
+                ready_workout_type=parsed_payload['ready_workout_type'],
+                ready_complex_type=parsed_payload['ready_complex_type'],
+                ready_complex_name=parsed_payload['ready_complex_name'],
+                ready_plan_title=parsed_payload['ready_plan_title'],
+                created_by=request.user,
+            )
+            self._replace_exercises(training, parsed_payload['exercises'])
+
+        training = AdminTraining.objects.prefetch_related('exercises').get(pk=training.pk)
+        return JsonResponse({'ok': True, 'training_id': training.id, 'training': serialize_admin_training(training)})
+
+
+class AdminTrainingUpdateView(AdminTrainingBaseView):
+    http_method_names = ['post']
+
+    def post(self, request, training_id, *args, **kwargs):
+        training = AdminTraining.objects.filter(id=training_id).first()
+        if training is None:
+            return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        parsed_payload, field_errors = self._validate_payload(payload)
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        with transaction.atomic():
+            training.training_date = parsed_payload['training_date']
+            training.direction = parsed_payload['direction']
+            training.visibility = parsed_payload['visibility']
+            training.comment = parsed_payload['comment']
+            training.color = parsed_payload['color']
+            training.source_type = parsed_payload['source_type']
+            training.ready_workout_type = parsed_payload['ready_workout_type']
+            training.ready_complex_type = parsed_payload['ready_complex_type']
+            training.ready_complex_name = parsed_payload['ready_complex_name']
+            training.ready_plan_title = parsed_payload['ready_plan_title']
+            training.save(
+                update_fields=[
+                    'training_date',
+                    'direction',
+                    'visibility',
+                    'comment',
+                    'color',
+                    'source_type',
+                    'ready_workout_type',
+                    'ready_complex_type',
+                    'ready_complex_name',
+                    'ready_plan_title',
+                    'updated_at',
+                ]
+            )
+            self._replace_exercises(training, parsed_payload['exercises'])
+
+        training = AdminTraining.objects.prefetch_related('exercises').get(pk=training.pk)
+        return JsonResponse({'ok': True, 'training_id': training.id, 'training': serialize_admin_training(training)})
+
+
+class AdminTrainingDeleteView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, training_id, *args, **kwargs):
+        training = AdminTraining.objects.filter(id=training_id).first()
+        if training is None:
+            return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
+        training.delete()
+        return JsonResponse({'ok': True, 'training_id': training_id})
+
+
+class AdminTrainingByDateView(AdminProtectedMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        raw_date = str(request.GET.get('date') or '').strip()
+        try:
+            training_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'ok': False, 'error': 'invalid_date'}, status=400)
+
+        trainings = (
+            AdminTraining.objects
+            .filter(training_date=training_date)
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        return JsonResponse({'ok': True, 'trainings': [serialize_admin_training(item) for item in trainings]})
 
 
 class SaveTrainingResultsView(View):
@@ -1171,11 +1719,11 @@ class LogoutView(View):
         return response
 
 
-class LeaderboardDayView(UserProtectedMixin, TemplateView):
+class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-day.html'
 
 
-class CommunityView(UserProtectedMixin, TemplateView):
+class CommunityView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/community.html'
 
     @staticmethod
@@ -1192,11 +1740,11 @@ class CommunityView(UserProtectedMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['community_name'] = (
+        context['community_name'] = context.get('shared_profile_name') or (
             f'{self.request.user.first_name} {self.request.user.last_name}'.strip()
             or self.request.user.email
         )
-        context['community_experience'] = '8 years'
+        context['community_experience'] = context.get('shared_profile_experience') or '8 лет'
 
         today = timezone.localdate()
         section_meta = [
@@ -1284,6 +1832,8 @@ class ToggleCommunityReactionView(View):
         target_user = User.objects.filter(id=target_user_id).first()
         if target_user is None:
             return JsonResponse({'ok': False, 'error': 'target_user_not_found'}, status=404)
+        if target_user.id == user.id:
+            return JsonResponse({'ok': False, 'error': 'cannot_react_to_self'}, status=400)
 
         today = timezone.localdate()
         if not TrainingResult.objects.filter(user=target_user, training_date=today).exists():
@@ -1313,11 +1863,51 @@ class ToggleCommunityReactionView(View):
         })
 
 
-class TrainingPlanTodayView(UserProtectedMixin, TemplateView):
+class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
 
-class AchievementsView(UserProtectedMixin, TemplateView):
+        trainings = (
+            AdminTraining.objects
+            .filter(training_date=today, visibility=AdminTraining.VISIBILITY_ALL)
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+
+        plan_cards = []
+        for training in trainings:
+            sections = []
+            section_index = {}
+            for exercise in training.exercises.all():
+                section_title = (
+                    exercise.block_custom_name.strip()
+                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Силовая')
+                )
+                if section_title not in section_index:
+                    section_index[section_title] = len(sections)
+                    sections.append({'title': section_title, 'lines': []})
+                sections[section_index[section_title]]['lines'].append({
+                    'text': format_admin_training_volume(exercise),
+                    'show_video': False,
+                })
+
+            plan_cards.append(
+                {
+                    'title': training.ready_plan_title.strip() or TRAINING_DIRECTION_LABELS.get(training.direction, 'HIIT Training'),
+                    'sections': sections,
+                    'comment': training.comment,
+                }
+            )
+
+        context['plan_cards'] = plan_cards
+        return context
+
+
+class AchievementsView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/achievements.html'
 
 

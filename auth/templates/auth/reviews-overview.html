@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Оценка и отзывы{% endblock %}
@@ -44,10 +44,29 @@
                 </label>
 
                 <div class="reviews-toolbar__row">
-                    <button type="button" class="reviews-select">Общая <span>⌄</span></button>
+                    <div class="reviews-select-wrap" id="reviews-load-type-filter">
+                        <button type="button" class="reviews-select" id="reviews-select-trigger" aria-haspopup="listbox" aria-expanded="false">
+                            <span id="reviews-select-value">Общая</span>
+                            <span class="reviews-select__chevron">⌄</span>
+                        </button>
+                        <div class="reviews-select-menu" id="reviews-select-menu" role="listbox" hidden>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'all' %} is-active{% endif %}" data-load-type="all" data-load-label="Общая">Общая</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="Кардио">Кардио</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'metabolic' %} is-active{% endif %}" data-load-type="metabolic" data-load-label="Метаболическая">Метаболическая</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="Силовая">Силовая</button>
+                        </div>
+                        <input type="hidden" id="reviews-select-input" name="load_type" value="{{ selected_load_type|default:'all' }}">
+                    </div>
                     <div class="reviews-toolbar__actions">
                         <button type="button" aria-label="Сортировка">⇅</button>
-                        <button type="button" aria-label="Фильтр">☰</button>
+                        <div class="reviews-filter-wrap" id="reviews-order-filter">
+                            <button type="button" aria-label="Фильтр" id="reviews-filter-trigger">☰</button>
+                            <div class="reviews-filter-menu" id="reviews-filter-menu" role="listbox" hidden>
+                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'date' %} is-active{% endif %}" data-order-value="date" data-order-label="По дате">По дате</button>
+                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'rating' %} is-active{% endif %}" data-order-value="rating" data-order-label="По рейтингу">По рейтингу</button>
+                            </div>
+                            <input type="hidden" id="reviews-order-input" name="order_by" value="{{ selected_order_by|default:'date' }}">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -57,26 +76,139 @@
                 <article class="reviews-card reviews-card--{{ card.color }}">
                     <div class="reviews-card__head">
                         <div>
-                            <h3>HIIT Training</h3>
-                            <p>23 Февраля 2026</p>
+                            <h3>{{ card.training_title }}</h3>
+                            <p>{{ card.date_label }} · {{ card.author_name }}</p>
                         </div>
                         <span class="reviews-card__eye">⊙</span>
                     </div>
 
                     <div class="reviews-card__ratings">
-                        <div><span>Общая:</span><b>★★★★★</b><strong>4,8</strong></div>
-                        <div><span>Силовая</span><b>★★★★★</b><strong>5,0</strong></div>
-                        <div><span>Кардио</span><b>★★★★★</b><strong>5,0</strong></div>
-                        <div><span>Метабол.</span><b>★★★★☆</b><strong>4,0</strong></div>
+                        <div><span>Общая:</span><b>{{ card.overall_stars }}</b><strong>{{ card.overall_value }}</strong></div>
+                        <div><span>Силовая</span><b>{{ card.strength_stars }}</b><strong>{{ card.strength_value }}</strong></div>
+                        <div><span>Кардио</span><b>{{ card.cardio_stars }}</b><strong>{{ card.cardio_value }}</strong></div>
+                        <div><span>Метабол.</span><b>{{ card.metabolic_stars }}</b><strong>{{ card.metabolic_value }}</strong></div>
                     </div>
 
-                    <div class="reviews-card__text">
-                        Отличная тренировка! Очень интенсивная, все упражнения выполнены качественно. Чувствую прилив энергии после каждой сессии.
-                    </div>
+                    <div class="reviews-card__text">{{ card.comment }}</div>
+                </article>
+                {% empty %}
+                <article class="reviews-card reviews-card--violet">
+                    <div class="reviews-card__head"><div><h3>HIIT Training</h3><p>Пока нет отзывов</p></div></div>
+                    <div class="reviews-card__text">Пользователи ещё не оставили оценку тренировки.</div>
                 </article>
                 {% endfor %}
             </div>
         </div>
     </section>
 </main>
+<script>
+    (function () {
+        const wrap = document.getElementById("reviews-load-type-filter");
+        const trigger = document.getElementById("reviews-select-trigger");
+        const menu = document.getElementById("reviews-select-menu");
+        const value = document.getElementById("reviews-select-value");
+        const input = document.getElementById("reviews-select-input");
+        const filterWrap = document.getElementById("reviews-order-filter");
+        const filterTrigger = document.getElementById("reviews-filter-trigger");
+        const filterMenu = document.getElementById("reviews-filter-menu");
+        const filterInput = document.getElementById("reviews-order-input");
+        if (!wrap || !trigger || !menu || !value || !input) return;
+
+        const params = new URLSearchParams(window.location.search);
+        const labelsByLoadType = {
+            all: "Общая",
+            cardio: "Кардио",
+            metabolic: "Метаболическая",
+            strength: "Силовая"
+        };
+        const labelsByOrder = {
+            date: "По дате",
+            rating: "По рейтингу"
+        };
+
+        const initialLoadType = (input.value || "all").toLowerCase();
+        value.textContent = labelsByLoadType[initialLoadType] || "Общая";
+
+        const options = menu.querySelectorAll(".reviews-select-menu__item");
+
+        function setOpen(open) {
+            trigger.setAttribute("aria-expanded", String(open));
+            menu.hidden = !open;
+            wrap.classList.toggle("is-open", open);
+        }
+
+        function applyFilters() {
+            params.set("load_type", input.value || "all");
+            params.set("order_by", filterInput?.value || "date");
+            window.location.search = params.toString();
+        }
+
+        trigger.addEventListener("click", function () {
+            setOpen(menu.hidden);
+        });
+
+        options.forEach(function (option) {
+            option.addEventListener("click", function () {
+                const nextValue = option.getAttribute("data-load-type") || "all";
+                const nextLabel = option.getAttribute("data-load-label") || "Общая";
+                options.forEach(function (item) {
+                    item.classList.remove("is-active");
+                });
+                option.classList.add("is-active");
+                input.value = nextValue;
+                value.textContent = nextLabel;
+                setOpen(false);
+                applyFilters();
+            });
+        });
+
+        document.addEventListener("click", function (event) {
+            if (!wrap.contains(event.target)) {
+                setOpen(false);
+            }
+        });
+
+        if (filterWrap && filterTrigger && filterMenu && filterInput) {
+            const filterOptions = filterMenu.querySelectorAll(".reviews-filter-menu__item");
+
+            function setFilterOpen(open) {
+                filterMenu.hidden = !open;
+                filterWrap.classList.toggle("is-open", open);
+            }
+
+            filterTrigger.addEventListener("click", function () {
+                setFilterOpen(filterMenu.hidden);
+            });
+
+            filterOptions.forEach(function (option) {
+                option.addEventListener("click", function () {
+                    const nextValue = option.getAttribute("data-order-value") || "date";
+                    filterOptions.forEach(function (item) {
+                        item.classList.remove("is-active");
+                    });
+                    option.classList.add("is-active");
+                    filterInput.value = nextValue;
+                    setFilterOpen(false);
+                    applyFilters();
+                });
+            });
+
+            document.addEventListener("click", function (event) {
+                if (!filterWrap.contains(event.target)) {
+                    setFilterOpen(false);
+                }
+            });
+
+            const initialOrder = (filterInput.value || "date").toLowerCase();
+            const activeOrderOption = filterMenu.querySelector(`.reviews-filter-menu__item[data-order-value="${initialOrder}"]`);
+            if (activeOrderOption) {
+                filterMenu.querySelectorAll(".reviews-filter-menu__item").forEach(function (item) {
+                    item.classList.remove("is-active");
+                });
+                activeOrderOption.classList.add("is-active");
+                activeOrderOption.textContent = labelsByOrder[initialOrder] || activeOrderOption.textContent;
+            }
+        }
+    })();
+</script>
 {% endblock %}

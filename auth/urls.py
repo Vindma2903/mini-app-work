@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     AchievementExerciseView,
     AchievementsView,
+    AdminLibraryView,
     AdminLoginView,
     AdminProfileView,
     AdminPasswordResetConfirmView,
@@ -46,6 +47,7 @@ urlpatterns = [
     path('admin-auth/password-reset/confirm/', AdminPasswordResetConfirmView.as_view(), name='admin_password_reset_confirm'),
     path('admin-auth/password-reset/new-password/', AdminPasswordResetNewPasswordView.as_view(), name='admin_password_reset_new_password'),
     path('admin/profile/', AdminProfileView.as_view(), name='admin_profile'),
+    path('admin/library/', AdminLibraryView.as_view(), name='admin_library'),
     path('reviews/', ReviewsOverviewView.as_view(), name='reviews_overview'),
     path('stats/', StatisticsView.as_view(), name='statistics'),
     path('calendar/', CalendarView.as_view(), name='calendar'),

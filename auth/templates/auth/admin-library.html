@@ -1,0 +1,218 @@
+﻿{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Библиотека{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/admin-library.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop admin-library-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content admin-library-content">
+        <header class="admin-library-header">
+            <div>
+                <h1>Библиотека</h1>
+                <p>Информация об упражнениях</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">AM</a>
+            </div>
+        </header>
+
+        <section class="admin-library-card">
+            <div class="admin-library-toolbar">
+                <nav class="admin-library-tabs" aria-label="Типы библиотеки">
+                    <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">Упражнения</a>
+                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">Тренировки</a>
+                    <a href="#" class="admin-library-tabs__item" data-tab="barbell">Barbell PRs</a>
+                    <a href="#" class="admin-library-tabs__item" data-tab="benchmarks">Benchmarks</a>
+                </nav>
+                <button type="button" class="admin-library-add">+ Добавить</button>
+            </div>
+
+            <div class="admin-library-benchmark-filters" id="admin-library-benchmark-filters" hidden>
+                <button type="button" class="admin-library-benchmark-filters__item is-active" data-benchmark-filter="girls">Girls</button>
+                <button type="button" class="admin-library-benchmark-filters__item" data-benchmark-filter="heroes">Heroes</button>
+                <button type="button" class="admin-library-benchmark-filters__item" data-benchmark-filter="gymnastics">Gymnastics</button>
+            </div>
+
+            <div class="admin-library-table-wrap">
+                <table class="admin-library-table">
+                    <thead>
+                        <tr>
+                            <th>Название<br>Русский</th>
+                            <th>Название<br>Английский</th>
+                            <th>Описание<br>Русский</th>
+                            <th>Описание<br>Английский</th>
+                            <th>Видео</th>
+                            <th>Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-library-table-body">
+                        {% for row in library_rows %}
+                        <tr>
+                            <td>{{ row.name_ru }}</td>
+                            <td>{{ row.name_en }}</td>
+                            <td>{{ row.desc_ru }}</td>
+                            <td>{{ row.desc_en }}</td>
+                            <td><a href="#" class="admin-library-video">{{ row.video }}</a></td>
+                            <td>
+                                <span class="admin-library-actions">
+                                    <a href="#" aria-label="Редактировать">✎</a>
+                                    <a href="#" aria-label="Удалить">🗑</a>
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </section>
+</main>
+<script>
+    (function () {
+        const tabs = document.querySelectorAll(".admin-library-tabs__item[data-tab]");
+        const tbody = document.getElementById("admin-library-table-body");
+        const benchmarkFiltersWrap = document.getElementById("admin-library-benchmark-filters");
+        const benchmarkFilterButtons = benchmarkFiltersWrap?.querySelectorAll("[data-benchmark-filter]") || [];
+        if (!tabs.length || !tbody) return;
+
+        const commonRows = [
+            {
+                nameRu: "Аманда",
+                nameEn: "Amanda",
+                descRu: "9-7-5 повторений на время:\nВыходы на кольцах\nПриседания со штангой (61/43 кг)",
+                descEn: "9-7-5 reps for time:\nRing muscle-ups\nSquats with a barbell (61/43 kg)",
+                video: 5
+            },
+            {
+                nameRu: "Синди",
+                nameEn: "Cindy",
+                descRu: "20 минут AMRAP:\n5 подтягиваний\n10 отжиманий\n15 приседаний",
+                descEn: "20 minutes AMRAP:\n5 pull-ups\n10 push-ups\n15 squats",
+                video: 3
+            },
+            {
+                nameRu: "Фран",
+                nameEn: "Fran",
+                descRu: "21-15-9 повторений на время:\nТрастеры (43/29 кг)\nПодтягивания",
+                descEn: "21-15-9 reps for time:\nThrusters (43/29 kg)\nPull-ups",
+                video: 8
+            }
+        ];
+
+        const datasets = {
+            exercises: commonRows,
+            trainings: [
+                {
+                    nameRu: "Тренировка с Ксенией",
+                    nameEn: "Training with Ksenia",
+                    descRu: "9-7-5 повторений на время:\nВыходы на кольцах\nПриседания со штангой (61/43 кг)",
+                    descEn: "9-7-5 reps for time:\nRing muscle-ups\nSquats with a barbell (61/43 kg)",
+                    video: 5
+                },
+                commonRows[1],
+                commonRows[2]
+            ],
+            barbell: commonRows,
+            benchmarks: {
+                girls: commonRows,
+                heroes: commonRows,
+                gymnastics: commonRows
+            }
+        };
+
+        const initialActiveTab = document.querySelector(".admin-library-tabs__item.is-active")?.getAttribute("data-tab");
+        let activeTab = initialActiveTab || "exercises";
+        let currentBenchmarkFilter = "girls";
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function formatMultiline(value) {
+            return escapeHtml(value).replaceAll("\n", "<br>");
+        }
+
+        function getRows() {
+            if (activeTab === "benchmarks") {
+                return datasets.benchmarks[currentBenchmarkFilter] || datasets.benchmarks.girls;
+            }
+            return datasets[activeTab] || datasets.exercises;
+        }
+
+        function renderRows() {
+            const rows = getRows();
+            tbody.innerHTML = rows.map((row) => `
+                <tr>
+                    <td>${escapeHtml(row.nameRu)}</td>
+                    <td>${escapeHtml(row.nameEn)}</td>
+                    <td>${formatMultiline(row.descRu)}</td>
+                    <td>${formatMultiline(row.descEn)}</td>
+                    <td><a href="#" class="admin-library-video">${escapeHtml(row.video)}</a></td>
+                    <td>
+                        <span class="admin-library-actions">
+                            <a href="#" aria-label="Редактировать">✎</a>
+                            <a href="#" aria-label="Удалить">🗑</a>
+                        </span>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        function toggleBenchmarkFilters() {
+            if (!benchmarkFiltersWrap) return;
+            benchmarkFiltersWrap.hidden = activeTab !== "benchmarks";
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener("click", (event) => {
+                event.preventDefault();
+                const nextTab = tab.getAttribute("data-tab") || "exercises";
+                activeTab = nextTab;
+                tabs.forEach((item) => item.classList.remove("is-active"));
+                tab.classList.add("is-active");
+                toggleBenchmarkFilters();
+                renderRows();
+            });
+        });
+
+        benchmarkFilterButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                currentBenchmarkFilter = button.getAttribute("data-benchmark-filter") || "girls";
+                benchmarkFilterButtons.forEach((item) => item.classList.remove("is-active"));
+                button.classList.add("is-active");
+                if (activeTab === "benchmarks") {
+                    renderRows();
+                }
+            });
+        });
+
+        toggleBenchmarkFilters();
+        renderRows();
+    })();
+</script>
+{% endblock %}

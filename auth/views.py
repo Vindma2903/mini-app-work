@@ -781,6 +781,37 @@ class AdminProfileView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/admin-profile.html'
 
 
+class AdminLibraryView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/admin-library.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['library_rows'] = [
+            {
+                'name_ru': 'Аманда',
+                'name_en': 'Amanda',
+                'desc_ru': '9-7-5 повторений на время: Выходы на кольцах Приседания со штангой (61/43 кг)',
+                'desc_en': '9-7-5 reps for time: Ring muscle-ups Squats with a barbell (61/43 kg)',
+                'video': 5,
+            },
+            {
+                'name_ru': 'Синди',
+                'name_en': 'Cindy',
+                'desc_ru': '20 минут AMRAP: 5 подтягиваний 10 отжиманий 15 приседаний',
+                'desc_en': '20 minutes AMRAP: 5 pull-ups 10 push-ups 15 squats',
+                'video': 3,
+            },
+            {
+                'name_ru': 'Фран',
+                'name_en': 'Fran',
+                'desc_ru': '21-15-9 повторений на время: Трастеры (43/29 кг) Подтягивания',
+                'desc_en': '21-15-9 reps for time: Thrusters (43/29 kg) Pull-ups',
+                'video': 8,
+            },
+        ]
+        return context
+
+
 class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 

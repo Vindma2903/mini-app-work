@@ -777,6 +777,10 @@ class CalendarView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/calendar.html'
 
 
+class AdminProfileView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/admin-profile.html'
+
+
 class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 

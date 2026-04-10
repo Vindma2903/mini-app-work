@@ -1,0 +1,122 @@
+.admin-profile-page {
+    background: #f1f5f9;
+}
+
+.admin-profile-content {
+    padding: 24px;
+}
+
+.admin-profile-header {
+    height: 88px;
+    background: #fff;
+    border: 1px solid #d7dbe2;
+    border-radius: 10px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.admin-profile-header h1 {
+    margin: 0;
+    font: 600 36px/42px Inter, Arial, sans-serif;
+    color: #101828;
+}
+
+.admin-profile-header p {
+    margin: 2px 0 0;
+    font: 400 16px/20px Inter, Arial, sans-serif;
+    color: #667085;
+}
+
+.admin-profile-card {
+    background: #fff;
+    border: 1px solid #d7dbe2;
+    border-radius: 10px;
+    min-height: 610px;
+    padding: 24px 18px;
+}
+
+.admin-profile-photo {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    margin-bottom: 20px;
+}
+
+.admin-profile-photo__circle {
+    width: 72px;
+    height: 72px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #9659ff 0%, #f6339a 100%);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font: 600 40px/1 Inter, Arial, sans-serif;
+    position: relative;
+}
+
+.admin-profile-photo__camera {
+    margin-left: -20px;
+    margin-top: 34px;
+    width: 24px;
+    height: 24px;
+    border: 0;
+    border-radius: 999px;
+    background: #155dfc;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.admin-profile-photo__camera img {
+    width: 14px;
+    height: 14px;
+    filter: brightness(0) invert(1);
+}
+
+.admin-profile-photo__hint {
+    display: grid;
+    gap: 4px;
+}
+
+.admin-profile-photo__hint strong {
+    font: 400 21px/26px Inter, Arial, sans-serif;
+    color: #667085;
+}
+
+.admin-profile-photo__hint span {
+    font: 400 16px/20px Inter, Arial, sans-serif;
+    color: #98a2b3;
+}
+
+.admin-profile-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+}
+
+.admin-profile-form__field {
+    display: grid;
+    gap: 8px;
+}
+
+.admin-profile-form__field span {
+    font: 500 14px/20px Inter, Arial, sans-serif;
+    color: #101828;
+}
+
+.admin-profile-form__field input {
+    width: 100%;
+    height: 44px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font: 400 14px/20px Inter, Arial, sans-serif;
+    color: #101828;
+    background: #fff;
+}

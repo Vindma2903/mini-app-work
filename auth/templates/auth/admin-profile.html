@@ -1,0 +1,72 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Профиль админа{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/admin-profile.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="calendar-desktop admin-profile-page">
+    <aside class="calendar-sidebar">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <nav class="calendar-sidebar__nav">
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="#" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+        </nav>
+        <div class="calendar-sidebar__bottom">
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+        </div>
+    </aside>
+
+    <section class="calendar-content admin-profile-content">
+        <header class="admin-profile-header">
+            <div>
+                <h1>Профиль</h1>
+                <p>Данные аккаунта</p>
+            </div>
+            <div class="calendar-content__user">
+                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">AM</a>
+            </div>
+        </header>
+
+        <section class="admin-profile-card">
+            <div class="admin-profile-photo">
+                <div class="admin-profile-photo__circle">КИ</div>
+                <button type="button" class="admin-profile-photo__camera" aria-label="Загрузить фото">
+                    <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
+                </button>
+                <div class="admin-profile-photo__hint">
+                    <strong>Загрузите фотографию профиля</strong>
+                    <span>JPG, PNG или GIF (макс. 5 МБ)</span>
+                </div>
+            </div>
+
+            <form class="admin-profile-form" action="#" method="post" novalidate>
+                <label class="admin-profile-form__field">
+                    <span>Имя</span>
+                    <input type="text" value="Ксения">
+                </label>
+                <label class="admin-profile-form__field">
+                    <span>Фамилия</span>
+                    <input type="text" value="Иванова">
+                </label>
+                <label class="admin-profile-form__field">
+                    <span>Электронная почта</span>
+                    <input type="email" value="admin@example.com">
+                </label>
+                <label class="admin-profile-form__field">
+                    <span>Номер телефона</span>
+                    <input type="text" value="+7 (999) 123-45-67">
+                </label>
+            </form>
+        </section>
+    </section>
+</main>
+{% endblock %}

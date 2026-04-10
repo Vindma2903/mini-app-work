@@ -799,12 +799,12 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             {'name': 'Анатолий Б.', 'trainings': 92, 'received': 5, 'sent': 20},
         ]
         context['achievement_rows'] = [
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'visited': 10, 'goal': 10},
-            {'name': 'РЎРµСЂРіРµР№ Рў.', 'visited': 8, 'goal': 8},
-            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'visited': 6, 'goal': 7},
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'visited': 6, 'goal': 7},
-            {'name': 'РЎРµРјРµРЅ Р .', 'visited': 5, 'goal': 6},
-            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'visited': 1, 'goal': 2},
+            {'name': 'Виктория С.', 'visited': 10, 'goal': 10},
+            {'name': 'Сергей Т.', 'visited': 8, 'goal': 8},
+            {'name': 'Евгений Л.', 'visited': 6, 'goal': 7},
+            {'name': 'Виктория К.', 'visited': 6, 'goal': 7},
+            {'name': 'Семен Р.', 'visited': 5, 'goal': 6},
+            {'name': 'Анатолий Б.', 'visited': 1, 'goal': 2},
         ]
         return context
 

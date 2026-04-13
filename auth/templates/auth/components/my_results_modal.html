@@ -10,8 +10,14 @@
         <h3 class="my-results-modal__subtitle" data-results-section-title>Силовая</h3>
 
         <div class="my-results-modal__inputs" aria-label="Поля ввода результата">
-            <input type="text" class="my-results-input" placeholder="мин." inputmode="numeric" data-results-minutes>
-            <input type="text" class="my-results-input" placeholder="сек." inputmode="numeric" data-results-seconds>
+            <label class="my-results-modal__field">
+                <span data-results-primary-label>Минуты</span>
+                <input type="text" class="my-results-input" placeholder="мин." inputmode="numeric" data-results-minutes>
+            </label>
+            <label class="my-results-modal__field" data-results-secondary-wrap>
+                <span data-results-secondary-label>Секунды</span>
+                <input type="text" class="my-results-input" placeholder="сек." inputmode="numeric" data-results-seconds>
+            </label>
         </div>
 
         <div class="my-results-modal__chips" aria-label="Режим выполнения">

@@ -69,6 +69,17 @@
     margin-bottom: 10px;
 }
 
+.my-results-modal__field {
+    display: grid;
+    gap: 6px;
+}
+
+.my-results-modal__field span {
+    font-size: 11px;
+    line-height: 14px;
+    color: #6b7280;
+}
+
 .my-results-input {
     height: 34px;
     border: 1px solid #eceef2;

@@ -20,19 +20,21 @@
     </header>
 
     <section class="award-summary">
+        {% for summary in award_summary_rows %}
         <div class="award-summary__row">
-            <img src="{% static 'auth/img/award-first.svg' %}" alt="">
-            <span>1 место</span>
-            <strong>15 раз</strong>
+            <img src="{% static summary.icon %}" alt="">
+            <span>{{ summary.place }}</span>
+            <strong>{{ summary.count }} раз</strong>
         </div>
+        {% endfor %}
     </section>
 
     <section class="award-workout-list" id="award-workout-list">
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='2024-12-30' title='HIIT Training / Силовая' date='30.12.2024' result='120 кг' %}
+        {% for row in award_rows %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date=row.data_date title=row.title date=row.date result=row.result %}
+        {% empty %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='' title='HIIT Training / Силовая' date='--' result='--' %}
+        {% endfor %}
     </section>
 
     {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' %}
@@ -84,12 +86,14 @@
         const trainingToggle = detailsModal.querySelector("[data-award-training-toggle]");
         const detailsContent = detailsModal.querySelector("[data-award-details-content]");
         const leaderboardButton = detailsModal.querySelector(".award-details-modal__leaderboard");
+        let selectedLeaderboardDate = "";
 
         list.addEventListener("click", function (event) {
             const row = event.target.closest(".award-workout-list__item");
             if (!row) return;
             const rawTraining = row.querySelector("p").textContent || "";
             detailsTraining.textContent = rawTraining.split("/")[0].trim() || "HIIT Training";
+            selectedLeaderboardDate = row.dataset.date || "";
             detailsContent.hidden = true;
             trainingToggle.setAttribute("aria-expanded", "false");
             detailsModal.hidden = false;
@@ -116,6 +120,10 @@
         });
 
         leaderboardButton?.addEventListener("click", function () {
+            if (selectedLeaderboardDate) {
+                window.location.href = "{% url 'auth:leaderboard_day' %}?date=" + encodeURIComponent(selectedLeaderboardDate);
+                return;
+            }
             window.location.href = "{% url 'auth:leaderboard_day' %}";
         });
     })();

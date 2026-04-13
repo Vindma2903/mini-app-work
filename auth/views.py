@@ -1,4 +1,4 @@
-import secrets
+﻿import secrets
 import logging
 import json
 from datetime import timedelta
@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -60,6 +60,16 @@ RU_WEEKDAY = {
     6: 'Воскресенье',
 }
 
+RU_WEEKDAY_SHORT = {
+    0: 'Пн',
+    1: 'Вт',
+    2: 'Ср',
+    3: 'Чт',
+    4: 'Пт',
+    5: 'Сб',
+    6: 'Вс',
+}
+
 TRAINING_DIRECTION_LABELS = {
     AdminTraining.DIRECTION_FBB: 'FBB',
     AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
@@ -80,6 +90,30 @@ TRAINING_RESULT_TYPE_LABELS = {
     AdminTrainingExercise.RESULT_REPS: 'Кол-во повторений',
 }
 
+RESULT_MODAL_TYPE_CONFIG = {
+    AdminTrainingExercise.RESULT_TIME: {
+        'primary_label': 'Минуты',
+        'primary_placeholder': 'мин.',
+        'secondary_label': 'Секунды',
+        'secondary_placeholder': 'сек.',
+        'show_secondary': True,
+    },
+    AdminTrainingExercise.RESULT_WEIGHT: {
+        'primary_label': 'Вес',
+        'primary_placeholder': 'кг',
+        'secondary_label': '',
+        'secondary_placeholder': '',
+        'show_secondary': False,
+    },
+    AdminTrainingExercise.RESULT_REPS: {
+        'primary_label': 'Количество',
+        'primary_placeholder': 'количество',
+        'secondary_label': 'Кол-во повторений',
+        'secondary_placeholder': 'повторений',
+        'show_secondary': True,
+    },
+}
+
 
 def format_admin_training_volume(exercise):
     sets = exercise.sets
@@ -89,6 +123,27 @@ def format_admin_training_volume(exercise):
     if sets is None or reps is None:
         return exercise.exercise_name
     return f'{exercise.exercise_name} {sets}x{reps}'
+
+
+def get_plan_result_type_map(trainings):
+    result_map = {
+        TrainingResult.SECTION_STRENGTH: TrainingResult.RESULT_TIME,
+        TrainingResult.SECTION_CARDIO: TrainingResult.RESULT_TIME,
+        TrainingResult.SECTION_METABOLIC: TrainingResult.RESULT_TIME,
+    }
+    block_to_section = {
+        AdminTrainingExercise.BLOCK_STRENGTH: TrainingResult.SECTION_STRENGTH,
+        AdminTrainingExercise.BLOCK_CARDIO: TrainingResult.SECTION_CARDIO,
+        AdminTrainingExercise.BLOCK_GYMNASTICS: TrainingResult.SECTION_METABOLIC,
+    }
+
+    for training in trainings:
+        for exercise in training.exercises.all():
+            section_key = block_to_section.get(exercise.block_type)
+            if not section_key:
+                continue
+            result_map[section_key] = exercise.result_type or TrainingResult.RESULT_TIME
+    return result_map
 
 
 def serialize_admin_training(training):
@@ -137,11 +192,131 @@ def serialize_admin_training(training):
         'ready_complex_name': training.ready_complex_name,
         'ready_plan_title': training.ready_plan_title,
         'created_by_id': training.created_by_id,
-        'block_name': first_exercise['block_label'] if first_exercise else 'Силовая',
+        'block_name': first_exercise['block_label'] if first_exercise else 'РЎРёР»РѕРІР°СЏ',
         'volume': first_exercise['volume'] if first_exercise else '',
         'sections': grouped_sections,
         'exercises': exercises_payload,
     }
+
+
+LEADERBOARD_SECTION_META = [
+    (TrainingResult.SECTION_STRENGTH, 'Силовая'),
+    (TrainingResult.SECTION_CARDIO, 'Кардио'),
+    (TrainingResult.SECTION_METABOLIC, 'Метаболическая'),
+]
+
+
+def format_training_duration_ru(minutes, seconds):
+    if minutes is None and seconds is None:
+        return '--'
+    if minutes is None:
+        return f'{seconds} сек'
+    if seconds is None:
+        return f'{minutes} мин'
+    return f'{minutes} мин {seconds} сек'
+
+
+def format_training_result_value(result_type, primary_value, secondary_value):
+    if primary_value is None and secondary_value is None:
+        return '--'
+
+    if result_type == TrainingResult.RESULT_WEIGHT:
+        if primary_value is None:
+            return '--'
+        return f'{primary_value} кг'
+
+    if result_type == TrainingResult.RESULT_REPS:
+        if primary_value is None and secondary_value is not None:
+            return str(secondary_value)
+        if primary_value is not None and secondary_value is None:
+            return str(primary_value)
+        return f'{primary_value} x {secondary_value}'
+
+    return format_training_duration_ru(primary_value, secondary_value)
+
+
+def score_training_result(result_type, primary_value, secondary_value):
+    first = primary_value if primary_value is not None else 0
+    second = secondary_value if secondary_value is not None else 0
+    if result_type == TrainingResult.RESULT_TIME:
+        return first * 60 + second
+    return first * 1000 + second
+
+
+def build_daily_leaderboard_payload(training_date):
+    section_titles = dict(LEADERBOARD_SECTION_META)
+    section_order = {section_key: idx for idx, (section_key, _) in enumerate(LEADERBOARD_SECTION_META)}
+    grouped = {section_key: [] for section_key, _ in LEADERBOARD_SECTION_META}
+
+    raw_results = (
+        TrainingResult.objects
+        .select_related('user')
+        .filter(training_date=training_date)
+        .filter(Q(minutes__isnull=False) | Q(seconds__isnull=False))
+    )
+    for item in raw_results:
+        full_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+        minutes = item.minutes if item.minutes is not None else 0
+        seconds = item.seconds if item.seconds is not None else 0
+        grouped[item.section].append(
+            {
+                'user_id': item.user_id,
+                'user_name': full_name,
+                'minutes': item.minutes,
+                'seconds': item.seconds,
+                'result_type': item.result_type,
+                'mode': item.get_mode_display(),
+                'updated_at': item.updated_at,
+                'score_seconds': score_training_result(item.result_type, minutes, seconds),
+            }
+        )
+
+    sections = []
+    for section_key, title in LEADERBOARD_SECTION_META:
+        entries = grouped.get(section_key, [])
+        entries.sort(key=lambda value: (-value['score_seconds'], value['updated_at'], value['user_id']))
+        for idx, entry in enumerate(entries, start=1):
+            entry['place'] = idx
+            entry['medal'] = 'gold' if idx == 1 else 'silver' if idx == 2 else 'bronze' if idx == 3 else None
+            entry['result_label'] = format_training_result_value(
+                entry.get('result_type') or TrainingResult.RESULT_TIME,
+                entry['minutes'],
+                entry['seconds'],
+            )
+            entry['place_label'] = str(idx)
+            entry['section_key'] = section_key
+            entry['section_title'] = section_titles[section_key]
+
+        sections.append(
+            {
+                'key': section_key,
+                'title': title,
+                'order': section_order[section_key],
+                'entries': entries,
+            }
+        )
+
+    return {
+        'training_date': training_date,
+        'date_label': training_date.strftime('%d.%m.%Y'),
+        'sections': sections,
+    }
+
+
+def build_week_days(selected_date):
+    week_start = selected_date - timedelta(days=selected_date.weekday())
+    days = []
+    for offset in range(7):
+        current = week_start + timedelta(days=offset)
+        days.append(
+            {
+                'weekday': RU_WEEKDAY_SHORT[current.weekday()],
+                'day': current.day,
+                'iso_date': current.isoformat(),
+                'is_active': current == selected_date,
+            }
+        )
+    return days
 
 
 def get_client_ip(request):
@@ -177,6 +352,21 @@ def build_telegram_deep_link(token):
     if not bot_username:
         return ''
     return f'https://t.me/{bot_username}?start=link_{token}'
+
+
+def get_user_role(user):
+    if user.is_staff or user.is_superuser:
+        return 'admin'
+    profile = getattr(user, 'profile', None)
+    if profile is None and getattr(user, 'pk', None):
+        profile = UserProfile.objects.filter(user=user).only('role').first()
+    if profile and profile.role == UserProfile.ROLE_TRAINER:
+        return UserProfile.ROLE_TRAINER
+    return UserProfile.ROLE_USER
+
+
+def user_has_admin_panel_access(user):
+    return get_user_role(user) in {'admin', UserProfile.ROLE_TRAINER}
 
 
 class LoginView(FormView):
@@ -216,7 +406,7 @@ class AdminLoginView(FormView):
     success_url = reverse_lazy('auth:calendar')
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and (request.user.is_staff or request.user.is_superuser):
+        if request.user.is_authenticated and user_has_admin_panel_access(request.user):
             return redirect(self.success_url)
         return super().dispatch(request, *args, **kwargs)
 
@@ -499,7 +689,7 @@ class RegisterSuccessView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         messages.success(
             request,
-            'РњС‹ РѕС‚РїСЂР°РІРёР»Рё РїРёСЃСЊРјРѕ РЅР° email. РџРѕРґС‚РІРµСЂРґРёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ РїРѕ СЃСЃС‹Р»РєРµ РёР· РїРёСЃСЊРјР°.',
+            'Р СљРЎвЂ№ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘Р В»Р С‘ Р С—Р С‘РЎРѓРЎРЉР СР С• Р Р…Р В° email. Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р Т‘Р С‘РЎвЂљР Вµ РЎР‚Р ВµР С–Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂ Р С‘РЎР‹ Р С—Р С• РЎРѓРЎРѓРЎвЂ№Р В»Р С”Р Вµ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°.',
         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -528,12 +718,12 @@ class SharedProfileHeaderMixin:
 class AdminProtectedMixin:
     login_url = reverse_lazy('auth:admin_login')
     fallback_url = reverse_lazy('auth:profile')
-    permission_denied_message = 'Недостаточно прав для просмотра этой страницы.'
+    permission_denied_message = 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° СЌС‚РѕР№ СЃС‚СЂР°РЅРёС†С‹.'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect(self.login_url)
-        if not (request.user.is_staff or request.user.is_superuser):
+        if not user_has_admin_panel_access(request.user):
             messages.error(request, self.permission_denied_message)
             return redirect(self.fallback_url)
         return super().dispatch(request, *args, **kwargs)
@@ -542,13 +732,64 @@ class AdminProtectedMixin:
 class ProfileView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/profile.html'
 
+    @staticmethod
+    def _format_training_count(value):
+        remainder_ten = value % 10
+        remainder_hundred = value % 100
+        if remainder_ten == 1 and remainder_hundred != 11:
+            word = 'тренировка'
+        elif remainder_ten in (2, 3, 4) and remainder_hundred not in (12, 13, 14):
+            word = 'тренировки'
+        else:
+            word = 'тренировок'
+        return f'{value} {word}'
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         profile, _ = UserProfile.objects.get_or_create(user=self.request.user)
-        context['profile_week_goal'] = profile.weekly_goal or 6
+        weekly_goal = profile.weekly_goal or 6
+        context['profile_week_goal'] = weekly_goal
         today = timezone.localdate()
         week_start = today - timedelta(days=today.weekday())
         month_start = today - timedelta(days=29)
+        user_results = TrainingResult.objects.filter(user=self.request.user)
+        week_visits = (
+            user_results
+            .filter(training_date__gte=week_start, training_date__lte=today)
+            .values('training_date')
+            .distinct()
+            .count()
+        )
+        month_visits = (
+            user_results
+            .filter(training_date__gte=month_start, training_date__lte=today)
+            .values('training_date')
+            .distinct()
+            .count()
+        )
+        all_visits = (
+            user_results
+            .values('training_date')
+            .distinct()
+            .count()
+        )
+        context['profile_activity_values_json'] = json.dumps(
+            {
+                'week': {
+                    'visits': self._format_training_count(week_visits),
+                    'goal': self._format_training_count(weekly_goal),
+                },
+                'month': {
+                    'visits': self._format_training_count(month_visits),
+                    'goal': self._format_training_count(20),
+                },
+                'all': {
+                    'visits': self._format_training_count(all_visits),
+                    'goal': self._format_training_count(150),
+                },
+            },
+            ensure_ascii=False,
+        )
 
         context['profile_stats_values_json'] = json.dumps(
             {
@@ -599,6 +840,21 @@ class ProfileView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
             },
             ensure_ascii=False,
         )
+        leaderboard = build_daily_leaderboard_payload(today)
+        award_counts = {1: 0, 2: 0, 3: 0}
+        for section_payload in leaderboard['sections']:
+            for item in section_payload['entries']:
+                if item['user_id'] != self.request.user.id:
+                    continue
+                if item['place'] in award_counts:
+                    award_counts[item['place']] += 1
+                break
+
+        context['profile_awards_summary'] = {
+            'first': award_counts[1],
+            'second': award_counts[2],
+            'third': award_counts[3],
+        }
         return context
 
 
@@ -919,61 +1175,54 @@ class ProfileAwardsTestsView(UserProtectedMixin, TemplateView):
 class ProfileAwardWorkoutView(UserProtectedMixin, TemplateView):
     template_name = 'auth/profile-award-workout.html'
 
-    @staticmethod
-    def _format_result_value(result):
-        if result is None:
-            return '--'
-        minutes = result.minutes
-        seconds = result.seconds
-        if minutes is None and seconds is None:
-            return '--'
-        if minutes is None:
-            return str(seconds)
-        if seconds is None:
-            return str(minutes)
-        return f'{minutes}x{seconds}'
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        sections_meta = [
-            (TrainingResult.SECTION_STRENGTH, 'РЎРёР»РѕРІР°СЏ'),
-            (TrainingResult.SECTION_CARDIO, 'РљР°СЂРґРёРѕ'),
-            (TrainingResult.SECTION_METABOLIC, 'РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ'),
-        ]
-        result_sections = [
-            {'key': key, 'title': title, 'value': '--', 'mode': '--'}
-            for key, title in sections_meta
-        ]
+        today = timezone.localdate()
+        leaderboard = build_daily_leaderboard_payload(today)
+        user_id = self.request.user.id
 
-        if self.request.user.is_authenticated:
-            latest_result = (
-                TrainingResult.objects
-                .filter(user=self.request.user)
-                .order_by('-training_date', '-updated_at')
-                .first()
-            )
-            if latest_result:
-                latest_date = latest_result.training_date
-                latest_results = {
-                    item.section: item
-                    for item in TrainingResult.objects.filter(
-                        user=self.request.user,
-                        training_date=latest_date,
-                    )
+        result_sections = []
+        award_rows = []
+        award_counts = {1: 0, 2: 0, 3: 0}
+
+        for section_payload in leaderboard['sections']:
+            matched = next((item for item in section_payload['entries'] if item['user_id'] == user_id), None)
+            if matched:
+                if matched['place'] in award_counts:
+                    award_counts[matched['place']] += 1
+                place_label = f"Место: {matched['place']}"
+                result_value = matched['result_label']
+                result_mode = matched['mode']
+            else:
+                place_label = 'Место: —'
+                result_value = '--'
+                result_mode = '--'
+
+            result_sections.append(
+                {
+                    'key': section_payload['key'],
+                    'title': section_payload['title'],
+                    'value': result_value,
+                    'mode': result_mode,
+                    'place_label': place_label,
                 }
-                result_sections = []
-                for key, title in sections_meta:
-                    item = latest_results.get(key)
-                    result_sections.append(
-                        {
-                            'key': key,
-                            'title': title,
-                            'value': self._format_result_value(item),
-                            'mode': item.get_mode_display() if item else '--',
-                        }
-                    )
+            )
+            award_rows.append(
+                {
+                    'data_date': today.isoformat(),
+                    'title': f'HIIT Training / {section_payload["title"]}',
+                    'date': today.strftime('%d.%m.%Y'),
+                    'result': f'{result_value} · {place_label}',
+                }
+            )
 
         context['result_sections'] = result_sections
+        context['award_rows'] = award_rows
+        context['award_summary_rows'] = [
+            {'place': '1 место', 'count': award_counts[1], 'icon': 'auth/img/award-first.svg'},
+            {'place': '2 место', 'count': award_counts[2], 'icon': 'auth/img/award-second.svg'},
+            {'place': '3 место', 'count': award_counts[3], 'icon': 'auth/img/award-third.svg'},
+        ]
         return context
 
 
@@ -1006,23 +1255,23 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         context['library_rows'] = [
             {
-                'name_ru': 'Аманда',
+                'name_ru': 'РђРјР°РЅРґР°',
                 'name_en': 'Amanda',
-                'desc_ru': '9-7-5 повторений на время: Выходы на кольцах Приседания со штангой (61/43 кг)',
+                'desc_ru': '9-7-5 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ: Р’С‹С…РѕРґС‹ РЅР° РєРѕР»СЊС†Р°С… РџСЂРёСЃРµРґР°РЅРёСЏ СЃРѕ С€С‚Р°РЅРіРѕР№ (61/43 РєРі)',
                 'desc_en': '9-7-5 reps for time: Ring muscle-ups Squats with a barbell (61/43 kg)',
                 'video': 5,
             },
             {
-                'name_ru': 'Синди',
+                'name_ru': 'РЎРёРЅРґРё',
                 'name_en': 'Cindy',
-                'desc_ru': '20 минут AMRAP: 5 подтягиваний 10 отжиманий 15 приседаний',
+                'desc_ru': '20 РјРёРЅСѓС‚ AMRAP: 5 РїРѕРґС‚СЏРіРёРІР°РЅРёР№ 10 РѕС‚Р¶РёРјР°РЅРёР№ 15 РїСЂРёСЃРµРґР°РЅРёР№',
                 'desc_en': '20 minutes AMRAP: 5 pull-ups 10 push-ups 15 squats',
                 'video': 3,
             },
             {
-                'name_ru': 'Фран',
+                'name_ru': 'Р¤СЂР°РЅ',
                 'name_en': 'Fran',
-                'desc_ru': '21-15-9 повторений на время: Трастеры (43/29 кг) Подтягивания',
+                'desc_ru': '21-15-9 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ: РўСЂР°СЃС‚РµСЂС‹ (43/29 РєРі) РџРѕРґС‚СЏРіРёРІР°РЅРёСЏ',
                 'desc_en': '21-15-9 reps for time: Thrusters (43/29 kg) Pull-ups',
                 'video': 8,
             },
@@ -1036,28 +1285,28 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['exercise_rows'] = [
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'Смит 80%', 'training': 'На все тело', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
         ]
         context['activity_rows'] = [
-            {'name': 'Виктория С.', 'trainings': 19, 'received': 12, 'sent': 72},
-            {'name': 'Сергей Т.', 'trainings': 20, 'received': 10, 'sent': 50},
-            {'name': 'Евгений Л.', 'trainings': 84, 'received': 9, 'sent': 38},
-            {'name': 'Виктория К.', 'trainings': 23, 'received': 8, 'sent': 35},
-            {'name': 'Семен Р.', 'trainings': 84, 'received': 6, 'sent': 21},
-            {'name': 'Анатолий Б.', 'trainings': 92, 'received': 5, 'sent': 20},
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'trainings': 19, 'received': 12, 'sent': 72},
+            {'name': 'РЎРµСЂРіРµР№ Рў.', 'trainings': 20, 'received': 10, 'sent': 50},
+            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'trainings': 84, 'received': 9, 'sent': 38},
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'trainings': 23, 'received': 8, 'sent': 35},
+            {'name': 'РЎРµРјРµРЅ Р .', 'trainings': 84, 'received': 6, 'sent': 21},
+            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'trainings': 92, 'received': 5, 'sent': 20},
         ]
         context['achievement_rows'] = [
-            {'name': 'Виктория С.', 'visited': 10, 'goal': 10},
-            {'name': 'Сергей Т.', 'visited': 8, 'goal': 8},
-            {'name': 'Евгений Л.', 'visited': 6, 'goal': 7},
-            {'name': 'Виктория К.', 'visited': 6, 'goal': 7},
-            {'name': 'Семен Р.', 'visited': 5, 'goal': 6},
-            {'name': 'Анатолий Б.', 'visited': 1, 'goal': 2},
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'visited': 10, 'goal': 10},
+            {'name': 'РЎРµСЂРіРµР№ Рў.', 'visited': 8, 'goal': 8},
+            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'visited': 6, 'goal': 7},
+            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'visited': 6, 'goal': 7},
+            {'name': 'РЎРµРјРµРЅ Р .', 'visited': 5, 'goal': 6},
+            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'visited': 1, 'goal': 2},
         ]
         return context
 
@@ -1076,7 +1325,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _stars(value):
         rating = max(1, min(5, int(value)))
-        return ('★' * rating) + ('☆' * (5 - rating))
+        return ('в…' * rating) + ('в†' * (5 - rating))
 
     @staticmethod
     def _rating_label(value):
@@ -1454,6 +1703,7 @@ class SaveTrainingResultsView(View):
 
         valid_sections = {key for key, _ in TrainingResult.SECTION_CHOICES}
         valid_modes = {key for key, _ in TrainingResult.MODE_CHOICES}
+        valid_result_types = {key for key, _ in TrainingResult.RESULT_TYPE_CHOICES}
         saved_count = 0
 
         for section_key, section_payload in results.items():
@@ -1466,13 +1716,17 @@ class SaveTrainingResultsView(View):
             if mode not in valid_modes:
                 return JsonResponse({'ok': False, 'error': f'invalid_mode:{section_key}'}, status=400)
 
+            result_type = str(section_payload.get('result_type') or TrainingResult.RESULT_TIME).lower()
+            if result_type not in valid_result_types:
+                return JsonResponse({'ok': False, 'error': f'invalid_result_type:{section_key}'}, status=400)
+
             minutes = self._parse_positive_int(section_payload.get('minutes'))
             seconds = self._parse_positive_int(section_payload.get('seconds'))
 
             if minutes is None and seconds is None:
                 continue
 
-            if seconds is not None and seconds > 59:
+            if result_type == TrainingResult.RESULT_TIME and seconds is not None and seconds > 59:
                 return JsonResponse({'ok': False, 'error': f'invalid_seconds:{section_key}'}, status=400)
 
             TrainingResult.objects.update_or_create(
@@ -1480,6 +1734,7 @@ class SaveTrainingResultsView(View):
                 training_date=training_date,
                 section=section_key,
                 defaults={
+                    'result_type': result_type,
                     'minutes': minutes,
                     'seconds': seconds,
                     'mode': mode,
@@ -1592,15 +1847,10 @@ class DownloadTrainingResultsImageView(View):
     def _format_value(entry):
         if not isinstance(entry, dict):
             return '--'
+        result_type = str(entry.get('result_type') or TrainingResult.RESULT_TIME).strip().lower()
         minutes = DownloadTrainingResultsImageView._safe_int(entry.get('minutes'))
         seconds = DownloadTrainingResultsImageView._safe_int(entry.get('seconds'))
-        if minutes is None and seconds is None:
-            return '--'
-        if minutes is None:
-            return str(seconds)
-        if seconds is None:
-            return str(minutes)
-        return f'{minutes}x{seconds}'
+        return format_training_result_value(result_type, minutes, seconds)
 
     @staticmethod
     def _load_font(size, bold=False):
@@ -1657,15 +1907,15 @@ class DownloadTrainingResultsImageView(View):
             fill='#f0f0f0',
         )
 
-        title = 'Результаты тренировки'
+        title = 'Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚СЂРµРЅРёСЂРѕРІРєРё'
         title_box = draw.textbbox((0, 0), title, font=font_title)
         title_w = title_box[2] - title_box[0]
         draw.text((summary_x + (summary_w - title_w) / 2, summary_y + 72), title, font=font_title, fill='#242d35')
 
         row_specs = [
-            ('Кардио', cardio_value),
-            ('Силовая', strength_value),
-            ('Метаболическая', metabolic_value),
+            ('РљР°СЂРґРёРѕ', cardio_value),
+            ('РЎРёР»РѕРІР°СЏ', strength_value),
+            ('РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ', metabolic_value),
         ]
         row_x, row_w, row_h = summary_x + 50, summary_w - 100, 106
         first_row_y = summary_y + 160
@@ -1680,10 +1930,10 @@ class DownloadTrainingResultsImageView(View):
             draw.text((row_x + row_w - 36 - value_w, y + 34), value, font=font_value, fill='#252d35')
 
         month_names = {
-            1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля', 5: 'мая', 6: 'июня',
-            7: 'июля', 8: 'августа', 9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря',
+            1: 'СЏРЅРІР°СЂСЏ', 2: 'С„РµРІСЂР°Р»СЏ', 3: 'РјР°СЂС‚Р°', 4: 'Р°РїСЂРµР»СЏ', 5: 'РјР°СЏ', 6: 'РёСЋРЅСЏ',
+            7: 'РёСЋР»СЏ', 8: 'Р°РІРіСѓСЃС‚Р°', 9: 'СЃРµРЅС‚СЏР±СЂСЏ', 10: 'РѕРєС‚СЏР±СЂСЏ', 11: 'РЅРѕСЏР±СЂСЏ', 12: 'РґРµРєР°Р±СЂСЏ',
         }
-        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} г."
+        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} Рі."
         date_box = draw.textbbox((0, 0), pretty_date, font=font_date)
         date_w = date_box[2] - date_box[0]
         draw.text((summary_x + (summary_w - date_w) / 2, summary_y + summary_h - 74), pretty_date, font=font_date, fill='#363f47')
@@ -1722,21 +1972,34 @@ class LogoutView(View):
 class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-day.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        raw_date = str(self.request.GET.get('date') or '').strip()
+        if raw_date:
+            try:
+                selected_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = timezone.localdate()
+        else:
+            selected_date = timezone.localdate()
+
+        leaderboard = build_daily_leaderboard_payload(selected_date)
+        context['leaderboard_date'] = leaderboard['date_label']
+        context['leaderboard_sections'] = leaderboard['sections']
+        context['leaderboard_week_days'] = build_week_days(selected_date)
+        return context
+
 
 class CommunityView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/community.html'
 
     @staticmethod
     def _format_training_value(result):
-        minutes = result.minutes
-        seconds = result.seconds
-        if minutes is None and seconds is None:
-            return '--'
-        if minutes is not None and seconds is not None:
-            return f'{minutes} min {seconds} sec'
-        if minutes is not None:
-            return f'{minutes} min'
-        return f'{seconds} sec'
+        return format_training_result_value(
+            getattr(result, 'result_type', TrainingResult.RESULT_TIME),
+            result.minutes,
+            result.seconds,
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1868,14 +2131,24 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, Templa
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        today = timezone.localdate()
+        raw_date = str(self.request.GET.get('date') or '').strip()
+        if raw_date:
+            try:
+                selected_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = timezone.localdate()
+        else:
+            selected_date = timezone.localdate()
 
-        trainings = (
-            AdminTraining.objects
-            .filter(training_date=today, visibility=AdminTraining.VISIBILITY_ALL)
-            .prefetch_related('exercises')
-            .order_by('-updated_at', '-id')
-        )
+        context['plan_week_days'] = build_week_days(selected_date)
+        context['plan_selected_date_iso'] = selected_date.isoformat()
+        context['plan_selected_date_label'] = selected_date.strftime('%d.%m.%Y')
+
+        trainings_query = AdminTraining.objects.filter(training_date=selected_date)
+        if get_user_role(self.request.user) == UserProfile.ROLE_USER:
+            trainings_query = trainings_query.filter(visibility=AdminTraining.VISIBILITY_ALL)
+
+        trainings = list(trainings_query.prefetch_related('exercises').order_by('-updated_at', '-id'))
 
         plan_cards = []
         for training in trainings:
@@ -1904,6 +2177,8 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, Templa
             )
 
         context['plan_cards'] = plan_cards
+        result_type_map = get_plan_result_type_map(trainings)
+        context['plan_result_types_json'] = json.dumps(result_type_map, ensure_ascii=False)
         return context
 
 
@@ -1945,4 +2220,5 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
             }
         context['exercise'] = data
         return context
+
 

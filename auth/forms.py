@@ -4,6 +4,17 @@ from django.contrib.auth.models import User
 
 from allauth.account.models import EmailAddress
 
+from .models import UserProfile
+
+
+def user_has_admin_panel_access(user):
+    if user.is_staff or user.is_superuser:
+        return True
+    profile = getattr(user, 'profile', None)
+    if profile is None:
+        profile = UserProfile.objects.filter(user=user).only('role').first()
+    return bool(profile and profile.role == UserProfile.ROLE_TRAINER)
+
 class LoginForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)
@@ -73,7 +84,7 @@ class AdminLoginForm(forms.Form):
         if user is None:
             raise forms.ValidationError(self.error_messages['invalid_credentials'])
 
-        if not (user.is_staff or user.is_superuser):
+        if not user_has_admin_panel_access(user):
             raise forms.ValidationError(self.error_messages['not_admin'])
 
         self.user = user
@@ -105,7 +116,7 @@ class AdminPasswordResetStartForm(forms.Form):
         except User.DoesNotExist as exc:
             raise forms.ValidationError(self.error_messages['email_not_found']) from exc
 
-        if not (user.is_staff or user.is_superuser):
+        if not user_has_admin_panel_access(user):
             raise forms.ValidationError(self.error_messages['email_not_found'])
 
         self.admin_user = user

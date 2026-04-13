@@ -56,6 +56,15 @@ class TrainingResult(models.Model):
         (MODE_SCALED, 'SCALED'),
     )
 
+    RESULT_TIME = 'time'
+    RESULT_WEIGHT = 'weight'
+    RESULT_REPS = 'reps'
+    RESULT_TYPE_CHOICES = (
+        (RESULT_TIME, 'Time'),
+        (RESULT_WEIGHT, 'Weight'),
+        (RESULT_REPS, 'Reps count'),
+    )
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -63,6 +72,7 @@ class TrainingResult(models.Model):
     )
     training_date = models.DateField(default=timezone.localdate, db_index=True)
     section = models.CharField(max_length=16, choices=SECTION_CHOICES)
+    result_type = models.CharField(max_length=16, choices=RESULT_TYPE_CHOICES, default=RESULT_TIME)
     minutes = models.PositiveSmallIntegerField(null=True, blank=True)
     seconds = models.PositiveSmallIntegerField(null=True, blank=True)
     mode = models.CharField(max_length=16, choices=MODE_CHOICES, default=MODE_RX)
@@ -233,11 +243,19 @@ class AdminTrainingExercise(models.Model):
 
 
 class UserProfile(models.Model):
+    ROLE_USER = 'user'
+    ROLE_TRAINER = 'trainer'
+    ROLE_CHOICES = (
+        (ROLE_USER, 'User'),
+        (ROLE_TRAINER, 'Trainer'),
+    )
+
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name='profile',
     )
+    role = models.CharField(max_length=16, choices=ROLE_CHOICES, default=ROLE_USER)
     birth_date = models.DateField(null=True, blank=True)
     weekly_goal = models.PositiveSmallIntegerField(default=6)
     telegram_user_id = models.BigIntegerField(null=True, blank=True, unique=True)

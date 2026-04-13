@@ -1,7 +1,7 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РџР»Р°РЅ С‚СЂРµРЅРёСЂРѕРІРѕРє РЅР° СЃРµРіРѕРґРЅСЏ{% endblock %}
+{% block title %}План тренировок на сегодня{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
@@ -18,12 +18,12 @@
     {% include 'auth/components/profile_header.html' with name=shared_profile_name experience=shared_profile_experience %}
 
     <section class="plan-today-date">
-        <h2 class="plan-today-date__title">Р Р°СЃРїРёСЃР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРѕРє</h2>
-        {% include 'auth/components/day_picker.html' with wrapper_class='plan-today-days' item_class='plan-today-days__item' active_day=4 %}
+        <h2 class="plan-today-date__title">Расписание тренировок</h2>
+        {% include 'auth/components/day_picker.html' with wrapper_class='plan-today-days' item_class='plan-today-days__item' day_items=plan_week_days %}
         <span class="plan-today-date__dot" aria-hidden="true"></span>
     </section>
 
-    <h1 class="plan-today-title">РџР»Р°РЅ С‚СЂРµРЅРёСЂРѕРІРѕРє РЅР° СЃРµРіРѕРґРЅСЏ</h1>
+    <h1 class="plan-today-title">План тренировок на {{ plan_selected_date_label }}</h1>
     {% for card in plan_cards %}
     <section class="plan-card {% if forloop.first %}plan-card--expanded{% else %}plan-card--collapsed{% endif %}" data-plan-card>
         <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
@@ -46,13 +46,13 @@
     {% empty %}
     <section class="plan-card plan-card--expanded" data-plan-card>
         <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="true">
-            <span>Сегодня тренировок нет</span>
+            <span>На {{ plan_selected_date_label }} тренировок нет</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
         <div class="plan-card__details" data-plan-details>
             <div class="plan-card__block">
                 <h2>Расписание</h2>
-                <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на сегодня</span></div>
+                <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на выбранную дату</span></div>
             </div>
         </div>
     </section>
@@ -66,6 +66,23 @@
     {% include 'auth/components/training_rate_thanks_modal.html' %}
     {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='plan-today-bottom-nav' %}
 </main>
+<script>
+    window.planSelectedDateIso = "{{ plan_selected_date_iso }}";
+</script>
+{{ plan_result_types_json|json_script:"plan-result-types-json" }}
+<script>
+    (function () {
+        const dayButtons = Array.from(document.querySelectorAll(".plan-today-days__item[data-iso-date]"));
+        if (!dayButtons.length) return;
+        dayButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const date = button.getAttribute("data-iso-date");
+                if (!date) return;
+                window.location.href = "{% url 'auth:training_plan_today' %}?date=" + encodeURIComponent(date);
+            });
+        });
+    })();
+</script>
 <script>
     (function () {
         const cards = Array.from(document.querySelectorAll("[data-plan-card]"));
@@ -106,10 +123,12 @@
 </script>
 <script>
     (function () {
+        const resultTypeScript = document.getElementById("plan-result-types-json");
+        const sectionResultTypes = resultTypeScript?.textContent ? JSON.parse(resultTypeScript.textContent) : {};
         const sections = [
-            { key: "strength", title: "РЎРёР»РѕРІР°СЏ" },
-            { key: "cardio", title: "РљР°СЂРґРёРѕ" },
-            { key: "metabolic", title: "РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ" }
+            { key: "strength", title: "Силовая" },
+            { key: "cardio", title: "Кардио" },
+            { key: "metabolic", title: "Метаболическая" }
         ];
         const resultsDraft = {};
         let currentSectionIndex = 0;
@@ -123,6 +142,9 @@
         if (!myResultsModal || !resultSavedModal || !trainingRateModal) return;
 
         const sectionTitle = myResultsModal.querySelector("[data-results-section-title]");
+        const primaryLabel = myResultsModal.querySelector("[data-results-primary-label]");
+        const secondaryWrap = myResultsModal.querySelector("[data-results-secondary-wrap]");
+        const secondaryLabel = myResultsModal.querySelector("[data-results-secondary-label]");
         const minutesInput = myResultsModal.querySelector("[data-results-minutes]");
         const secondsInput = myResultsModal.querySelector("[data-results-seconds]");
         const modeButtons = Array.from(myResultsModal.querySelectorAll("[data-results-mode]"));
@@ -157,15 +179,14 @@
         }
 
         function isoDateToday() {
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = String(now.getMonth() + 1).padStart(2, "0");
-            const d = String(now.getDate()).padStart(2, "0");
-            return `${y}-${m}-${d}`;
+            return window.planSelectedDateIso || "";
         }
 
         function dateLabelRu() {
-            return new Date().toLocaleDateString("ru-RU");
+            if (!window.planSelectedDateIso) return new Date().toLocaleDateString("ru-RU");
+            const date = new Date(window.planSelectedDateIso + "T00:00:00");
+            if (Number.isNaN(date.getTime())) return new Date().toLocaleDateString("ru-RU");
+            return date.toLocaleDateString("ru-RU");
         }
 
         function setModalVisible(modalNode, visible) {
@@ -182,6 +203,38 @@
             return parsed;
         }
 
+        function getSectionConfig(sectionKey) {
+            const resultType = sectionResultTypes[sectionKey] || "time";
+            if (resultType === "weight") {
+                return {
+                    resultType,
+                    primaryLabel: "Вес",
+                    primaryPlaceholder: "кг",
+                    secondaryLabel: "",
+                    secondaryPlaceholder: "",
+                    showSecondary: false
+                };
+            }
+            if (resultType === "reps") {
+                return {
+                    resultType,
+                    primaryLabel: "Количество",
+                    primaryPlaceholder: "количество",
+                    secondaryLabel: "Кол-во повторений",
+                    secondaryPlaceholder: "повторений",
+                    showSecondary: true
+                };
+            }
+            return {
+                resultType: "time",
+                primaryLabel: "Минуты",
+                primaryPlaceholder: "мин.",
+                secondaryLabel: "Секунды",
+                secondaryPlaceholder: "сек.",
+                showSecondary: true
+            };
+        }
+
         function getActiveMode() {
             return modeButtons.find((button) => button.classList.contains("my-results-chip--active"))?.getAttribute("data-results-mode") || "rx";
         }
@@ -195,18 +248,25 @@
         function renderSectionStep() {
             const section = sections[currentSectionIndex];
             if (!section) return;
+            const config = getSectionConfig(section.key);
             if (sectionTitle) sectionTitle.textContent = section.title;
             const stored = resultsDraft[section.key] || {};
+            if (primaryLabel) primaryLabel.textContent = config.primaryLabel;
+            if (minutesInput) minutesInput.placeholder = config.primaryPlaceholder;
+            if (secondaryLabel) secondaryLabel.textContent = config.secondaryLabel;
+            if (secondsInput) secondsInput.placeholder = config.secondaryPlaceholder;
+            if (secondaryWrap) secondaryWrap.hidden = !config.showSecondary;
             if (minutesInput) minutesInput.value = stored.minutes ?? "";
-            if (secondsInput) secondsInput.value = stored.seconds ?? "";
+            if (secondsInput) secondsInput.value = config.showSecondary ? (stored.seconds ?? "") : "";
             setActiveMode(stored.mode || "rx");
         }
 
         function rememberSectionInput() {
             const section = sections[currentSectionIndex];
             if (!section) return;
+            const config = getSectionConfig(section.key);
             const minutes = parsePositiveInt(minutesInput?.value);
-            const seconds = parsePositiveInt(secondsInput?.value);
+            const seconds = config.showSecondary ? parsePositiveInt(secondsInput?.value) : null;
             if (minutes === null && seconds === null) {
                 delete resultsDraft[section.key];
                 return;
@@ -214,15 +274,24 @@
             resultsDraft[section.key] = {
                 minutes,
                 seconds,
-                mode: getActiveMode()
+                mode: getActiveMode(),
+                result_type: config.resultType
             };
         }
 
         function formatResultForShare(entry) {
             if (!entry || (entry.minutes === null && entry.seconds === null)) return "--";
-            if (entry.minutes === null) return `${entry.seconds} СЃРµРє`;
-            if (entry.seconds === null) return `${entry.minutes} РјРёРЅ`;
-            return `${entry.minutes}Рј ${entry.seconds}СЃ`;
+            if (entry.result_type === "weight") {
+                return entry.minutes === null ? "--" : `${entry.minutes} кг`;
+            }
+            if (entry.result_type === "reps") {
+                if (entry.minutes === null && entry.seconds !== null) return `${entry.seconds}`;
+                if (entry.minutes !== null && entry.seconds === null) return `${entry.minutes}`;
+                return `${entry.minutes} x ${entry.seconds}`;
+            }
+            if (entry.minutes === null) return `${entry.seconds} сек`;
+            if (entry.seconds === null) return `${entry.minutes} мин`;
+            return `${entry.minutes} мин ${entry.seconds} сек`;
         }
 
         function applySharePreview() {
@@ -315,7 +384,7 @@
                 setModalVisible(myResultsModal, false);
                 setModalVisible(resultSavedModal, true);
             } catch (_error) {
-                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+                alert("Не удалось сохранить результаты. Попробуйте еще раз.");
             }
         });
 
@@ -332,7 +401,7 @@
                 setModalVisible(myResultsModal, false);
                 setModalVisible(resultSavedModal, true);
             } catch (_error) {
-                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+                alert("Не удалось сохранить результаты. Попробуйте еще раз.");
             }
         });
 
@@ -363,8 +432,8 @@
                 if (!navigator.share) return;
                 try {
                     await navigator.share({
-                        title: "Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚СЂРµРЅРёСЂРѕРІРєРё",
-                        text: `РЎРёР»РѕРІР°СЏ: ${formatResultForShare(resultsDraft.strength)}, РљР°СЂРґРёРѕ: ${formatResultForShare(resultsDraft.cardio)}, РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ: ${formatResultForShare(resultsDraft.metabolic)}`
+                        title: "Результаты тренировки",
+                        text: `Силовая: ${formatResultForShare(resultsDraft.strength)}, Кардио: ${formatResultForShare(resultsDraft.cardio)}, Метаболическая: ${formatResultForShare(resultsDraft.metabolic)}`
                     });
                 } catch (_error) {
                 }
@@ -389,7 +458,7 @@
                 setModalVisible(trainingRateModal, false);
                 setModalVisible(thanksModal, true);
             } catch (_error) {
-                alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РѕС†РµРЅРєСѓ. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.");
+                alert("Не удалось сохранить оценку. Попробуйте еще раз.");
             }
         });
 
@@ -405,4 +474,3 @@
     })();
 </script>
 {% endblock %}
-

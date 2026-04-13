@@ -62,17 +62,17 @@
             <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-first.svg' %}" alt="">
                 <b>1 место</b>
-                <span>15 раз</span>
+                <span>{{ profile_awards_summary.first }} раз</span>
             </a>
             <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-second.svg' %}" alt="">
                 <b>2 место</b>
-                <span>18 раз</span>
+                <span>{{ profile_awards_summary.second }} раз</span>
             </a>
             <a class="awards__row awards__row--link" href="{% url 'auth:profile_award_workout' %}">
                 <img class="awards__icon" src="{% static 'auth/img/award-third.svg' %}" alt="">
                 <b>3 место</b>
-                <span>10 раз</span>
+                <span>{{ profile_awards_summary.third }} раз</span>
             </a>
         </div>
     </section>
@@ -114,11 +114,7 @@
 <script>
     (function () {
         const initialWeeklyGoal = Number.parseInt("{{ profile_week_goal|default:6 }}", 10) || 6;
-        const activityValues = {
-            week: { visits: "3 тренировки", goal: `${initialWeeklyGoal} тренировок` },
-            month: { visits: "12 тренировок", goal: "20 тренировок" },
-            all: { visits: "84 тренировки", goal: "150 тренировок" }
-        };
+        const activityValues = {{ profile_activity_values_json|safe }};
 
         const statsValues = {{ profile_stats_values_json|safe }};
         let selectedGoal = initialWeeklyGoal;

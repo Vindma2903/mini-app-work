@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Календарь{% endblock %}
@@ -38,9 +38,9 @@
         <div class="calendar-card">
             <div class="calendar-card__top">
                 <div class="calendar-card__title-row">
-                    <img class="calendar-card__arrow" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="">
+                    <img class="calendar-card__arrow" id="calendar-prev-week" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="Предыдущая неделя" role="button" tabindex="0">
                     <span class="calendar-card__range" id="calendar-range-label">23 Февраля - 1 Марта 2026</span>
-                    <img class="calendar-card__arrow" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="">
+                    <img class="calendar-card__arrow" id="calendar-next-week" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="Следующая неделя" role="button" tabindex="0">
                     <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Выбрать диапазон дат">
                         <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                     </button>
@@ -133,7 +133,7 @@
             </label>
 
             <div class="calendar-create-modal__exercise-card">
-                <p class="calendar-create-modal__exercise-name">Смит х2 (мин.)</p>
+                <p class="calendar-create-modal__exercise-name">Не выбрано</p>
                 <div class="calendar-create-modal__exercise-grid">
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
                         <span>Блок</span>
@@ -369,6 +369,8 @@
         const rangeLabel = document.getElementById("calendar-range-label");
         const prevMonthBtn = document.getElementById("calendar-prev-month");
         const nextMonthBtn = document.getElementById("calendar-next-month");
+        const prevWeekArrow = document.getElementById("calendar-prev-week");
+        const nextWeekArrow = document.getElementById("calendar-next-week");
         const createModal = document.getElementById("calendar-create-modal");
         const createModalTitle = createModal?.querySelector(".calendar-create-modal__head h3");
         const readyModal = document.getElementById("calendar-ready-modal");
@@ -457,19 +459,71 @@
         const deleteTrainingUrlTemplate = "{% url 'auth:calendar_admin_training_delete' training_id=0 %}";
         const byDateTrainingUrl = "{% url 'auth:calendar_admin_training_by_date' %}";
         const calendarTrainingsScript = document.getElementById("calendar-trainings-json");
-        const initialTrainings = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
+        const parsedTrainingsPayload = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
+        const initialTrainings = typeof parsedTrainingsPayload === "string"
+            ? JSON.parse(parsedTrainingsPayload)
+            : parsedTrainingsPayload;
         let trainingsStore = Array.isArray(initialTrainings) ? initialTrainings : [];
         let editingTrainingId = null;
         let deletingTrainingId = null;
         let activeCreateSourceType = "manual";
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
+        function resolveExerciseBlockLabel(card) {
+            if (!(card instanceof HTMLElement)) return "Не выбрано";
+            const blockInputNode = card.querySelector("#calendar-block-input");
+            const blockValueNode = card.querySelector("#calendar-block-value");
+            const customInputNode = card.querySelector("#calendar-block-custom-input");
+
+            const blockType = (blockInputNode?.value || "default").trim().toLowerCase();
+            const selectedLabel = (blockValueNode?.textContent || "").trim();
+            const customLabel = (customInputNode?.value || "").trim();
+
+            if (blockType === "custom") {
+                return customLabel || "Не выбрано";
+            }
+            if (!selectedLabel || selectedLabel.toLowerCase() === "блок" || blockType === "default") {
+                return "Не выбрано";
+            }
+            return selectedLabel;
+        }
+
+        function syncExerciseTitle(card) {
+            if (!(card instanceof HTMLElement)) return;
+            const titleNode = card.querySelector(".calendar-create-modal__exercise-name");
+            if (!titleNode) return;
+            titleNode.textContent = resolveExerciseBlockLabel(card);
+        }
 
         const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
-        let current = new Date(2026, 1, 1);
-        let fromDate = new Date(2026, 1, 23);
-        let toDate = new Date(2026, 2, 1);
+        function getWeekStart(dateValue) {
+            const base = normalize(dateValue);
+            const weekday = (base.getDay() + 6) % 7; // Monday=0 ... Sunday=6
+            return new Date(base.getFullYear(), base.getMonth(), base.getDate() - weekday);
+        }
+        const today = normalize(new Date());
+        let fromDate = getWeekStart(today);
+        let toDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 6);
+        let current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
         let draftFrom = new Date(fromDate);
         let draftTo = new Date(toDate);
+        const hasTrainingsInInitialWeek = trainingsStore.some((item) => {
+            const dateValue = parseIsoDateOnly(item.date);
+            return dateValue ? inRange(dateValue, fromDate, toDate) : false;
+        });
+        if (!hasTrainingsInInitialWeek && trainingsStore.length > 0) {
+            const latestByDate = [...trainingsStore]
+                .filter((item) => Boolean(parseIsoDateOnly(item.date)))
+                .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
+                .pop();
+            const latestDate = parseIsoDateOnly(latestByDate?.date || "");
+            if (latestDate) {
+                fromDate = getWeekStart(latestDate);
+                toDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 6);
+                current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+                draftFrom = new Date(fromDate);
+                draftTo = new Date(toDate);
+            }
+        }
 
         if (sidebarStatsLink instanceof HTMLAnchorElement) {
             sidebarStatsLink.href = "{% url 'auth:statistics' %}";
@@ -488,6 +542,44 @@
         function fmt(d) { return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`; }
         function updateRangeLabel() {
             rangeLabel.textContent = `${fmt(fromDate)} - ${fmt(toDate)}`;
+        }
+        function parseIsoDateOnly(value) {
+            const text = String(value || "").trim();
+            const parts = text.split("-");
+            if (parts.length !== 3) return null;
+            const year = Number(parts[0]);
+            const month = Number(parts[1]);
+            const day = Number(parts[2]);
+            if (!year || !month || !day) return null;
+            const parsed = new Date(year, month - 1, day);
+            return Number.isNaN(parsed.getTime()) ? null : normalize(parsed);
+        }
+        function toIsoDateString(dateValue) {
+            const normalized = normalize(dateValue);
+            const year = normalized.getFullYear();
+            const month = String(normalized.getMonth() + 1).padStart(2, "0");
+            const day = String(normalized.getDate()).padStart(2, "0");
+            return `${year}-${month}-${day}`;
+        }
+        function shiftWeek(weekOffset) {
+            const days = weekOffset * 7;
+            fromDate = normalize(new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + days));
+            toDate = normalize(new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + days));
+            draftFrom = new Date(fromDate);
+            draftTo = new Date(toDate);
+            current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
+            updateRangeLabel();
+            renderCalendarList();
+        }
+        function bindWeekArrow(arrowNode, weekOffset) {
+            if (!(arrowNode instanceof HTMLElement)) return;
+            arrowNode.addEventListener("click", () => shiftWeek(weekOffset));
+            arrowNode.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    shiftWeek(weekOffset);
+                }
+            });
         }
         function render() {
             monthLabel.textContent = `${months[current.getMonth()]} ${current.getFullYear()}`;
@@ -524,6 +616,7 @@
                         fromDate = normalize(draftFrom);
                         toDate = normalize(draftTo);
                         updateRangeLabel();
+                        renderCalendarList();
                         modal.hidden = true;
                         return;
                     }
@@ -554,6 +647,9 @@
             render();
         });
         updateRangeLabel();
+        renderCalendarList();
+        bindWeekArrow(prevWeekArrow, -1);
+        bindWeekArrow(nextWeekArrow, 1);
 
         function closeAllCreateDropdowns() {
             closeVisibilityMenu();
@@ -616,6 +712,7 @@
                 if (exerciseInputNode) exerciseInputNode.value = "";
                 if (setsInputNode) setsInputNode.value = "";
                 if (repsInputNode) repsInputNode.value = "";
+                syncExerciseTitle(firstCard);
             }
 
             if (readyWorkoutInput) readyWorkoutInput.value = "ready";
@@ -637,6 +734,7 @@
                 btn.classList.toggle("is-active", isActive);
                 btn.setAttribute("aria-pressed", isActive ? "true" : "false");
             });
+            syncExerciseSaveButtons();
         }
 
         function setCreateModalMode(isEditing) {
@@ -885,6 +983,21 @@
             }
         });
 
+        document.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const toggleButton = target.closest("[data-section-toggle]");
+            if (!(toggleButton instanceof HTMLButtonElement)) return;
+            const section = toggleButton.closest(".calendar-event__section--compact");
+            if (!(section instanceof HTMLElement)) return;
+            const items = section.querySelector("[data-section-items]");
+            if (!(items instanceof HTMLElement)) return;
+            const nextExpanded = toggleButton.getAttribute("aria-expanded") !== "true";
+            toggleButton.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
+            section.classList.toggle("is-open", nextExpanded);
+            items.hidden = !nextExpanded;
+        });
+
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape" && resultsModal && !resultsModal.hidden) {
                 closeResultsModal();
@@ -936,14 +1049,19 @@
             deleteTraining(deletingTrainingId).finally(() => closeDeleteModal());
         });
 
-        initExerciseCard(createModal?.querySelector(".calendar-create-modal__exercise-card"));
+        const initialExerciseCard = createModal?.querySelector(".calendar-create-modal__exercise-card");
+        initExerciseCard(initialExerciseCard);
+        syncExerciseTitle(initialExerciseCard);
+        syncExerciseSaveButtons();
 
         addExerciseBtn?.addEventListener("click", () => {
             const sourceCard = createModal?.querySelector(".calendar-create-modal__exercise-card");
             if (!sourceCard || !addExerciseBtn?.parentElement) return;
 
             const clone = sourceCard.cloneNode(true);
-            clone.querySelector(".calendar-create-modal__exercise-name")?.replaceChildren(document.createTextNode(" 2 (.)"));
+            // cloned node inherits init flag from source card; reset it so handlers are bound
+            delete clone.dataset.exerciseCardReady;
+            clone.querySelector(".calendar-create-modal__exercise-name")?.replaceChildren(document.createTextNode("Не выбрано"));
 
             const textInputs = clone.querySelectorAll("input[type='text']");
             textInputs.forEach((input) => {
@@ -973,6 +1091,8 @@
 
             addExerciseBtn.parentElement.insertBefore(clone, addExerciseBtn);
             initExerciseCard(clone);
+            syncExerciseTitle(clone);
+            syncExerciseSaveButtons();
         });
 
         enhanceResultsLinks();
@@ -1203,9 +1323,14 @@
                 if (blockValue) blockValue.textContent = nextLabel;
                 if (blockInput) blockInput.value = nextValue;
                 toggleCustomBlockField(nextValue);
+                syncExerciseTitle(createModal?.querySelector(".calendar-create-modal__exercise-card"));
 
                 closeBlockMenu();
             });
+        });
+
+        blockCustomInput?.addEventListener("input", () => {
+            syncExerciseTitle(createModal?.querySelector(".calendar-create-modal__exercise-card"));
         });
 
         function closeResultTypeMenu() {
@@ -1403,6 +1528,7 @@
             const localBlockInput = card.querySelector("#calendar-block-input");
             const localBlockOptions = card.querySelectorAll("[data-block-option]");
             const localCustomWrap = card.querySelector("#calendar-block-custom-wrap");
+            const localCustomInput = card.querySelector("#calendar-block-custom-input");
             const localResultTypeTrigger = card.querySelector("#calendar-result-type-trigger");
             const localResultTypeMenu = card.querySelector("#calendar-result-type-menu");
             const localResultTypeValue = card.querySelector("#calendar-result-type-value");
@@ -1428,6 +1554,7 @@
             };
 
             toggleLocalCustomField(localBlockInput?.value || "default");
+            syncExerciseTitle(card);
 
             localBlockTrigger?.addEventListener("click", (event) => {
                 event.preventDefault();
@@ -1447,9 +1574,14 @@
                     if (localBlockValue) localBlockValue.textContent = nextLabel;
                     if (localBlockInput) localBlockInput.value = nextValue;
                     toggleLocalCustomField(nextValue);
+                    syncExerciseTitle(card);
                     if (localBlockMenu) localBlockMenu.hidden = true;
                     localBlockTrigger?.setAttribute("aria-expanded", "false");
                 });
+            });
+
+            localCustomInput?.addEventListener("input", () => {
+                syncExerciseTitle(card);
             });
 
             localResultTypeTrigger?.addEventListener("click", (event) => {
@@ -1489,13 +1621,28 @@
 
             if (localSaveButton && localSaveButton !== createSaveBtn) {
                 localSaveButton.removeAttribute("id");
-                localSaveButton.addEventListener("click", () => {
-                    createCalendarCard();
-                    closeCreateModal();
+                localSaveButton.addEventListener("click", async () => {
+                    try {
+                        await saveTraining();
+                        closeCreateModal();
+                    } catch (error) {
+                        console.error(error);
+                    }
                 });
             }
 
             card.dataset.exerciseCardReady = "true";
+        }
+
+        function syncExerciseSaveButtons() {
+            const cards = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || []);
+            cards.forEach((card, index) => {
+                const saveButton = card.querySelector(".calendar-create-modal__save");
+                if (!(saveButton instanceof HTMLButtonElement)) return;
+                const isLastCard = index === cards.length - 1;
+                saveButton.hidden = !isLastCard;
+                saveButton.style.display = isLastCard ? "" : "none";
+            });
         }
 
         function getCsrfToken() {
@@ -1564,7 +1711,14 @@
             inputNode.dataset.integerOnlyReady = "true";
         }
 
-        function buildCalendarCardMarkup(training) {
+        function getWeekdayColumn(isoDate) {
+            const parsed = parseIsoDateOnly(isoDate);
+            if (!parsed) return 1;
+            return ((parsed.getDay() + 6) % 7) + 1; // Monday=1 ... Sunday=7
+        }
+
+        function buildCalendarCardMarkup(training, options = {}) {
+            const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
             const isFull = (training.sections || []).length > 2;
             const sectionsHtml = (training.sections || []).map((section) => {
@@ -1578,14 +1732,17 @@
                 }
                 return `
                     <div class="calendar-event__section calendar-event__section--compact">
-                        <h4>${escapeHtml(section.title)} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4>
+                        <button type="button" class="calendar-event__section-toggle" data-section-toggle aria-expanded="false">
+                            <h4>${escapeHtml(section.title)} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4>
+                        </button>
+                        <p class="calendar-event__section-items" data-section-items hidden>${(section.items || []).map((item) => escapeHtml(item)).join("<br>")}</p>
                     </div>
                 `;
             }).join("");
 
             return `
-                <article class="calendar-day ${colorClass} ${isFull ? "calendar-day--full" : "calendar-day--short"}" data-training-id="${training.id}">
-                    <div class="calendar-day__head"><span>${escapeHtml(training.day_name || "")}</span><b>${escapeHtml(training.day_number || "")}</b></div>
+                <article class="calendar-day ${colorClass} ${isFull ? "calendar-day--full" : "calendar-day--short"} ${showDayHead ? "" : "calendar-day--continuation"}" data-training-id="${training.id}">
+                    ${showDayHead ? `<div class="calendar-day__head"><span>${escapeHtml(training.day_name || "")}</span><b>${escapeHtml(training.day_number || "")}</b></div>` : ""}
                     <div class="calendar-event">
                         <h3>${escapeHtml(training.ready_plan_title || training.direction_label || "FBB")}</h3>
                         <p class="calendar-event__comment">Комментарий</p>
@@ -1599,8 +1756,35 @@
 
         function renderCalendarList() {
             if (!calendarListDesktop) return;
-            const sorted = [...trainingsStore].sort((a, b) => (a.date < b.date ? 1 : -1));
-            calendarListDesktop.innerHTML = sorted.map((item) => buildCalendarCardMarkup(item)).join("");
+            const rangeStartIso = toIsoDateString(fromDate);
+            const rangeEndIso = toIsoDateString(toDate);
+            const filtered = trainingsStore.filter((item) => {
+                const itemDate = String(item.date || "").trim();
+                if (!/^\d{4}-\d{2}-\d{2}$/.test(itemDate)) return false;
+                return itemDate >= rangeStartIso && itemDate <= rangeEndIso;
+            });
+            const sorted = [...filtered].sort((a, b) => {
+                if (a.date === b.date) {
+                    return Number(b.id || 0) - Number(a.id || 0);
+                }
+                return a.date > b.date ? 1 : -1;
+            });
+            const columns = Array.from({ length: 7 }, () => []);
+            const renderedDates = new Set();
+            sorted.forEach((item) => {
+                const dateKey = String(item.date || "");
+                const showDayHead = !renderedDates.has(dateKey);
+                renderedDates.add(dateKey);
+                const columnIndex = Math.max(0, Math.min(6, getWeekdayColumn(dateKey) - 1));
+                columns[columnIndex].push(buildCalendarCardMarkup(item, {
+                    showDayHead,
+                }));
+            });
+            calendarListDesktop.innerHTML = columns.map((items, index) => `
+                <div class="calendar-list-desktop__column" data-weekday-column="${index + 1}">
+                    ${items.join("")}
+                </div>
+            `).join("");
             enhanceResultsLinks(calendarListDesktop);
         }
 
@@ -1708,6 +1892,7 @@
                 if (resultTypeInput) resultTypeInput.value = firstExercise.result_type || "time";
                 if (resultTypeValue) resultTypeValue.textContent = firstExercise.result_type_label || "Время";
                 setActiveOption(resultTypeOptions, "data-result-type-option", resultTypeInput?.value || "time");
+                syncExerciseTitle(createModal?.querySelector(".calendar-create-modal__exercise-card"));
             }
 
             activeCreateSourceType = training.source_type || "manual";
@@ -1724,8 +1909,6 @@
             }
         }
 
-        renderCalendarList();
-
         createSaveBtn?.addEventListener("click", async () => {
             try {
                 await saveTraining();
@@ -1737,4 +1920,5 @@
     })();
 </script>
 {% endblock %}
+
 

@@ -1,0 +1,2 @@
+"""Community domain tests package."""
+

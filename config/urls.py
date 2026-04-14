@@ -17,7 +17,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from auth.views import AdminLibraryView, AdminProfileView
+from auth.domain.library.views import AdminLibraryView
+from auth.domain.profile.views import AdminProfileView
 
 urlpatterns = [
     path('admin/profile/', AdminProfileView.as_view(), name='admin_profile_direct'),

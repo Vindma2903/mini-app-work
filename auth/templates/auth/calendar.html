@@ -1744,7 +1744,7 @@
                 <article class="calendar-day ${colorClass} ${isFull ? "calendar-day--full" : "calendar-day--short"} ${showDayHead ? "" : "calendar-day--continuation"}" data-training-id="${training.id}">
                     ${showDayHead ? `<div class="calendar-day__head"><span>${escapeHtml(training.day_name || "")}</span><b>${escapeHtml(training.day_number || "")}</b></div>` : ""}
                     <div class="calendar-event">
-                        <h3>${escapeHtml(training.ready_plan_title || training.direction_label || "FBB")}</h3>
+                        <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
                         <p class="calendar-event__comment">Комментарий</p>
                         <p>${escapeHtml(training.comment || "Без комментария")}</p>
                         ${sectionsHtml}
@@ -1900,7 +1900,7 @@
             if (readyComplexTypeInput) readyComplexTypeInput.value = training.ready_complex_type || readyComplexTypeInput.value;
             const readyNameInput = readyModal?.querySelector(".calendar-ready-modal__text-input");
             if (readyNameInput) readyNameInput.value = training.ready_complex_name || "";
-            if (training.ready_plan_title) {
+            if (training.source_type === "ready" && training.ready_plan_title) {
                 readyPlanCards.forEach((btn) => {
                     const isActive = (btn.textContent || "").trim() === training.ready_plan_title;
                     btn.classList.toggle("is-active", isActive);

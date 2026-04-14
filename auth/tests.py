@@ -3,13 +3,14 @@ from datetime import timedelta
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
+from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from .models import AdminTraining, AdminTrainingExercise, CommunityReaction, TrainingRate, TrainingResult
+from .models import AdminTraining, AdminTrainingExercise, CommunityReaction, TrainingRate, TrainingResult, UserExerciseRepProfile
 
 
 class JwtAuthFlowTests(TestCase):
@@ -121,12 +122,13 @@ class TrainingResultsApiTests(TestCase):
             password=self.password,
         )
         self.access = str(RefreshToken.for_user(self.user).access_token)
+        self.today_iso = timezone.localdate().isoformat()
 
     def test_save_training_results_supports_weight_result_type(self):
         response = self.client.post(
             reverse('auth:calendar_save_results'),
             data={
-                'date': '2026-04-13',
+                'date': self.today_iso,
                 'results': {
                     'strength': {
                         'minutes': 85,
@@ -142,7 +144,7 @@ class TrainingResultsApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         saved = TrainingResult.objects.get(
             user=self.user,
-            training_date='2026-04-13',
+            training_date=self.today_iso,
             section=TrainingResult.SECTION_STRENGTH,
         )
         self.assertEqual(saved.result_type, TrainingResult.RESULT_WEIGHT)
@@ -153,7 +155,7 @@ class TrainingResultsApiTests(TestCase):
         response = self.client.post(
             reverse('auth:calendar_save_results'),
             data={
-                'date': '2026-04-13',
+                'date': self.today_iso,
                 'results': {
                     'cardio': {
                         'minutes': 7,
@@ -169,13 +171,125 @@ class TrainingResultsApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         saved = TrainingResult.objects.get(
             user=self.user,
-            training_date='2026-04-13',
+            training_date=self.today_iso,
             section=TrainingResult.SECTION_CARDIO,
         )
         self.assertEqual(saved.result_type, TrainingResult.RESULT_REPS)
         self.assertEqual(saved.minutes, 7)
         self.assertEqual(saved.seconds, 12)
         self.assertEqual(saved.mode, TrainingResult.MODE_SCALED)
+
+    def test_save_training_results_for_user_denies_non_today_date(self):
+        previous_day = (timezone.localdate() - timedelta(days=1)).isoformat()
+        response = self.client.post(
+            reverse('auth:calendar_save_results'),
+            data={
+                'date': previous_day,
+                'results': {
+                    'strength': {
+                        'minutes': 10,
+                        'seconds': 0,
+                        'mode': TrainingResult.MODE_RX,
+                        'result_type': TrainingResult.RESULT_TIME,
+                    }
+                },
+            },
+            content_type='application/json',
+            headers={'Authorization': f'Bearer {self.access}'},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json().get('error'), 'only_today_allowed')
+        self.assertFalse(
+            TrainingResult.objects.filter(
+                user=self.user,
+                training_date=previous_day,
+                section=TrainingResult.SECTION_STRENGTH,
+            ).exists()
+        )
+
+
+class AchievementExerciseRepProfileTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='exercise-user@example.com',
+            email='exercise-user@example.com',
+            password='StrongPass123!',
+        )
+
+    def test_unique_profile_per_user_and_exercise_slug(self):
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug='back-pause-squat',
+            rep_1=10,
+            rep_2=15,
+            rep_3=30,
+            rep_4=40,
+        )
+        with self.assertRaises(IntegrityError):
+            UserExerciseRepProfile.objects.create(
+                user=self.user,
+                exercise_slug='back-pause-squat',
+                rep_1=11,
+                rep_2=16,
+                rep_3=31,
+                rep_4=41,
+            )
+
+    def test_update_endpoint_creates_and_updates_profile(self):
+        self.client.force_login(self.user)
+        url = reverse('auth:achievement_exercise_update', kwargs={'exercise_slug': 'back-pause-squat'})
+
+        first = self.client.post(
+            url,
+            data={'rep_1': 10, 'rep_2': 15, 'rep_3': 30, 'rep_4': 40},
+            content_type='application/json',
+        )
+        self.assertEqual(first.status_code, 200)
+        self.assertTrue(first.json().get('ok'))
+        self.assertEqual(UserExerciseRepProfile.objects.filter(user=self.user, exercise_slug='back-pause-squat').count(), 1)
+        self.assertEqual(first.json()['relative_percents']['p1'], 100)
+        self.assertEqual(first.json()['relative_percents']['p2'], 150)
+        self.assertEqual(first.json()['relative_percents']['p3'], 300)
+        self.assertEqual(first.json()['relative_percents']['p4'], 400)
+
+        second = self.client.post(
+            url,
+            data={'rep_1': 12, 'rep_2': 18, 'rep_3': 24, 'rep_4': 30},
+            content_type='application/json',
+        )
+        self.assertEqual(second.status_code, 200)
+        self.assertTrue(second.json().get('ok'))
+        self.assertEqual(UserExerciseRepProfile.objects.filter(user=self.user, exercise_slug='back-pause-squat').count(), 1)
+        profile = UserExerciseRepProfile.objects.get(user=self.user, exercise_slug='back-pause-squat')
+        self.assertEqual([profile.rep_1, profile.rep_2, profile.rep_3, profile.rep_4], [12, 18, 24, 30])
+
+    def test_update_endpoint_rejects_invalid_values(self):
+        self.client.force_login(self.user)
+        url = reverse('auth:achievement_exercise_update', kwargs={'exercise_slug': 'back-pause-squat'})
+        response = self.client.post(
+            url,
+            data={'rep_1': 0, 'rep_2': 15, 'rep_3': 'abc', 'rep_4': 40},
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json().get('error'), 'invalid_reps')
+
+    def test_exercise_view_uses_saved_reps_and_recalculated_rows(self):
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug='back-pause-squat',
+            rep_1=10,
+            rep_2=15,
+            rep_3=30,
+            rep_4=40,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:achievement_exercise', kwargs={'exercise_slug': 'back-pause-squat'}))
+        self.assertEqual(response.status_code, 200)
+        exercise = response.context['exercise']
+        self.assertEqual(exercise['max'], [10, 15, 30, 40])
+        self.assertEqual(exercise['percent_rows'][0], [('11', '105%'), ('15', '100%'), ('29', '95%'), ('36', '90%')])
+        self.assertEqual(exercise['percent_rows'][3], [('5', '45%'), ('6', '40%'), ('11', '35%'), ('12', '30%')])
 
 
 class ReviewsOverviewViewTests(TestCase):
@@ -359,6 +473,11 @@ class CommunityReactionApiTests(TestCase):
             email='target@example.com',
             password='StrongPass123!',
         )
+        self.target_two = User.objects.create_user(
+            username='target-two@example.com',
+            email='target-two@example.com',
+            password='StrongPass123!',
+        )
         self.today = timezone.localdate()
 
     def test_user_cannot_react_to_self(self):
@@ -412,6 +531,144 @@ class CommunityReactionApiTests(TestCase):
                 target_user=self.target,
             ).exists()
         )
+
+    def test_second_reaction_to_same_user_is_not_counted_twice(self):
+        TrainingResult.objects.create(
+            user=self.target,
+            training_date=self.today,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=9,
+            seconds=10,
+            mode=TrainingResult.MODE_RX,
+        )
+        self.client.force_login(self.sender)
+
+        first = self.client.post(
+            reverse('auth:community_react'),
+            data={'target_user_id': self.target.id},
+            content_type='application/json',
+        )
+        second = self.client.post(
+            reverse('auth:community_react'),
+            data={'target_user_id': self.target.id},
+            content_type='application/json',
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(second.json().get('already_reacted'), True)
+        self.assertEqual(
+            CommunityReaction.objects.filter(
+                sender=self.sender,
+                target_user=self.target,
+                training_date=self.today,
+            ).count(),
+            1,
+        )
+
+    def test_user_can_react_to_multiple_users_without_limit(self):
+        TrainingResult.objects.create(
+            user=self.target,
+            training_date=self.today,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=9,
+            seconds=10,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.target_two,
+            training_date=self.today,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=8,
+            seconds=30,
+            mode=TrainingResult.MODE_RX,
+        )
+        self.client.force_login(self.sender)
+
+        first = self.client.post(
+            reverse('auth:community_react'),
+            data={'target_user_id': self.target.id},
+            content_type='application/json',
+        )
+        second = self.client.post(
+            reverse('auth:community_react'),
+            data={'target_user_id': self.target_two.id},
+            content_type='application/json',
+        )
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(
+            CommunityReaction.objects.filter(
+                sender=self.sender,
+                training_date=self.today,
+            ).count(),
+            2,
+        )
+
+    def test_user_can_react_to_other_user_for_selected_date(self):
+        other_day = self.today - timedelta(days=1)
+        TrainingResult.objects.create(
+            user=self.target,
+            training_date=other_day,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=8,
+            seconds=5,
+            mode=TrainingResult.MODE_RX,
+        )
+        self.client.force_login(self.sender)
+
+        response = self.client.post(
+            reverse('auth:community_react'),
+            data={'target_user_id': self.target.id, 'date': other_day.isoformat()},
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get('ok'), True)
+        self.assertTrue(
+            CommunityReaction.objects.filter(
+                sender=self.sender,
+                target_user=self.target,
+                training_date=other_day,
+            ).exists()
+        )
+
+
+class CommunityViewDateFilterTests(TestCase):
+    def setUp(self):
+        self.viewer = User.objects.create_user(
+            username='community-viewer@example.com',
+            email='community-viewer@example.com',
+            password='StrongPass123!',
+        )
+        self.target = User.objects.create_user(
+            username='community-target@example.com',
+            email='community-target@example.com',
+            password='StrongPass123!',
+        )
+        self.today = timezone.localdate()
+
+    def test_community_uses_selected_date_from_query(self):
+        other_day = self.today - timedelta(days=1)
+        TrainingResult.objects.create(
+            user=self.target,
+            training_date=other_day,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=12,
+            seconds=34,
+            mode=TrainingResult.MODE_RX,
+        )
+        self.client.force_login(self.viewer)
+
+        response = self.client.get(reverse('auth:community'), {'date': other_day.isoformat()})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['community_selected_date_iso'], other_day.isoformat())
+        self.assertEqual(response.context['community_date'], other_day.strftime('%d.%m.%Y'))
+        cards = response.context['community_cards']
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]['target_user_id'], self.target.id)
 
 
 class AdminTrainingCrudTests(TestCase):
@@ -574,6 +831,38 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(exercises[1]['block_type'], 'custom')
         self.assertEqual(exercises[1]['block_custom_name'], 'Интервальная')
 
+    def test_manual_training_uses_direction_as_title(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload.update(
+            {
+                'direction': 'gymnastics',
+                'source_type': 'manual',
+                'ready_plan_title': 'Тренировка с Ксенией',
+                'ready_workout_type': 'ready',
+                'ready_complex_type': 'benchmarks',
+                'ready_complex_name': 'Test',
+            }
+        )
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('ok'))
+        self.assertEqual(data['training']['title'], 'Гимнастика')
+        self.assertEqual(data['training']['ready_plan_title'], '')
+
+        training = AdminTraining.objects.get(id=data['training_id'])
+        self.assertEqual(training.source_type, 'manual')
+        self.assertEqual(training.ready_plan_title, '')
+        self.assertEqual(training.ready_workout_type, '')
+        self.assertEqual(training.ready_complex_type, '')
+        self.assertEqual(training.ready_complex_name, '')
+
 
 class TrainingPlanTodayVisibilityTests(TestCase):
     def setUp(self):
@@ -631,7 +920,7 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]['comment'], 'public')
 
-    def test_training_plan_uses_selected_date_from_query(self):
+    def test_training_plan_uses_selected_date_from_query_for_admin(self):
         target_date = timezone.localdate() - timedelta(days=2)
         another_date = timezone.localdate()
 
@@ -669,12 +958,33 @@ class TrainingPlanTodayVisibilityTests(TestCase):
             order=0,
         )
 
-        self.client.force_login(self.user)
+        self.client.force_login(self.admin)
         response = self.client.get(reverse('auth:training_plan_today'), {'date': target_date.isoformat()})
         self.assertEqual(response.status_code, 200)
         cards = response.context['plan_cards']
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]['comment'], 'for-target-day')
+        self.assertEqual(response.context['plan_selected_date_iso'], target_date.isoformat())
+
+    def test_training_plan_redirects_user_to_leaderboard_for_past_date(self):
+        target_date = timezone.localdate() - timedelta(days=2)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('auth:training_plan_today'), {'date': target_date.isoformat()})
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(
+            response['Location'],
+            f"{reverse('auth:leaderboard_day')}?date={target_date.isoformat()}",
+        )
+
+    def test_training_plan_allows_user_to_open_future_date(self):
+        target_date = timezone.localdate() + timedelta(days=1)
+        self.client.force_login(self.user)
+
+        response = self.client.get(reverse('auth:training_plan_today'), {'date': target_date.isoformat()})
+
+        self.assertEqual(response.status_code, 200)
         self.assertEqual(response.context['plan_selected_date_iso'], target_date.isoformat())
 
     def test_training_plan_shows_all_trainings_for_selected_date(self):
@@ -834,4 +1144,47 @@ class LeaderboardAwardsTests(TestCase):
         self.assertEqual(len(strength['entries']), 1)
         self.assertEqual(strength['entries'][0]['user_id'], self.user_b.id)
         self.assertEqual(response.context['leaderboard_date'], other_day.strftime('%d.%m.%Y'))
+
+    def test_leaderboard_builds_groups_for_all_trainings_of_day(self):
+        first_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='first',
+            color='blue',
+            source_type='manual',
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=first_training,
+            block_type='strength',
+            exercise_name='Squat',
+            result_type='reps',
+            order=0,
+        )
+
+        second_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='crossfit',
+            visibility='all',
+            comment='second',
+            color='green',
+            source_type='manual',
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=second_training,
+            block_type='cardio',
+            exercise_name='Run',
+            result_type='time',
+            order=0,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse('auth:leaderboard_day'), {'date': self.today.isoformat()})
+        self.assertEqual(response.status_code, 200)
+
+        groups = response.context['leaderboard_training_groups']
+        self.assertEqual(len(groups), 2)
+        self.assertEqual({group['title'] for group in groups}, {'FBB', 'Кроссфит с Денисом Залозним'})
 

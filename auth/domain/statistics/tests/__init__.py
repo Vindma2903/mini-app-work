@@ -1,0 +1,2 @@
+"""Statistics domain tests package."""
+

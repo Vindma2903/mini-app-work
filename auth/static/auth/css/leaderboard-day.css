@@ -137,6 +137,9 @@ body {
     font-size: 28px;
     line-height: 34px;
     font-weight: 500;
+    width: 100%;
+    justify-content: space-between;
+    text-align: left;
 }
 
 .leaderboard-group__toggle {
@@ -150,12 +153,12 @@ body {
 .leaderboard-group__toggle img {
     width: 12px;
     height: 7px;
-    transform: rotate(180deg);
+    transform: rotate(0deg);
 }
 
 .leaderboard-plan__item[aria-expanded="true"] img,
 .leaderboard-group__toggle[aria-expanded="true"] img {
-    transform: rotate(0deg);
+    transform: rotate(180deg);
 }
 
 .leaderboard-groups {
@@ -163,6 +166,26 @@ body {
     gap: 12px;
     margin-top: 8px;
     padding-left: 2px;
+}
+
+.leaderboard-groups[hidden],
+.leaderboard-list[hidden] {
+    display: none;
+}
+
+.leaderboard-plan__exercises {
+    background: #fff;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: grid;
+    gap: 6px;
+}
+
+.leaderboard-plan__exercise-line {
+    margin: 0;
+    font-size: 13px;
+    line-height: 16px;
+    color: #5f6570;
 }
 
 .leaderboard-group {

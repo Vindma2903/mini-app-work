@@ -18,27 +18,39 @@
     <section class="exercise-max-card">
         <div class="exercise-max-grid">
             {% for rep in exercise.max %}
-                <div class="exercise-max-grid__cell">
-                    <strong>{{ rep }}</strong>
+                <div class="exercise-max-grid__cell" data-max-rep-col="{{ forloop.counter0 }}">
+                    <strong data-max-rep-value>{{ rep }}</strong>
                     <span>{{ forloop.counter }} REP MAX</span>
                 </div>
             {% endfor %}
         </div>
-        <button type="button" class="exercise-btn exercise-btn--outline">Редактировать</button>
+        <button type="button" class="exercise-btn exercise-btn--outline" id="exercise-open-edit-modal">Редактировать</button>
     </section>
 
     <section class="exercise-percent-card">
         <div class="exercise-percent-head">
-            <span class="exercise-percent-head__item exercise-percent-head__item--active">1 REP</span>
-            <span class="exercise-percent-head__item">2 REP</span>
-            <span class="exercise-percent-head__item">3 REP</span>
-            <span class="exercise-percent-head__item">4 REP</span>
+            <span class="exercise-percent-head__item exercise-percent-head__item--active">
+                1 REP
+                <small class="exercise-percent-head__ratio" data-head-percent="p1">100%</small>
+            </span>
+            <span class="exercise-percent-head__item">
+                2 REP
+                <small class="exercise-percent-head__ratio" data-head-percent="p2">--</small>
+            </span>
+            <span class="exercise-percent-head__item">
+                3 REP
+                <small class="exercise-percent-head__ratio" data-head-percent="p3">--</small>
+            </span>
+            <span class="exercise-percent-head__item">
+                4 REP
+                <small class="exercise-percent-head__ratio" data-head-percent="p4">--</small>
+            </span>
         </div>
         {% for row in exercise.percent_rows %}
-            <div class="exercise-percent-row">
+            <div class="exercise-percent-row" data-percent-row="{{ forloop.counter0 }}">
                 {% for value, percent in row %}
-                    <div class="exercise-percent-row__cell">
-                        <strong>{{ value }}</strong>
+                    <div class="exercise-percent-row__cell" data-percent-col="{{ forloop.counter0 }}">
+                        <strong data-percent-value>{{ value }}</strong>
                         <span>{{ percent }}</span>
                     </div>
                 {% endfor %}
@@ -50,4 +62,222 @@
 
     {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
 </main>
+
+<div class="exercise-edit-modal" id="exercise-edit-modal" hidden>
+    <div class="exercise-edit-modal__overlay" data-close-edit-modal></div>
+    <section class="exercise-edit-modal__card" role="dialog" aria-modal="true" aria-label="Редактирование повторений">
+        <button type="button" class="exercise-edit-modal__close" data-close-edit-modal aria-label="Закрыть">×</button>
+        <h3 class="exercise-edit-modal__title">Введите значения подходов</h3>
+        <p class="exercise-edit-modal__desc">Первый подход принимается за 100%</p>
+        <div class="exercise-edit-modal__grid">
+            <label class="exercise-edit-modal__field">
+                <span>1 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" />
+                <small data-live-percent="p1">100%</small>
+            </label>
+            <label class="exercise-edit-modal__field">
+                <span>2 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" />
+                <small data-live-percent="p2">--</small>
+            </label>
+            <label class="exercise-edit-modal__field">
+                <span>3 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" />
+                <small data-live-percent="p3">--</small>
+            </label>
+            <label class="exercise-edit-modal__field">
+                <span>4 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" />
+                <small data-live-percent="p4">--</small>
+            </label>
+        </div>
+        <p class="exercise-edit-modal__error" id="exercise-edit-error" hidden></p>
+        <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-edit-save">Сохранить</button>
+    </section>
+</div>
+
+{{ exercise_initial_reps_json|json_script:"exercise-initial-reps-json" }}
+{{ exercise_relative_percents_json|json_script:"exercise-relative-percents-json" }}
+<script>
+    (function () {
+        const updateUrl = "{{ exercise_update_url }}";
+        const openButton = document.getElementById("exercise-open-edit-modal");
+        const modal = document.getElementById("exercise-edit-modal");
+        const saveButton = document.getElementById("exercise-edit-save");
+        const errorNode = document.getElementById("exercise-edit-error");
+        const inputs = {
+            rep_1: document.getElementById("exercise-edit-rep-1"),
+            rep_2: document.getElementById("exercise-edit-rep-2"),
+            rep_3: document.getElementById("exercise-edit-rep-3"),
+            rep_4: document.getElementById("exercise-edit-rep-4"),
+        };
+        const percentNodes = {
+            p1: document.querySelector("[data-live-percent='p1']"),
+            p2: document.querySelector("[data-live-percent='p2']"),
+            p3: document.querySelector("[data-live-percent='p3']"),
+            p4: document.querySelector("[data-live-percent='p4']"),
+        };
+        const headPercentNodes = {
+            p1: document.querySelector("[data-head-percent='p1']"),
+            p2: document.querySelector("[data-head-percent='p2']"),
+            p3: document.querySelector("[data-head-percent='p3']"),
+            p4: document.querySelector("[data-head-percent='p4']"),
+        };
+        const maxValueNodes = Array.from(document.querySelectorAll("[data-max-rep-value]"));
+        const percentRows = Array.from(document.querySelectorAll("[data-percent-row]"));
+
+        const initialRepsNode = document.getElementById("exercise-initial-reps-json");
+        const initialPercentsNode = document.getElementById("exercise-relative-percents-json");
+        const state = {
+            reps: initialRepsNode?.textContent ? JSON.parse(initialRepsNode.textContent) : { rep_1: 10, rep_2: 10, rep_3: 10, rep_4: 10 },
+            percents: initialPercentsNode?.textContent ? JSON.parse(initialPercentsNode.textContent) : { p1: 100, p2: 100, p3: 100, p4: 100 },
+        };
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
+        function normalizePositiveInt(value) {
+            const parsed = Number.parseInt(String(value || "").trim(), 10);
+            if (!Number.isFinite(parsed) || parsed < 1) return null;
+            return parsed;
+        }
+
+        function setModalVisible(visible) {
+            modal.hidden = !visible;
+            document.body.style.overflow = visible ? "hidden" : "";
+        }
+
+        function renderHeadPercents() {
+            ["p1", "p2", "p3", "p4"].forEach((key) => {
+                const node = headPercentNodes[key];
+                if (!node) return;
+                const value = state.percents?.[key];
+                if (value === null || value === undefined || !Number.isFinite(Number(value))) {
+                    node.textContent = "--";
+                    return;
+                }
+                node.textContent = `${value}%`;
+            });
+        }
+
+        function fillInputsFromState() {
+            inputs.rep_1.value = String(state.reps.rep_1 ?? "");
+            inputs.rep_2.value = String(state.reps.rep_2 ?? "");
+            inputs.rep_3.value = String(state.reps.rep_3 ?? "");
+            inputs.rep_4.value = String(state.reps.rep_4 ?? "");
+        }
+
+        function renderLivePercents() {
+            const r1 = normalizePositiveInt(inputs.rep_1.value);
+            const r2 = normalizePositiveInt(inputs.rep_2.value);
+            const r3 = normalizePositiveInt(inputs.rep_3.value);
+            const r4 = normalizePositiveInt(inputs.rep_4.value);
+
+            if (r1 === null) {
+                percentNodes.p1.textContent = "--";
+                percentNodes.p2.textContent = "--";
+                percentNodes.p3.textContent = "--";
+                percentNodes.p4.textContent = "--";
+                return;
+            }
+
+            percentNodes.p1.textContent = "100%";
+            percentNodes.p2.textContent = r2 === null ? "--" : `${Math.round((r2 / r1) * 100)}%`;
+            percentNodes.p3.textContent = r3 === null ? "--" : `${Math.round((r3 / r1) * 100)}%`;
+            percentNodes.p4.textContent = r4 === null ? "--" : `${Math.round((r4 / r1) * 100)}%`;
+        }
+
+        function applySavedData(data) {
+            const reps = data?.reps || {};
+            state.reps = {
+                rep_1: reps.rep_1,
+                rep_2: reps.rep_2,
+                rep_3: reps.rep_3,
+                rep_4: reps.rep_4,
+            };
+            state.percents = data?.relative_percents || state.percents;
+
+            const repValues = [state.reps.rep_1, state.reps.rep_2, state.reps.rep_3, state.reps.rep_4];
+            maxValueNodes.forEach((node, index) => {
+                if (repValues[index] !== undefined && repValues[index] !== null) {
+                    node.textContent = String(repValues[index]);
+                }
+            });
+
+            const rows = data?.percent_rows || [];
+            percentRows.forEach((rowNode, rowIndex) => {
+                const cells = Array.from(rowNode.querySelectorAll("[data-percent-value]"));
+                const rowData = rows[rowIndex] || [];
+                cells.forEach((cellNode, colIndex) => {
+                    const value = rowData[colIndex]?.value;
+                    if (value !== undefined && value !== null) {
+                        cellNode.textContent = String(value);
+                    }
+                });
+            });
+            renderHeadPercents();
+        }
+
+        async function saveReps() {
+            const payload = {
+                rep_1: normalizePositiveInt(inputs.rep_1.value),
+                rep_2: normalizePositiveInt(inputs.rep_2.value),
+                rep_3: normalizePositiveInt(inputs.rep_3.value),
+                rep_4: normalizePositiveInt(inputs.rep_4.value),
+            };
+            if (Object.values(payload).some((value) => value === null)) {
+                errorNode.textContent = "Введите 4 положительных числа.";
+                errorNode.hidden = false;
+                return;
+            }
+
+            errorNode.hidden = true;
+            saveButton.disabled = true;
+            try {
+                const response = await fetch(updateUrl, {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken"),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) {
+                    errorNode.textContent = "Не удалось сохранить. Проверьте значения.";
+                    errorNode.hidden = false;
+                    return;
+                }
+                applySavedData(data);
+                setModalVisible(false);
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+
+        Object.values(inputs).forEach((input) => {
+            input.addEventListener("input", renderLivePercents);
+        });
+
+        openButton?.addEventListener("click", () => {
+            errorNode.hidden = true;
+            fillInputsFromState();
+            renderLivePercents();
+            setModalVisible(true);
+        });
+
+        saveButton?.addEventListener("click", saveReps);
+
+        modal?.querySelectorAll("[data-close-edit-modal]").forEach((node) => {
+            node.addEventListener("click", () => setModalVisible(false));
+        });
+
+        renderHeadPercents();
+    })();
+</script>
 {% endblock %}

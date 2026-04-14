@@ -5,7 +5,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/components-profile-header.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-4">
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-5">
 {% endblock %}
 
 {% block content %}
@@ -19,27 +19,34 @@
             <a href="#" class="leaderboard-date__all">см.все</a>
         </div>
         {% include 'auth/components/day_picker.html' with wrapper_class='leaderboard-date__days' item_class='leaderboard-date__day' day_items=leaderboard_week_days %}
-        <p class="leaderboard-date__value">{{ leaderboard_date }}</p>
         <span class="leaderboard-date__dot" aria-hidden="true"></span>
     </section>
 
     <h1 class="leaderboard-title">Лидерборд сегодня</h1>
 
-    <section class="leaderboard-plan" aria-label="Тип тренировки">
-        <button type="button" class="leaderboard-plan__item" data-plan-toggle aria-expanded="true">
-            HIIT Training
+    {% for training_group in leaderboard_training_groups %}
+    <section class="leaderboard-plan" aria-label="Тип тренировки" data-plan-card>
+        <button type="button" class="leaderboard-plan__item" data-plan-toggle aria-expanded="false">
+            {{ training_group.title }}
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </button>
 
-        <div class="leaderboard-groups" data-subplans>
-            {% for section in leaderboard_sections %}
+        <div class="leaderboard-groups" data-subplans hidden>
+            {% if training_group.exercise_lines %}
+            <div class="leaderboard-plan__exercises" aria-label="Упражнения тренировки">
+                {% for line in training_group.exercise_lines %}
+                <p class="leaderboard-plan__exercise-line"><b>{{ line.block }}</b>: {{ line.value }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% for section in training_group.sections %}
             <section class="leaderboard-group">
-                <button type="button" class="leaderboard-group__toggle" data-subplan-toggle="{{ section.key }}" aria-expanded="true">
+                <button type="button" class="leaderboard-group__toggle" data-subplan-toggle aria-expanded="true">
                     {{ section.title }}
                     <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
                 </button>
 
-                <div class="leaderboard-list" data-subplan-panel="{{ section.key }}">
+                <div class="leaderboard-list" data-subplan-panel>
                     {% for entry in section.entries %}
                     <article class="leaderboard-item">
                         <div class="leaderboard-item__cell leaderboard-item__cell--name">{{ entry.user_name }}</div>
@@ -70,6 +77,7 @@
             {% endfor %}
         </div>
     </section>
+    {% endfor %}
 
     {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
@@ -85,41 +93,44 @@
             });
         });
 
-        const planToggle = document.querySelector("[data-plan-toggle]");
-        const groupsWrap = document.querySelector("[data-subplans]");
-        const groupButtons = document.querySelectorAll("[data-subplan-toggle]");
-        const panels = document.querySelectorAll("[data-subplan-panel]");
+        const planCards = Array.from(document.querySelectorAll("[data-plan-card]"));
+        planCards.forEach((planCard) => {
+            const planToggle = planCard.querySelector("[data-plan-toggle]");
+            const groupsWrap = planCard.querySelector("[data-subplans]");
+            const groupButtons = Array.from(planCard.querySelectorAll("[data-subplan-toggle]"));
 
-        function syncPanel(key) {
-            const button = Array.from(groupButtons).find((item) => item.dataset.subplanToggle === key);
-            const panel = Array.from(panels).find((item) => item.dataset.subplanPanel === key);
-            if (!button || !panel) return;
-            const expanded = button.getAttribute("aria-expanded") === "true";
-            panel.hidden = !expanded;
-        }
+            if (!planToggle || !groupsWrap) return;
 
-        function syncPlanState() {
-            const expanded = planToggle.getAttribute("aria-expanded") === "true";
-            groupsWrap.hidden = !expanded;
-            if (!expanded) return;
-            groupButtons.forEach((button) => syncPanel(button.dataset.subplanToggle));
-        }
+            function syncGroupPanel(button) {
+                const panel = button.closest(".leaderboard-group")?.querySelector("[data-subplan-panel]");
+                if (!panel) return;
+                const expanded = button.getAttribute("aria-expanded") === "true";
+                panel.hidden = !expanded;
+            }
 
-        planToggle?.addEventListener("click", () => {
-            const expanded = planToggle.getAttribute("aria-expanded") === "true";
-            planToggle.setAttribute("aria-expanded", String(!expanded));
+            function syncPlanState() {
+                const expanded = planToggle.getAttribute("aria-expanded") === "true";
+                groupsWrap.hidden = !expanded;
+                if (!expanded) return;
+                groupButtons.forEach((button) => syncGroupPanel(button));
+            }
+
+            planToggle.addEventListener("click", () => {
+                const expanded = planToggle.getAttribute("aria-expanded") === "true";
+                planToggle.setAttribute("aria-expanded", String(!expanded));
+                syncPlanState();
+            });
+
+            groupButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const expanded = button.getAttribute("aria-expanded") === "true";
+                    button.setAttribute("aria-expanded", String(!expanded));
+                    syncGroupPanel(button);
+                });
+            });
+
             syncPlanState();
         });
-
-        groupButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                const expanded = button.getAttribute("aria-expanded") === "true";
-                button.setAttribute("aria-expanded", String(!expanded));
-                syncPanel(button.dataset.subplanToggle);
-            });
-        });
-
-        syncPlanState();
     })();
 </script>
 {% endblock %}

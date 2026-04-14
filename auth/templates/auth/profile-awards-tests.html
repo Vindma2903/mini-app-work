@@ -28,11 +28,11 @@
     </section>
 
     <section class="awards-list" id="awards-list">
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title='HIIT Training / Силовая' date='25.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title='HIIT Training / Силовая' date='29.02.2025' result='120 кг' %}
-        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2024-12-30' title='HIIT Training / Силовая' date='30.12.2024' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title=award_training_direction_label|add:' / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-25' title=award_training_direction_label|add:' / Силовая' date='25.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title=award_training_direction_label|add:' / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2025-02-29' title=award_training_direction_label|add:' / Силовая' date='29.02.2025' result='120 кг' %}
+        {% include 'auth/components/training_result_row.html' with tag='button' row_class='awards-list__item' data_date='2024-12-30' title=award_training_direction_label|add:' / Силовая' date='30.12.2024' result='120 кг' %}
     </section>
 
     {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='bottom-nav' %}
@@ -45,7 +45,7 @@
         </button>
         <h2 class="award-modal__title">Мои награды</h2>
         <article class="award-modal__item">
-            <p id="modal-training-name">HIIT Training / силовая</p>
+            <p id="modal-training-name">{{ award_training_direction_label }} / Силовая</p>
             <span id="modal-training-date">25.02.2025</span>
             <b id="modal-training-result">120 кг</b>
         </article>

@@ -13,9 +13,9 @@
     {% include 'auth/components/profile_header.html' with name=community_name experience=community_experience %}
 
     <section class="community-date">
-        <h2 class="community-date__title">Date</h2>
+        <h2 class="community-date__title">Дата</h2>
         <a href="#" class="community-date__all">{{ community_date }}</a>
-        {% include 'auth/components/day_picker.html' with wrapper_class='community-days' item_class='community-days__item' active_day=4 %}
+        {% include 'auth/components/day_picker.html' with wrapper_class='community-days' item_class='community-days__item' day_items=community_week_days %}
         <span class="community-date__dot" aria-hidden="true"></span>
     </section>
 
@@ -26,18 +26,18 @@
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
                     <h3>{{ card.user_name }}</h3>
-                    <p>Online</p>
+                    <p>Онлайн</p>
                 </div>
             </div>
-            <p class="community-card__heading">Training results:</p>
+            <p class="community-card__heading">Результаты тренировки:</p>
             {% for section in card.sections %}
             <div class="community-card__type">{{ section.title }}</div>
-            <div class="community-card__line"><span>Result</span><b>{{ section.value }} ({{ section.mode }})</b></div>
+            <div class="community-card__line"><span>Результат</span><b>{{ section.value }} ({{ section.mode }})</b></div>
             {% endfor %}
             <a
                 href="#"
                 class="community-card__reactions{% if card.reacted_by_me %} community-card__reactions--active{% endif %}"
-                aria-label="Reactions"
+                aria-label="Реакции"
                 data-community-reaction
                 data-target-user-id="{{ card.target_user_id }}"
             >
@@ -50,12 +50,12 @@
             <div class="community-card__profile">
                 <img class="community-card__avatar" src="{% static 'auth/img/profile-avatar.png' %}" alt="">
                 <div>
-                    <h3>No data</h3>
-                    <p>Online</p>
+                    <h3>Нет данных</h3>
+                    <p>Онлайн</p>
                 </div>
             </div>
-            <p class="community-card__heading">No training results for today yet.</p>
-            <a href="#" class="community-card__reactions" aria-label="Reactions">
+            <p class="community-card__heading">За этот день пока нет результатов тренировки.</p>
+            <a href="#" class="community-card__reactions" aria-label="Реакции">
                 <img src="{% static 'auth/img/community-fist.svg' %}" alt="">
                 <span>0</span>
             </a>
@@ -66,7 +66,19 @@
     {% include 'auth/components/bottom_nav.html' with active='community' nav_block='community-bottom-nav' %}
 </main>
 <script>
+    window.communitySelectedDateIso = "{{ community_selected_date_iso }}";
+</script>
+<script>
     (function () {
+        const dayButtons = Array.from(document.querySelectorAll(".community-days__item[data-iso-date]"));
+        dayButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const date = button.getAttribute("data-iso-date");
+                if (!date) return;
+                window.location.href = "{% url 'auth:community' %}?date=" + encodeURIComponent(date);
+            });
+        });
+
         const reactionButtons = document.querySelectorAll("[data-community-reaction]");
         if (!reactionButtons.length) return;
 
@@ -83,6 +95,7 @@
         reactionButtons.forEach((button) => {
             button.addEventListener("click", async (event) => {
                 event.preventDefault();
+                if (button.classList.contains("community-card__reactions--active")) return;
                 const targetUserId = button.getAttribute("data-target-user-id");
                 if (!targetUserId) return;
 
@@ -94,7 +107,10 @@
                             "Content-Type": "application/json",
                             "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
                         },
-                        body: JSON.stringify({ target_user_id: targetUserId }),
+                        body: JSON.stringify({
+                            target_user_id: targetUserId,
+                            date: window.communitySelectedDateIso || "",
+                        }),
                     });
                     const data = await response.json().catch(() => ({}));
                     if (!response.ok || !data.ok) return;
@@ -103,7 +119,11 @@
                     if (countNode) {
                         countNode.textContent = String(data.reactions_count ?? 0);
                     }
-                    button.classList.toggle("community-card__reactions--active", Boolean(data.reacted));
+                    if (data.reacted) {
+                        button.classList.add("community-card__reactions--active");
+                    } else {
+                        button.classList.remove("community-card__reactions--active");
+                    }
                 } finally {
                     button.style.pointerEvents = "";
                 }

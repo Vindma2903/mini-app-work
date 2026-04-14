@@ -1,0 +1,2 @@
+"""Leaderboard and awards domain."""
+

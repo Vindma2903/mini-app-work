@@ -23,39 +23,54 @@
         <span class="plan-today-date__dot" aria-hidden="true"></span>
     </section>
 
-    <h1 class="plan-today-title">План тренировок на {{ plan_selected_date_label }}</h1>
-    {% for card in plan_cards %}
-    <section class="plan-card {% if forloop.first %}plan-card--expanded{% else %}plan-card--collapsed{% endif %}" data-plan-card>
-        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}">
-            <span>{{ card.title }}</span>
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </div>
-        <div class="plan-card__details" data-plan-details {% if not forloop.first %}hidden{% endif %}>
-            {% for section in card.sections %}
-            <div class="plan-card__block">
-                <h2>{{ section.title }}</h2>
-                {% for line in section.lines %}
-                <div class="plan-card__line"><i></i><span>{{ line.text }}</span>{% if line.show_video %}<button type="button"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button>{% endif %}</div>
+    <div id="plan-cards-container">
+        {% for card in plan_cards %}
+        <section class="plan-card plan-card--collapsed" data-plan-card>
+            <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
+                <span>{{ card.title }}</span>
+                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+                <div class="plan-card__lang" data-plan-lang-wrap>
+                    <button type="button" class="plan-card__lang-btn plan-card__lang-btn--active" data-plan-lang="ru" aria-label="Русский">
+                        <img src="{% static 'auth/img/flag-ru-circle.svg' %}" alt="">
+                    </button>
+                    <button type="button" class="plan-card__lang-btn" data-plan-lang="en" aria-label="English">
+                        <img src="{% static 'auth/img/flag-usa-circle.svg' %}" alt="">
+                    </button>
+                </div>
+            </div>
+            <div class="plan-card__details" data-plan-details hidden>
+                {% for section in card.sections %}
+                <div class="plan-card__block">
+                    <h2>{{ section.title }}</h2>
+                    {% for line in section.lines %}
+                    <div class="plan-card__line"><i></i><span>{{ line.text }}</span>{% if line.show_video %}<button type="button" data-open-exercise-video data-video-url="{{ line.video_url|default:'' }}" data-exercise-name="{{ line.text }}"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button>{% endif %}</div>
+                    {% endfor %}
+                </div>
                 {% endfor %}
+                <button
+                    type="button"
+                    class="plan-card__add"
+                    data-result-type-strength="{{ card.result_types.strength|default:'time' }}"
+                    data-result-type-cardio="{{ card.result_types.cardio|default:'time' }}"
+                    data-result-type-metabolic="{{ card.result_types.metabolic|default:'time' }}"
+                >Добавить результат</button>
             </div>
-            {% endfor %}
-            <button type="button" class="plan-card__add">Добавить результат</button>
-        </div>
-    </section>
-    {% empty %}
-    <section class="plan-card plan-card--expanded">
-        <div class="plan-card__head">
-            <span>На {{ plan_selected_date_label }} тренировок нет</span>
-            <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
-        </div>
-        <div class="plan-card__details">
-            <div class="plan-card__block">
-                <h2>Расписание</h2>
-                <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на выбранную дату</span></div>
+        </section>
+        {% empty %}
+        <section class="plan-card plan-card--expanded">
+            <div class="plan-card__head">
+                <span>На {{ plan_selected_date_label }} тренировок нет</span>
+                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
             </div>
-        </div>
-    </section>
-    {% endfor %}
+            <div class="plan-card__details">
+                <div class="plan-card__block">
+                    <h2>Расписание</h2>
+                    <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на выбранную дату</span></div>
+                </div>
+            </div>
+        </section>
+        {% endfor %}
+    </div>
 
 
     {% include 'auth/components/my_results_modal.html' %}
@@ -67,6 +82,8 @@
 </main>
 <script>
     window.planSelectedDateIso = "{{ plan_selected_date_iso }}";
+    window.planTodayIso = "{{ plan_today_iso }}";
+    window.planIsUser = {% if plan_is_user %}true{% else %}false{% endif %};
 </script>
 {{ plan_result_types_json|json_script:"plan-result-types-json" }}
 <script>
@@ -77,6 +94,10 @@
             button.addEventListener("click", () => {
                 const date = button.getAttribute("data-iso-date");
                 if (!date) return;
+                if (window.planIsUser && window.planTodayIso && date < window.planTodayIso) {
+                    window.location.href = "{% url 'auth:leaderboard_day' %}?date=" + encodeURIComponent(date);
+                    return;
+                }
                 window.location.href = "{% url 'auth:training_plan_today' %}?date=" + encodeURIComponent(date);
             });
         });
@@ -84,9 +105,6 @@
 </script>
 <script>
     (function () {
-        const cards = Array.from(document.querySelectorAll("[data-plan-card]"));
-        if (!cards.length) return;
-
         function setExpanded(card, expanded) {
             const toggle = card.querySelector("[data-plan-toggle]");
             const details = card.querySelector("[data-plan-details]");
@@ -98,28 +116,69 @@
             card.classList.toggle("plan-card--collapsed", !expanded);
         }
 
-        cards.forEach((card) => {
-            const toggle = card.querySelector("[data-plan-toggle]");
-            if (!toggle) return;
-
-            toggle.addEventListener("click", () => {
-                const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-                setExpanded(card, !isExpanded);
-            });
-
-            toggle.addEventListener("keydown", (event) => {
-                if (event.key !== "Enter" && event.key !== " ") return;
+        document.addEventListener("click", (event) => {
+            const videoButton = event.target.closest("[data-open-exercise-video]");
+            if (videoButton) {
                 event.preventDefault();
-                const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-                setExpanded(card, !isExpanded);
-            });
+                event.stopPropagation();
+                const directUrl = (videoButton.getAttribute("data-video-url") || "").trim();
+                if (directUrl) {
+                    window.open(directUrl, "_blank", "noopener,noreferrer");
+                    return;
+                }
+                const exerciseName = (videoButton.getAttribute("data-exercise-name") || "").trim();
+                if (!exerciseName) return;
+                const searchUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(exerciseName);
+                window.open(searchUrl, "_blank", "noopener,noreferrer");
+                return;
+            }
+
+            const langButton = event.target.closest("[data-plan-lang]");
+            if (langButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                const wrap = langButton.closest("[data-plan-lang-wrap]");
+                if (!wrap) return;
+                const langButtons = Array.from(wrap.querySelectorAll("[data-plan-lang]"));
+                langButtons.forEach((item) => {
+                    item.classList.toggle("plan-card__lang-btn--active", item === langButton);
+                });
+                return;
+            }
+
+            const toggle = event.target.closest("[data-plan-toggle]");
+            if (!toggle) return;
+            const card = toggle.closest("[data-plan-card]");
+            if (!card) return;
+            const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+            setExpanded(card, !isExpanded);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            const toggle = event.target.closest("[data-plan-toggle]");
+            if (!toggle) return;
+            event.preventDefault();
+            const card = toggle.closest("[data-plan-card]");
+            if (!card) return;
+            const isExpanded = toggle.getAttribute("aria-expanded") === "true";
+            setExpanded(card, !isExpanded);
         });
     })();
 </script>
 <script>
     (function () {
-        const resultTypeScript = document.getElementById("plan-result-types-json");
-        const sectionResultTypes = resultTypeScript?.textContent ? JSON.parse(resultTypeScript.textContent) : {};
+        function getCurrentDefaultSectionResultTypes() {
+            const node = document.getElementById("plan-result-types-json");
+            if (!node?.textContent) return {};
+            try {
+                return JSON.parse(node.textContent);
+            } catch (_error) {
+                return {};
+            }
+        }
+
+        let activeSectionResultTypes = { ...getCurrentDefaultSectionResultTypes() };
         const sections = [
             { key: "strength", title: "Силовая" },
             { key: "cardio", title: "Кардио" },
@@ -137,6 +196,7 @@
         if (!myResultsModal || !resultSavedModal || !trainingRateModal) return;
 
         const sectionTitle = myResultsModal.querySelector("[data-results-section-title]");
+        const inputsWrap = myResultsModal.querySelector(".my-results-modal__inputs");
         const primaryLabel = myResultsModal.querySelector("[data-results-primary-label]");
         const secondaryWrap = myResultsModal.querySelector("[data-results-secondary-wrap]");
         const secondaryLabel = myResultsModal.querySelector("[data-results-secondary-label]");
@@ -148,6 +208,7 @@
 
         const openRateButton = resultSavedModal.querySelector("[data-open-training-rate-modal]");
         const openShareButton = resultSavedModal.querySelector("[data-open-share-results-modal]");
+        const openLeaderboardButton = resultSavedModal.querySelector("[data-open-leaderboard]");
 
         const rateComment = trainingRateModal.querySelector("[data-training-rate-comment]");
         const saveRateButton = trainingRateModal.querySelector("[data-save-training-rate]");
@@ -157,7 +218,6 @@
             ratingStarsByCategory[category] = Array.from(row.querySelectorAll(".training-rate-modal__star"));
         });
 
-        const addResultButtons = Array.from(document.querySelectorAll(".plan-card__add"));
         const shareDateLabel = shareResultsModal?.querySelector("[data-share-date]");
         const shareValueNodes = {
             strength: shareResultsModal?.querySelector("[data-share-value='strength']"),
@@ -199,7 +259,7 @@
         }
 
         function getSectionConfig(sectionKey) {
-            const resultType = sectionResultTypes[sectionKey] || "time";
+            const resultType = activeSectionResultTypes[sectionKey] || "time";
             if (resultType === "weight") {
                 return {
                     resultType,
@@ -214,9 +274,9 @@
                 return {
                     resultType,
                     primaryLabel: "Количество",
-                    primaryPlaceholder: "количество",
-                    secondaryLabel: "Кол-во повторений",
-                    secondaryPlaceholder: "повторений",
+                    primaryPlaceholder: "Количество",
+                    secondaryLabel: "Подходы",
+                    secondaryPlaceholder: "Подходы",
                     showSecondary: true
                 };
             }
@@ -251,6 +311,7 @@
             if (secondaryLabel) secondaryLabel.textContent = config.secondaryLabel;
             if (secondsInput) secondsInput.placeholder = config.secondaryPlaceholder;
             if (secondaryWrap) secondaryWrap.hidden = !config.showSecondary;
+            if (inputsWrap) inputsWrap.classList.toggle("my-results-modal__inputs--single", !config.showSecondary);
             if (minutesInput) minutesInput.value = stored.minutes ?? "";
             if (secondsInput) secondsInput.value = config.showSecondary ? (stored.seconds ?? "") : "";
             setActiveMode(stored.mode || "rx");
@@ -276,13 +337,32 @@
 
         function formatResultForShare(entry) {
             if (!entry || (entry.minutes === null && entry.seconds === null)) return "--";
+            function formatCountRu(value, one, few, many) {
+                if (value === null || value === undefined) return "--";
+                const num = Number.parseInt(value, 10);
+                if (!Number.isFinite(num)) return "--";
+                const absNum = Math.abs(num);
+                const mod100 = absNum % 100;
+                const mod10 = absNum % 10;
+                let word = many;
+                if (mod100 < 11 || mod100 > 14) {
+                    if (mod10 === 1) {
+                        word = one;
+                    } else if (mod10 >= 2 && mod10 <= 4) {
+                        word = few;
+                    }
+                }
+                return `${num} ${word}`;
+            }
             if (entry.result_type === "weight") {
                 return entry.minutes === null ? "--" : `${entry.minutes} кг`;
             }
             if (entry.result_type === "reps") {
-                if (entry.minutes === null && entry.seconds !== null) return `${entry.seconds}`;
-                if (entry.minutes !== null && entry.seconds === null) return `${entry.minutes}`;
-                return `${entry.minutes} x ${entry.seconds}`;
+                if (entry.minutes === null && entry.seconds !== null) return formatCountRu(entry.seconds, "раз", "раза", "раз");
+                if (entry.minutes !== null && entry.seconds === null) return formatCountRu(entry.minutes, "раз", "раза", "раз");
+                const approaches = formatCountRu(entry.minutes, "подход", "подхода", "подходов");
+                const reps = formatCountRu(entry.seconds, "раз", "раза", "раз");
+                return `${approaches} по ${reps}`;
             }
             if (entry.minutes === null) return `${entry.seconds} сек`;
             if (entry.seconds === null) return `${entry.minutes} мин`;
@@ -349,13 +429,19 @@
             if (!response.ok) throw new Error("save_rate_failed");
         }
 
-        addResultButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                currentSectionIndex = 0;
-                Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
-                renderSectionStep();
-                setModalVisible(myResultsModal, true);
-            });
+        document.addEventListener("click", (event) => {
+            const button = event.target.closest(".plan-card__add");
+            if (!button) return;
+            const defaults = getCurrentDefaultSectionResultTypes();
+            activeSectionResultTypes = {
+                strength: button.getAttribute("data-result-type-strength") || defaults.strength || "time",
+                cardio: button.getAttribute("data-result-type-cardio") || defaults.cardio || "time",
+                metabolic: button.getAttribute("data-result-type-metabolic") || defaults.metabolic || "time"
+            };
+            currentSectionIndex = 0;
+            Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
+            renderSectionStep();
+            setModalVisible(myResultsModal, true);
         });
 
         modeButtons.forEach((button) => {
@@ -419,6 +505,16 @@
             setModalVisible(shareResultsModal, true);
         });
 
+        openLeaderboardButton?.addEventListener("click", () => {
+            const date = isoDateToday();
+            const baseUrl = "{% url 'auth:leaderboard_day' %}";
+            if (date) {
+                window.location.href = `${baseUrl}?date=${encodeURIComponent(date)}`;
+                return;
+            }
+            window.location.href = baseUrl;
+        });
+
         if (shareResultsModal) {
             shareResultsModal.querySelectorAll("[data-close-share-results-modal]").forEach((node) => {
                 node.addEventListener("click", () => setModalVisible(shareResultsModal, false));
@@ -466,6 +562,62 @@
                 node.addEventListener("click", () => setModalVisible(thanksModal, false));
             });
         }
+    })();
+</script>
+<script>
+    (function () {
+        const REFRESH_INTERVAL_MS = 120000;
+        const modalIds = [
+            "my-results-modal",
+            "result-saved-modal",
+            "training-rate-modal",
+            "share-results-modal",
+            "training-rate-thanks-modal",
+        ];
+
+        function hasOpenModal() {
+            return modalIds.some((id) => {
+                const node = document.getElementById(id);
+                return node && !node.hidden;
+            });
+        }
+
+        function hasActiveInput() {
+            const active = document.activeElement;
+            if (!active) return false;
+            if (active.isContentEditable) return true;
+            const tag = (active.tagName || "").toLowerCase();
+            return tag === "input" || tag === "textarea" || tag === "select";
+        }
+
+        async function refreshIfSafe() {
+            if (document.hidden) return;
+            if (hasOpenModal()) return;
+            if (hasActiveInput()) return;
+            try {
+                const response = await fetch(window.location.href, {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                });
+                if (!response.ok) return;
+                const html = await response.text();
+                const parser = new DOMParser();
+                const nextDoc = parser.parseFromString(html, "text/html");
+                const nextCardsContainer = nextDoc.getElementById("plan-cards-container");
+                const nextResultTypes = nextDoc.getElementById("plan-result-types-json");
+                const currentCardsContainer = document.getElementById("plan-cards-container");
+                const currentResultTypes = document.getElementById("plan-result-types-json");
+                if (!nextCardsContainer || !nextResultTypes || !currentCardsContainer || !currentResultTypes) return;
+                currentCardsContainer.innerHTML = nextCardsContainer.innerHTML;
+                currentResultTypes.textContent = nextResultTypes.textContent || "{}";
+            } catch (_error) {
+            }
+        }
+
+        window.setInterval(refreshIfSafe, REFRESH_INTERVAL_MS);
     })();
 </script>
 {% endblock %}

@@ -69,6 +69,14 @@
     margin-bottom: 10px;
 }
 
+.my-results-modal__inputs--single {
+    grid-template-columns: 1fr;
+}
+
+.my-results-modal__field[hidden] {
+    display: none;
+}
+
 .my-results-modal__field {
     display: grid;
     gap: 6px;
@@ -85,7 +93,7 @@
     border: 1px solid #eceef2;
     border-radius: 12px;
     background: #f7f7f8;
-    text-align: right;
+    text-align: left;
     padding: 0 12px;
     font-size: 12px;
     line-height: 15px;

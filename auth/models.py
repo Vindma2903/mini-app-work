@@ -1,6 +1,7 @@
 ﻿from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from django.core.validators import MinValueValidator
 
 
 class AdminContact(models.Model):
@@ -133,6 +134,28 @@ class CommunityReaction(models.Model):
             f'{self.sender.email} -> {self.target_user.email}: '
             f'{self.training_date.isoformat()}'
         )
+
+
+class UserExerciseRepProfile(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='exercise_rep_profiles',
+    )
+    exercise_slug = models.SlugField(max_length=120)
+    rep_1 = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    rep_2 = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    rep_3 = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    rep_4 = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = ('user', 'exercise_slug')
+
+    def __str__(self):
+        return f'{self.user.email}: {self.exercise_slug}'
 
 
 class AdminTraining(models.Model):

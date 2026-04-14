@@ -1,0 +1,2 @@
+"""Profile domain tests package."""
+

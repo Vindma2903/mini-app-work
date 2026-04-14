@@ -40,16 +40,15 @@
             </div>
             {% endfor %}
             <button type="button" class="plan-card__add">Добавить результат</button>
-            <img class="plan-card__toggle" src="{% static 'auth/img/calendar-toggle.svg' %}" alt="">
         </div>
     </section>
     {% empty %}
-    <section class="plan-card plan-card--expanded" data-plan-card>
-        <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="true">
+    <section class="plan-card plan-card--expanded">
+        <div class="plan-card__head">
             <span>На {{ plan_selected_date_label }} тренировок нет</span>
             <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
         </div>
-        <div class="plan-card__details" data-plan-details>
+        <div class="plan-card__details">
             <div class="plan-card__block">
                 <h2>Расписание</h2>
                 <div class="plan-card__line"><i></i><span>Тренер пока не добавил тренировку на выбранную дату</span></div>
@@ -99,24 +98,20 @@
             card.classList.toggle("plan-card--collapsed", !expanded);
         }
 
-        function expandOnly(targetCard) {
-            cards.forEach((card) => setExpanded(card, card === targetCard));
-        }
-
         cards.forEach((card) => {
             const toggle = card.querySelector("[data-plan-toggle]");
             if (!toggle) return;
 
             toggle.addEventListener("click", () => {
                 const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-                if (!isExpanded) expandOnly(card);
+                setExpanded(card, !isExpanded);
             });
 
             toggle.addEventListener("keydown", (event) => {
                 if (event.key !== "Enter" && event.key !== " ") return;
                 event.preventDefault();
                 const isExpanded = toggle.getAttribute("aria-expanded") === "true";
-                if (!isExpanded) expandOnly(card);
+                setExpanded(card, !isExpanded);
             });
         });
     })();

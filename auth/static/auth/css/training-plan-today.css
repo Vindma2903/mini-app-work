@@ -17,12 +17,14 @@ body {
     font-family: "Montserrat", Arial, sans-serif;
     background: var(--pt-bg);
     color: var(--pt-text);
+    overflow-y: auto;
 }
 
 .plan-today-screen {
     width: 390px;
     margin: 0 auto;
-    padding: 24px 12px 24px;
+    min-height: 100vh;
+    padding: 24px 12px 110px;
 }
 
 .plan-today-title {
@@ -112,11 +114,12 @@ body {
     box-shadow: var(--pt-shadow-main);
     padding: 24px;
     margin-bottom: 12px;
+    overflow: hidden;
 }
 
 .plan-card--expanded {
-    height: 620px;
-    position: relative;
+    height: auto;
+    min-height: 0;
 }
 
 .plan-card__head {
@@ -133,6 +136,11 @@ body {
     width: 12px;
     height: 6px;
     margin-left: 4px;
+    transition: transform .2s ease;
+}
+
+.plan-card__head span {
+    flex: 0 1 auto;
 }
 
 .plan-card__block {
@@ -201,22 +209,21 @@ body {
     cursor: pointer;
 }
 
-.plan-card__toggle {
-    width: 61px;
-    height: 29px;
-    position: absolute;
-    top: 21px;
-    right: 24px;
-}
-
 .plan-card--collapsed {
-    height: 50px;
-    padding: 15px 24px;
+    padding: 18px 24px;
     box-shadow: var(--pt-shadow-main);
 }
 
 .plan-card--collapsed .plan-card__head {
     gap: 12px;
+}
+
+.plan-card--collapsed .plan-card__head img {
+    transform: rotate(180deg);
+}
+
+.plan-card--collapsed .plan-card__details {
+    display: none;
 }
 
 .plan-today-bottom-nav {

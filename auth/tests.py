@@ -677,6 +677,50 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         self.assertEqual(cards[0]['comment'], 'for-target-day')
         self.assertEqual(response.context['plan_selected_date_iso'], target_date.isoformat())
 
+    def test_training_plan_shows_all_trainings_for_selected_date(self):
+        target_date = timezone.localdate()
+
+        first_training = AdminTraining.objects.create(
+            training_date=target_date,
+            direction='fbb',
+            visibility='all',
+            comment='first-training',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=first_training,
+            block_type='strength',
+            exercise_name='Присед',
+            result_type='reps',
+            order=0,
+        )
+
+        second_training = AdminTraining.objects.create(
+            training_date=target_date,
+            direction='crossfit',
+            visibility='all',
+            comment='second-training',
+            color='green',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=second_training,
+            block_type='cardio',
+            exercise_name='Бег',
+            result_type='time',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'), {'date': target_date.isoformat()})
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        self.assertEqual(len(cards), 2)
+        self.assertEqual({card['comment'] for card in cards}, {'first-training', 'second-training'})
+
 
 class LeaderboardAwardsTests(TestCase):
     def setUp(self):

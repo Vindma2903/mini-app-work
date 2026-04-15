@@ -20,7 +20,12 @@ html,body{overflow-y:auto!important;overflow-x:hidden}
 .statistics-table th{background:#fbfcfe;font:600 13px/18px Inter,Arial,sans-serif}
 .statistics-table td{font:400 13px/18px Inter,Arial,sans-serif}
 .statistics-table a{color:#374151;text-decoration:underline;text-underline-offset:2px}
-.statistics-side{display:grid;align-content:start;gap:12px}
+.statistics-table__sort{border:0;background:transparent;padding:0;font:inherit;color:#101828;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer}
+.statistics-table__sort:hover{color:#101828}
+.statistics-table__sort.is-active{color:#101828}
+.statistics-table__sort-icon{font-size:12px;line-height:1;opacity:.9}
+.statistics-table__sort.is-active .statistics-table__sort-icon{color:#2f67ff}
+.statistics-side{display:grid;align-content:start;gap:12px;padding-top:38px}
 .statistics-metric{border:1px solid #dbe2ea;border-radius:12px;background:#fff;padding:16px 14px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
 .statistics-metric h3{margin:0 0 16px;text-align:center;font:500 13px/18px Inter,Arial,sans-serif;color:#101828}
 .statistics-metric__grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -93,3 +98,18 @@ html,body{overflow-y:auto!important;overflow-x:hidden}
 .statistics-review-card__ratings b{font:400 18px/18px Inter,Arial,sans-serif;color:#fbbf24;letter-spacing:1px}
 .statistics-review-card__ratings strong{font:400 12px/16px Inter,Arial,sans-serif;color:#101828}
 .statistics-review-card__text{background:rgba(255,255,255,.55);border-radius:8px;padding:12px;font:400 12px/18px Inter,Arial,sans-serif;color:#101828}
+
+.statistics-results-modal[hidden]{display:none!important}
+.statistics-results-modal{position:fixed;inset:0;z-index:126}
+.statistics-results-modal__overlay{position:absolute;inset:0;background:rgba(16,24,40,.56)}
+.statistics-results-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(520px,calc(100vw - 24px));max-height:calc(100vh - 24px);background:#fff;border-radius:12px;border:2px solid #2f67ff;box-shadow:0 24px 48px rgba(16,24,40,.24);padding:12px 12px 14px;overflow:auto}
+.statistics-results-modal__head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.statistics-results-modal__head h3{margin:0;font:700 20px/28px Inter,Arial,sans-serif;color:#101828}
+.statistics-results-modal__close{border:0;background:transparent;padding:0;color:#101828;font-size:32px;line-height:1;cursor:pointer}
+.statistics-results-modal__table-wrap{border:1px solid #cfd6df;border-radius:8px;overflow:hidden;background:#fff}
+.statistics-results-modal__table{width:100%;border-collapse:collapse;table-layout:fixed}
+.statistics-results-modal__table th,.statistics-results-modal__table td{padding:16px;border-right:1px solid #d5dbe4;border-bottom:1px solid #d5dbe4;text-align:center;font:400 14px/20px Inter,Arial,sans-serif;color:#101828}
+.statistics-results-modal__table th{font-weight:700;background:#f9fbfe}
+.statistics-results-modal__table td{font-weight:400}
+.statistics-results-modal__table th:last-child,.statistics-results-modal__table td:last-child{border-right:0}
+.statistics-results-modal__table tr:last-child td{border-bottom:0}

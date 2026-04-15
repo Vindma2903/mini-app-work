@@ -63,9 +63,9 @@
                                     {% for row in exercise_rows %}
                                     <tr>
                                         <td>{{ row.exercise }}</td>
-                                        <td><a href="#" data-open-training-view>{{ row.training }}</a></td>
-                                        <td><a href="#">{{ row.results }}</a></td>
-                                        <td><a href="#" data-open-reviews>{{ row.reviews }}</a></td>
+                                        <td><a href="#" data-open-training-view data-training-color="{{ row.training_color|default:'blue' }}">{{ row.training }}</a></td>
+                                        <td><a href="#" data-open-results data-result-key="{{ row.result_key }}">{{ row.results }}</a></td>
+                                        <td><a href="#" data-open-reviews data-review-key="{{ row.review_key }}">{{ row.reviews }}</a></td>
                                         <td>{{ row.rating }}</td>
                                     </tr>
                                     {% endfor %}
@@ -77,13 +77,25 @@
                     <section class="statistics-section">
                         <h2>Рейтинг активности пользователей</h2>
                         <div class="statistics-table-wrap">
-                            <table class="statistics-table">
+                            <table class="statistics-table" id="statistics-activity-table">
                                 <thead>
                                     <tr>
                                         <th>Имя</th>
-                                        <th>Кол-во тренировок ↑</th>
-                                        <th>Получено реакций ↑</th>
-                                        <th>Поставлено реакций ↑</th>
+                                        <th>
+                                            <button type="button" class="statistics-table__sort" data-activity-sort="trainings" aria-label="Сортировать по количеству тренировок">
+                                                Кол-во тренировок <span class="statistics-table__sort-icon">↕</span>
+                                            </button>
+                                        </th>
+                                        <th>
+                                            <button type="button" class="statistics-table__sort" data-activity-sort="received" aria-label="Сортировать по полученным реакциям">
+                                                Получено реакций <span class="statistics-table__sort-icon">↕</span>
+                                            </button>
+                                        </th>
+                                        <th>
+                                            <button type="button" class="statistics-table__sort" data-activity-sort="sent" aria-label="Сортировать по поставленным реакциям">
+                                                Поставлено реакций <span class="statistics-table__sort-icon">↕</span>
+                                            </button>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -135,18 +147,26 @@
             </div>
 
             <div class="statistics-lower">
-                <section class="statistics-section">
-                    <h2>Рейтинг достижений пользователей</h2>
-                    <div class="statistics-table-wrap statistics-table-wrap--wide">
-                        <table class="statistics-table statistics-table--achievements">
-                            <thead>
-                                <tr>
-                                    <th>Имя</th>
-                                    <th>Посещено тренировок ↑</th>
-                                    <th>Цель по посещениям ↑</th>
-                                </tr>
-                            </thead>
-                            <tbody>
+                    <section class="statistics-section">
+                        <h2>Рейтинг достижений пользователей</h2>
+                        <div class="statistics-table-wrap statistics-table-wrap--wide">
+                            <table class="statistics-table statistics-table--achievements" id="statistics-achievement-table">
+                                <thead>
+                                    <tr>
+                                        <th>Имя</th>
+                                        <th>
+                                            <button type="button" class="statistics-table__sort" data-achievement-sort="visited" aria-label="Сортировать по посещенным тренировкам">
+                                                Посещено тренировок <span class="statistics-table__sort-icon">↕</span>
+                                            </button>
+                                        </th>
+                                        <th>
+                                            <button type="button" class="statistics-table__sort" data-achievement-sort="goal" aria-label="Сортировать по цели посещений">
+                                                Цель по посещениям <span class="statistics-table__sort-icon">↕</span>
+                                            </button>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
                                 {% for row in achievement_rows %}
                                 <tr>
                                     <td>{{ row.name }}</td>
@@ -310,29 +330,33 @@
     <div class="statistics-reviews-modal__overlay" data-close-reviews></div>
     <section class="statistics-reviews-modal__card" role="dialog" aria-modal="true" aria-label="Отзывы о тренировке">
         <header class="statistics-reviews-modal__head">
-            <h3>Отзывы о тренировке HIIT Training</h3>
+            <h3 id="statistics-reviews-title">Отзывы о тренировке</h3>
             <button type="button" class="statistics-reviews-modal__close" data-close-reviews aria-label="Закрыть">×</button>
         </header>
-        <div class="statistics-reviews-modal__grid">
-            {% for _ in "123456" %}
-            <article class="statistics-review-card">
-                <div class="statistics-review-card__head">
-                    <div>
-                        <h4>HIIT Training</h4>
-                        <p>23 Февраля 2026</p>
-                    </div>
-                    <span class="statistics-review-card__eye">вЉ™</span>
-                </div>
-                <div class="statistics-review-card__ratings">
-                    <div><span>Силовая</span><b>★★★★★</b><strong>5,0</strong></div>
-                    <div><span>Кардио</span><b>★★★★★</b><strong>5,0</strong></div>
-                    <div><span>Метабол.</span><b>★★★★☆</b><strong>4,0</strong></div>
-                </div>
-                <div class="statistics-review-card__text">
-                    Отличная тренировка! Очень интенсивная, все упражнения выполнены качественно. Чувствую прилив энергии после каждой сессии.
-                </div>
-            </article>
-            {% endfor %}
+        <div class="statistics-reviews-modal__grid" id="statistics-reviews-grid"></div>
+    </section>
+</div>
+
+{{ exercise_reviews_payload|json_script:"statistics-reviews-payload" }}
+{{ exercise_results_payload|json_script:"statistics-results-payload" }}
+
+<div class="statistics-results-modal" id="statistics-results-modal" hidden>
+    <div class="statistics-results-modal__overlay" data-close-results></div>
+    <section class="statistics-results-modal__card" role="dialog" aria-modal="true" aria-label="Результаты упражнения">
+        <header class="statistics-results-modal__head">
+            <h3 id="statistics-results-title">Результаты упражнения</h3>
+            <button type="button" class="statistics-results-modal__close" data-close-results aria-label="Закрыть">×</button>
+        </header>
+        <div class="statistics-results-modal__table-wrap">
+            <table class="statistics-results-modal__table">
+                <thead>
+                    <tr>
+                        <th>Имя</th>
+                        <th id="statistics-results-value-head">Упражнение</th>
+                    </tr>
+                </thead>
+                <tbody id="statistics-results-body"></tbody>
+            </table>
         </div>
     </section>
 </div>
@@ -342,6 +366,12 @@
         const openBtn = document.getElementById("statistics-open-picker");
         const modal = document.getElementById("statistics-date-modal");
         const reviewsModal = document.getElementById("statistics-reviews-modal");
+        const resultsModal = document.getElementById("statistics-results-modal");
+        const resultsTitle = document.getElementById("statistics-results-title");
+        const resultsValueHead = document.getElementById("statistics-results-value-head");
+        const resultsBody = document.getElementById("statistics-results-body");
+        const reviewsTitle = document.getElementById("statistics-reviews-title");
+        const reviewsGrid = document.getElementById("statistics-reviews-grid");
         const trainingViewModal = document.getElementById("statistics-training-view-modal");
         const trainingViewName = document.getElementById("statistics-training-view-name");
         const trainingViewDate = document.getElementById("statistics-training-view-date");
@@ -353,6 +383,10 @@
         const grid = document.getElementById("statistics-date-grid");
         const prevBtn = document.getElementById("statistics-prev-month");
         const nextBtn = document.getElementById("statistics-next-month");
+        const reviewsPayloadEl = document.getElementById("statistics-reviews-payload");
+        const resultsPayloadEl = document.getElementById("statistics-results-payload");
+        const reviewsPayload = reviewsPayloadEl ? JSON.parse(reviewsPayloadEl.textContent || "{}") : {};
+        const resultsPayload = resultsPayloadEl ? JSON.parse(resultsPayloadEl.textContent || "{}") : {};
 
         if (!openBtn || !modal || !monthLabel || !grid) return;
 
@@ -467,9 +501,20 @@
             window.location.assign(url.toString());
         }
 
-        function renderTrainingViewExistingExercises() {
+        function getTrainingColorAccent(colorKey) {
+            const normalized = String(colorKey || "blue").trim().toLowerCase();
+            if (normalized === "orange") return "#ffb86a";
+            if (normalized === "green") return "#7bf1a8";
+            if (normalized === "pink") return "#f9a8d4";
+            if (normalized === "violet") return "#a5b4fc";
+            return "#8ec5ff";
+        }
+
+        function renderTrainingViewExistingExercises(colorKey = "blue") {
             if (!trainingViewExisting) return;
             const grouped = new Map();
+            const normalizedColor = String(colorKey || "blue").trim().toLowerCase();
+            const accentColor = getTrainingColorAccent(normalizedColor);
             trainingViewExercises.forEach((item) => {
                 const groupName = String(item.block || "Раздел");
                 if (!grouped.has(groupName)) {
@@ -482,11 +527,208 @@
                 <section class="calendar-create-modal__existing-group">
                     <h4 class="calendar-create-modal__existing-title">${escapeHtml(title)}</h4>
                     ${items.map((entry) => `
-                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--blue" style="--exercise-accent:#8ec5ff;">
+                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--${escapeHtml(normalizedColor)}" style="--exercise-accent:${escapeHtml(accentColor)};">
                             <span class="calendar-create-modal__existing-text">${escapeHtml(entry.text || "")}</span>
                         </article>
                     `).join("")}
                 </section>
+            `).join("");
+        }
+
+        function renderReviewsModal(reviewKey) {
+            if (!reviewsGrid || !reviewsTitle) return;
+            const payload = reviewsPayload[reviewKey] || null;
+            if (!payload) {
+                reviewsTitle.textContent = "Отзывы о тренировке";
+                reviewsGrid.innerHTML = `<article class="statistics-review-card"><div class="statistics-review-card__text">Нет отзывов за выбранный период.</div></article>`;
+                return;
+            }
+
+            reviewsTitle.textContent = `Отзывы о тренировке ${payload.title || ""}`.trim();
+            const reviews = Array.isArray(payload.reviews) ? payload.reviews : [];
+            if (!reviews.length) {
+                reviewsGrid.innerHTML = `<article class="statistics-review-card"><div class="statistics-review-card__text">Нет отзывов за выбранный период.</div></article>`;
+                return;
+            }
+
+            reviewsGrid.innerHTML = reviews.map((review) => `
+                <article class="statistics-review-card">
+                    <div class="statistics-review-card__head">
+                        <div>
+                            <h4>${escapeHtml(review.training_title || payload.title || "")}</h4>
+                            <p>${escapeHtml(review.date_label || "")}</p>
+                        </div>
+                        <span class="statistics-review-card__eye">⊙</span>
+                    </div>
+                    <div class="statistics-review-card__ratings">
+                        <div><span>Силовая</span><b>${escapeHtml(review.strength_stars || "—")}</b><strong>${escapeHtml(review.strength_value || "—")}</strong></div>
+                        <div><span>Кардио</span><b>${escapeHtml(review.cardio_stars || "—")}</b><strong>${escapeHtml(review.cardio_value || "—")}</strong></div>
+                        <div><span>Метабол.</span><b>${escapeHtml(review.metabolic_stars || "—")}</b><strong>${escapeHtml(review.metabolic_value || "—")}</strong></div>
+                    </div>
+                    <div class="statistics-review-card__text">${escapeHtml(review.comment || "")}</div>
+                </article>
+            `).join("");
+        }
+
+        function initActivityTableSorting() {
+            const table = document.getElementById("statistics-activity-table");
+            if (!table) return;
+            const tbody = table.querySelector("tbody");
+            const sortButtons = table.querySelectorAll("[data-activity-sort]");
+            if (!tbody || !sortButtons.length) return;
+
+            const columnMap = {
+                trainings: 2,
+                received: 3,
+                sent: 4,
+            };
+
+            let activeKey = "";
+            let activeDirection = "desc";
+
+            function parseCellNumber(row, columnIndex) {
+                const cell = row.querySelector(`td:nth-child(${columnIndex})`);
+                const value = Number.parseInt((cell?.textContent || "").trim(), 10);
+                return Number.isFinite(value) ? value : 0;
+            }
+
+            function renderSortState() {
+                sortButtons.forEach((button) => {
+                    const isActive = button.getAttribute("data-activity-sort") === activeKey;
+                    button.classList.toggle("is-active", isActive);
+                    const icon = button.querySelector(".statistics-table__sort-icon");
+                    if (!icon) return;
+                    icon.textContent = isActive ? (activeDirection === "desc" ? "↓" : "↑") : "↕";
+                });
+            }
+
+            function sortRowsBy(key, direction) {
+                const columnIndex = columnMap[key];
+                if (!columnIndex) return;
+                const rows = Array.from(tbody.querySelectorAll("tr"));
+                rows.sort((left, right) => {
+                    const leftValue = parseCellNumber(left, columnIndex);
+                    const rightValue = parseCellNumber(right, columnIndex);
+                    if (leftValue !== rightValue) {
+                        return direction === "asc" ? leftValue - rightValue : rightValue - leftValue;
+                    }
+                    const leftName = (left.querySelector("td:first-child")?.textContent || "").trim();
+                    const rightName = (right.querySelector("td:first-child")?.textContent || "").trim();
+                    return leftName.localeCompare(rightName, "ru");
+                });
+                rows.forEach((row) => tbody.appendChild(row));
+            }
+
+            sortButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const key = button.getAttribute("data-activity-sort") || "";
+                    if (!key) return;
+                    if (activeKey === key) {
+                        activeDirection = activeDirection === "desc" ? "asc" : "desc";
+                    } else {
+                        activeKey = key;
+                        activeDirection = "desc";
+                    }
+                    sortRowsBy(activeKey, activeDirection);
+                    renderSortState();
+                });
+            });
+
+            renderSortState();
+        }
+
+        function initAchievementTableSorting() {
+            const table = document.getElementById("statistics-achievement-table");
+            if (!table) return;
+            const tbody = table.querySelector("tbody");
+            const sortButtons = table.querySelectorAll("[data-achievement-sort]");
+            if (!tbody || !sortButtons.length) return;
+
+            const columnMap = {
+                visited: 2,
+                goal: 3,
+            };
+
+            let activeKey = "";
+            let activeDirection = "desc";
+
+            function parseCellNumber(row, columnIndex) {
+                const cell = row.querySelector(`td:nth-child(${columnIndex})`);
+                const value = Number.parseInt((cell?.textContent || "").trim(), 10);
+                return Number.isFinite(value) ? value : 0;
+            }
+
+            function renderSortState() {
+                sortButtons.forEach((button) => {
+                    const isActive = button.getAttribute("data-achievement-sort") === activeKey;
+                    button.classList.toggle("is-active", isActive);
+                    const icon = button.querySelector(".statistics-table__sort-icon");
+                    if (!icon) return;
+                    icon.textContent = isActive ? (activeDirection === "desc" ? "↓" : "↑") : "↕";
+                });
+            }
+
+            function sortRowsBy(key, direction) {
+                const columnIndex = columnMap[key];
+                if (!columnIndex) return;
+                const rows = Array.from(tbody.querySelectorAll("tr"));
+                rows.sort((left, right) => {
+                    const leftValue = parseCellNumber(left, columnIndex);
+                    const rightValue = parseCellNumber(right, columnIndex);
+                    if (leftValue !== rightValue) {
+                        return direction === "asc" ? leftValue - rightValue : rightValue - leftValue;
+                    }
+                    const leftName = (left.querySelector("td:first-child")?.textContent || "").trim();
+                    const rightName = (right.querySelector("td:first-child")?.textContent || "").trim();
+                    return leftName.localeCompare(rightName, "ru");
+                });
+                rows.forEach((row) => tbody.appendChild(row));
+            }
+
+            sortButtons.forEach((button) => {
+                button.addEventListener("click", () => {
+                    const key = button.getAttribute("data-achievement-sort") || "";
+                    if (!key) return;
+                    if (activeKey === key) {
+                        activeDirection = activeDirection === "desc" ? "asc" : "desc";
+                    } else {
+                        activeKey = key;
+                        activeDirection = "desc";
+                    }
+                    sortRowsBy(activeKey, activeDirection);
+                    renderSortState();
+                });
+            });
+
+            renderSortState();
+        }
+
+        function renderResultsModal(resultKey) {
+            if (!resultsTitle || !resultsValueHead || !resultsBody) return;
+            const payload = resultsPayload[resultKey] || null;
+            if (!payload) {
+                resultsTitle.textContent = "Результаты упражнения";
+                resultsValueHead.textContent = "Упражнение";
+                resultsBody.innerHTML = `<tr><td colspan="2">Нет результатов за выбранный период.</td></tr>`;
+                return;
+            }
+
+            const exerciseTitle = String(payload.exercise || "Упражнение");
+            const unit = String(payload.unit || "").trim();
+            resultsTitle.textContent = `Результаты упражнения ${exerciseTitle}`;
+            resultsValueHead.textContent = unit ? `${exerciseTitle} (${unit})` : exerciseTitle;
+
+            const rows = Array.isArray(payload.rows) ? payload.rows : [];
+            if (!rows.length) {
+                resultsBody.innerHTML = `<tr><td colspan="2">Нет результатов за выбранный период.</td></tr>`;
+                return;
+            }
+
+            resultsBody.innerHTML = rows.map((row) => `
+                <tr>
+                    <td>${escapeHtml(row.name || "")}</td>
+                    <td>${escapeHtml(row.value || "—")}</td>
+                </tr>
             `).join("");
         }
 
@@ -559,6 +801,10 @@
                 reviewsModal.hidden = true;
                 document.body.style.overflow = "";
             }
+            if (event.key === "Escape" && resultsModal && !resultsModal.hidden) {
+                resultsModal.hidden = true;
+                document.body.style.overflow = "";
+            }
             if (event.key === "Escape" && trainingViewModal && !trainingViewModal.hidden) {
                 trainingViewModal.hidden = true;
                 document.body.style.overflow = "";
@@ -581,7 +827,7 @@
                 if (trainingViewDate) {
                     trainingViewDate.textContent = formatNumericDate(rangeEnd);
                 }
-                renderTrainingViewExistingExercises();
+                renderTrainingViewExistingExercises(trainingLink?.getAttribute("data-training-color") || "blue");
                 if (trainingViewModal) {
                     trainingViewModal.hidden = false;
                     document.body.style.overflow = "hidden";
@@ -591,8 +837,21 @@
 
             if (target.closest("[data-open-reviews]")) {
                 event.preventDefault();
+                const link = target.closest("[data-open-reviews]");
+                renderReviewsModal(link?.getAttribute("data-review-key") || "");
                 if (reviewsModal) {
                     reviewsModal.hidden = false;
+                    document.body.style.overflow = "hidden";
+                }
+                return;
+            }
+
+            if (target.closest("[data-open-results]")) {
+                event.preventDefault();
+                const link = target.closest("[data-open-results]");
+                renderResultsModal(link?.getAttribute("data-result-key") || "");
+                if (resultsModal) {
+                    resultsModal.hidden = false;
                     document.body.style.overflow = "hidden";
                 }
                 return;
@@ -601,6 +860,14 @@
             if (target.closest("[data-close-reviews]")) {
                 if (reviewsModal) {
                     reviewsModal.hidden = true;
+                    document.body.style.overflow = "";
+                }
+                return;
+            }
+
+            if (target.closest("[data-close-results]")) {
+                if (resultsModal) {
+                    resultsModal.hidden = true;
                     document.body.style.overflow = "";
                 }
                 return;
@@ -615,6 +882,8 @@
         });
 
         updateRangeLabel();
+        initActivityTableSorting();
+        initAchievementTableSorting();
     })();
 </script>
 {% endblock %}

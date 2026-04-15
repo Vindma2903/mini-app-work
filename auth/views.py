@@ -1483,6 +1483,43 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             f"{RU_WEEKDAY.get(end.weekday(), '')}, {end.day} {cls.MONTHS_GENITIVE[end.month - 1]} {end.year}"
         )
 
+    @staticmethod
+    def _stars(value):
+        rating = max(1, min(5, int(value)))
+        return ('★' * rating) + ('☆' * (5 - rating))
+
+    @staticmethod
+    def _rating_label(value):
+        return f'{float(value):.1f}'.replace('.', ',')
+
+    @staticmethod
+    def _result_unit_label(result_type):
+        if result_type == TrainingResult.RESULT_WEIGHT:
+            return 'кг'
+        if result_type == TrainingResult.RESULT_REPS:
+            return 'повт'
+        return 'мин'
+
+    @staticmethod
+    def _result_value_label(result_type, minutes, seconds):
+        if result_type == TrainingResult.RESULT_WEIGHT:
+            if minutes is not None:
+                return str(minutes)
+            return str(seconds) if seconds is not None else '—'
+        if result_type == TrainingResult.RESULT_REPS:
+            if minutes is not None and seconds is not None:
+                return f'{minutes} x {seconds}'
+            if minutes is not None:
+                return str(minutes)
+            return str(seconds) if seconds is not None else '—'
+        if minutes is None and seconds is None:
+            return '—'
+        if minutes is None:
+            return f'0:{int(seconds):02d}'
+        if seconds is None:
+            return str(minutes)
+        return f'{int(minutes)}:{int(seconds):02d}'
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         default_start, default_end = self._default_period()
@@ -1491,10 +1528,22 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         period_start, period_end = self._normalize_period(parsed_start, parsed_end)
         period_days = (period_end - period_start).days + 1
 
-        rates_qs = TrainingRate.objects.filter(training_date__range=(period_start, period_end))
-        reviews_count = rates_qs.count()
-        avg_rating = rates_qs.aggregate(avg=Avg('overall')).get('avg')
-        rating_label = f"{float(avg_rating):.1f}".replace('.', ',') if avg_rating is not None else '—'
+        rates_qs = (
+            TrainingRate.objects
+            .select_related('user')
+            .filter(training_date__range=(period_start, period_end))
+            .order_by('-training_date', '-updated_at')
+        )
+        rates_by_date = {}
+        for rate in rates_qs:
+            rates_by_date.setdefault(rate.training_date, []).append(rate)
+
+        block_to_section = {
+            AdminTrainingExercise.BLOCK_STRENGTH: TrainingResult.SECTION_STRENGTH,
+            AdminTrainingExercise.BLOCK_CARDIO: TrainingResult.SECTION_CARDIO,
+            AdminTrainingExercise.BLOCK_GYMNASTICS: TrainingResult.SECTION_METABOLIC,
+            AdminTrainingExercise.BLOCK_CUSTOM: TrainingResult.SECTION_METABOLIC,
+        }
 
         grouped_exercises = {}
         exercise_entries = (
@@ -1505,20 +1554,108 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         for entry in exercise_entries:
             direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Тренировка')
             key = (entry.exercise_name, direction_label)
-            grouped_exercises[key] = grouped_exercises.get(key, 0) + 1
+            bucket = grouped_exercises.setdefault(
+                key,
+                {
+                    'count': 0,
+                    'color': entry.training.color or AdminTraining.COLOR_BLUE,
+                    'dates': set(),
+                    'block_type': entry.block_type,
+                    'result_type': entry.result_type or AdminTrainingExercise.RESULT_TIME,
+                },
+            )
+            bucket['count'] += 1
+            bucket['dates'].add(entry.training.training_date)
+            if not bucket.get('result_type') and entry.result_type:
+                bucket['result_type'] = entry.result_type
+        exercise_rows = []
+        exercise_reviews_payload = {}
+        exercise_results_payload = {}
+        sorted_exercises = sorted(
+            grouped_exercises.items(),
+            key=lambda pair: (-pair[1]['count'], pair[0][0]),
+        )
+        for index, (key, data) in enumerate(sorted_exercises):
+            review_key = f'exercise_{index}'
+            result_key = f'result_{index}'
+            review_cards = []
+            training_dates = sorted(data.get('dates') or [], reverse=True)
+            for training_date in training_dates:
+                for rate in rates_by_date.get(training_date, []):
+                    full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+                    review_cards.append(
+                        {
+                            'training_title': key[1],
+                            'date_label': training_date.strftime('%d.%m.%Y'),
+                            'author_name': full_name,
+                            'comment': (rate.comment or '').strip(),
+                            'strength_stars': self._stars(rate.strength),
+                            'strength_value': self._rating_label(rate.strength),
+                            'cardio_stars': self._stars(rate.cardio),
+                            'cardio_value': self._rating_label(rate.cardio),
+                            'metabolic_stars': self._stars(rate.metabolic),
+                            'metabolic_value': self._rating_label(rate.metabolic),
+                            'overall': float(rate.overall),
+                        }
+                    )
 
-        exercise_rows = [
-            {
+            avg_review_score = (
+                sum(card.get('overall', 0.0) for card in review_cards) / len(review_cards)
+                if review_cards else None
+            )
+
+            section_key = block_to_section.get(data.get('block_type'))
+            result_type = data.get('result_type') or AdminTrainingExercise.RESULT_TIME
+            result_rows = []
+            if training_dates and section_key:
+                user_latest_results = {}
+                result_entries = (
+                    TrainingResult.objects
+                    .select_related('user')
+                    .filter(training_date__in=training_dates, section=section_key)
+                    .order_by('user_id', '-training_date', '-updated_at')
+                )
+                for result_entry in result_entries:
+                    if result_entry.user_id in user_latest_results:
+                        continue
+                    user_latest_results[result_entry.user_id] = {
+                        'name': self._format_user_short_name(result_entry.user),
+                        'value': self._result_value_label(
+                            result_entry.result_type or result_type,
+                            result_entry.minutes,
+                            result_entry.seconds,
+                        ),
+                    }
+                result_rows = sorted(user_latest_results.values(), key=lambda row: row['name'])
+
+            exercise_rows.append(
+                {
+                    'exercise': key[0],
+                    'training': key[1],
+                    'results': len(result_rows),
+                    'reviews': len(review_cards),
+                    'rating': self._rating_label(avg_review_score) if avg_review_score is not None else '0',
+                    'training_color': data.get('color') or AdminTraining.COLOR_BLUE,
+                    'review_key': review_key,
+                    'result_key': result_key,
+                }
+            )
+            exercise_reviews_payload[review_key] = {
+                'title': key[1],
                 'exercise': key[0],
-                'training': key[1],
-                'results': count,
-                'reviews': reviews_count,
-                'rating': rating_label,
+                'reviews': [{k: v for k, v in card.items() if k != 'overall'} for card in review_cards],
             }
-            for key, count in grouped_exercises.items()
-        ]
+            exercise_results_payload[result_key] = {
+                'title': key[1],
+                'exercise': key[0],
+                'unit': self._result_unit_label(result_type),
+                'rows': result_rows,
+            }
+
         exercise_rows.sort(key=lambda item: (-item['results'], item['exercise']))
         context['exercise_rows'] = exercise_rows[:12]
+        context['exercise_reviews_payload'] = exercise_reviews_payload
+        context['exercise_results_payload'] = exercise_results_payload
 
         training_counts = {
             row['user_id']: row['total']

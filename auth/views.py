@@ -1,7 +1,7 @@
 ﻿import secrets
 import logging
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
 
 from allauth.account.models import EmailAddress
@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -1434,32 +1434,172 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
 class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 
+    MONTHS_GENITIVE = (
+        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
+        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+    )
+
+    @staticmethod
+    def _parse_iso_date(value):
+        text = str(value or '').strip()
+        if not text:
+            return None
+        try:
+            return datetime.strptime(text, '%Y-%m-%d').date()
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _format_user_short_name(user):
+        first = (user.first_name or '').strip()
+        last = (user.last_name or '').strip()
+        if first and last:
+            return f'{first} {last[0]}.'
+        if first:
+            return first
+        return (user.email or '').strip() or f'Пользователь {user.id}'
+
+    @classmethod
+    def _default_period(cls):
+        today = timezone.localdate()
+        week_start = today - timedelta(days=today.weekday())
+        return week_start, week_start + timedelta(days=6)
+
+    @classmethod
+    def _normalize_period(cls, start, end):
+        if end < start:
+            start, end = end, start
+        diff = (end - start).days
+        if diff < 6:
+            end = start + timedelta(days=6)
+        if (end - start).days > 30:
+            end = start + timedelta(days=30)
+        return start, end
+
+    @classmethod
+    def _format_period_label(cls, start, end):
+        return (
+            f"{RU_WEEKDAY.get(start.weekday(), '')}, {start.day} {cls.MONTHS_GENITIVE[start.month - 1]} {start.year} - "
+            f"{RU_WEEKDAY.get(end.weekday(), '')}, {end.day} {cls.MONTHS_GENITIVE[end.month - 1]} {end.year}"
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['exercise_rows'] = [
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
-            {'exercise': 'РЎРјРёС‚ 80%', 'training': 'РќР° РІСЃРµ С‚РµР»Рѕ', 'results': 5, 'reviews': 5, 'rating': '4,8'},
+        default_start, default_end = self._default_period()
+        parsed_start = self._parse_iso_date(self.request.GET.get('start')) or default_start
+        parsed_end = self._parse_iso_date(self.request.GET.get('end')) or default_end
+        period_start, period_end = self._normalize_period(parsed_start, parsed_end)
+        period_days = (period_end - period_start).days + 1
+
+        rates_qs = TrainingRate.objects.filter(training_date__range=(period_start, period_end))
+        reviews_count = rates_qs.count()
+        avg_rating = rates_qs.aggregate(avg=Avg('overall')).get('avg')
+        rating_label = f"{float(avg_rating):.1f}".replace('.', ',') if avg_rating is not None else '—'
+
+        grouped_exercises = {}
+        exercise_entries = (
+            AdminTrainingExercise.objects
+            .select_related('training')
+            .filter(training__training_date__range=(period_start, period_end))
+        )
+        for entry in exercise_entries:
+            direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Тренировка')
+            key = (entry.exercise_name, direction_label)
+            grouped_exercises[key] = grouped_exercises.get(key, 0) + 1
+
+        exercise_rows = [
+            {
+                'exercise': key[0],
+                'training': key[1],
+                'results': count,
+                'reviews': reviews_count,
+                'rating': rating_label,
+            }
+            for key, count in grouped_exercises.items()
         ]
-        context['activity_rows'] = [
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'trainings': 19, 'received': 12, 'sent': 72},
-            {'name': 'РЎРµСЂРіРµР№ Рў.', 'trainings': 20, 'received': 10, 'sent': 50},
-            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'trainings': 84, 'received': 9, 'sent': 38},
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'trainings': 23, 'received': 8, 'sent': 35},
-            {'name': 'РЎРµРјРµРЅ Р .', 'trainings': 84, 'received': 6, 'sent': 21},
-            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'trainings': 92, 'received': 5, 'sent': 20},
-        ]
-        context['achievement_rows'] = [
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ РЎ.', 'visited': 10, 'goal': 10},
-            {'name': 'РЎРµСЂРіРµР№ Рў.', 'visited': 8, 'goal': 8},
-            {'name': 'Р•РІРіРµРЅРёР№ Р›.', 'visited': 6, 'goal': 7},
-            {'name': 'Р’РёРєС‚РѕСЂРёСЏ Рљ.', 'visited': 6, 'goal': 7},
-            {'name': 'РЎРµРјРµРЅ Р .', 'visited': 5, 'goal': 6},
-            {'name': 'РђРЅР°С‚РѕР»РёР№ Р‘.', 'visited': 1, 'goal': 2},
-        ]
+        exercise_rows.sort(key=lambda item: (-item['results'], item['exercise']))
+        context['exercise_rows'] = exercise_rows[:12]
+
+        training_counts = {
+            row['user_id']: row['total']
+            for row in (
+                TrainingResult.objects
+                .filter(training_date__range=(period_start, period_end))
+                .values('user_id')
+                .annotate(total=Count('id'))
+            )
+        }
+        received_counts = {
+            row['target_user_id']: row['total']
+            for row in (
+                CommunityReaction.objects
+                .filter(training_date__range=(period_start, period_end))
+                .values('target_user_id')
+                .annotate(total=Count('id'))
+            )
+        }
+        sent_counts = {
+            row['sender_id']: row['total']
+            for row in (
+                CommunityReaction.objects
+                .filter(training_date__range=(period_start, period_end))
+                .values('sender_id')
+                .annotate(total=Count('id'))
+            )
+        }
+        activity_user_ids = set(training_counts) | set(received_counts) | set(sent_counts)
+        users_by_id = {
+            user.id: user
+            for user in User.objects.filter(id__in=activity_user_ids).only('id', 'first_name', 'last_name', 'email')
+        }
+        activity_rows = []
+        for user_id in activity_user_ids:
+            user = users_by_id.get(user_id)
+            if not user:
+                continue
+            activity_rows.append(
+                {
+                    'name': self._format_user_short_name(user),
+                    'trainings': training_counts.get(user_id, 0),
+                    'received': received_counts.get(user_id, 0),
+                    'sent': sent_counts.get(user_id, 0),
+                }
+            )
+        activity_rows.sort(key=lambda item: (-item['trainings'], -item['received'], -item['sent'], item['name']))
+        context['activity_rows'] = activity_rows[:12]
+
+        visited_counts = {
+            row['user_id']: row['visited']
+            for row in (
+                TrainingResult.objects
+                .filter(training_date__range=(period_start, period_end))
+                .values('user_id')
+                .annotate(visited=Count('training_date', distinct=True))
+            )
+        }
+        achievement_user_ids = set(visited_counts.keys())
+        users_with_profiles = (
+            User.objects
+            .select_related('profile')
+            .filter(id__in=achievement_user_ids)
+        )
+        weeks_in_period = max(1, (period_days + 6) // 7)
+        achievement_rows = []
+        for user in users_with_profiles:
+            weekly_goal = getattr(getattr(user, 'profile', None), 'weekly_goal', 0) or 6
+            achievement_rows.append(
+                {
+                    'name': self._format_user_short_name(user),
+                    'visited': visited_counts.get(user.id, 0),
+                    'goal': weekly_goal * weeks_in_period,
+                }
+            )
+        achievement_rows.sort(key=lambda item: (-item['visited'], item['name']))
+        context['achievement_rows'] = achievement_rows[:12]
+
+        context['range_start_iso'] = period_start.isoformat()
+        context['range_end_iso'] = period_end.isoformat()
+        context['range_label'] = self._format_period_label(period_start, period_end)
         return context
 
 

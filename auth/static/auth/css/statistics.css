@@ -1,5 +1,9 @@
-.statistics-page{background:#eef3f9}
-.statistics-content{width:1175px}
+.statistics-page{background:#eef3f9;min-height:100vh;height:auto;overflow:visible}
+.statistics-page .calendar-sidebar{position:fixed;left:0;top:0;bottom:0;height:100vh}
+.statistics-page .calendar-content{position:relative;left:265px;top:0;right:auto;height:auto;min-height:100vh;overflow:visible;padding:0 24px 24px 0;width:calc(100% - 265px)}
+.statistics-page .calendar-content__header{position:sticky;top:0;z-index:5}
+html,body{overflow-y:auto!important;overflow-x:hidden}
+.statistics-content{width:auto;max-width:none}
 .statistics-card{margin-top:20px;background:#fff;border:1px solid #dbe2ea;border-radius:12px;padding:16px 16px 20px;box-shadow:0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.08)}
 .statistics-card__range{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:0 0 8px}
 .statistics-card__range strong{font:600 14px/20px Inter,Arial,sans-serif;color:#1f2937}
@@ -24,8 +28,8 @@
 .statistics-metric__grid span{display:block;text-align:center;font:400 11px/14px Inter,Arial,sans-serif;color:#98a2b3}
 .statistics-side__button{height:48px;border-radius:8px;background:#2f67ff;color:#fff;text-decoration:none;display:flex;align-items:center;justify-content:center;font:500 14px/20px Inter,Arial,sans-serif;box-shadow:0 8px 20px rgba(47,103,255,.18)}
 .statistics-lower{margin-top:22px;display:grid;gap:28px}
-.statistics-table-wrap--wide{max-width:654px}
-.statistics-table--achievements{table-layout:auto}
+.statistics-table-wrap--wide{max-width:none;width:100%}
+.statistics-table--achievements{table-layout:auto;width:100%}
 .statistics-charts{display:grid;grid-template-columns:repeat(2,minmax(0,334px));gap:12px}
 .statistics-chart{border:1px solid #dbe2ea;border-radius:12px;background:#fff;padding:18px 18px 14px;box-shadow:0 1px 2px rgba(16,24,40,.05)}
 .statistics-chart h3{margin:0;font:700 16px/22px Inter,Arial,sans-serif;color:#101828}
@@ -44,8 +48,12 @@
 
 .statistics-training-view{z-index:122}
 .statistics-training-view__input{cursor:default}
+.statistics-training-view__input img{width:22px;height:22px;display:block;opacity:.9}
 .statistics-training-view__textarea{background:#fff;cursor:default}
 .statistics-training-view .calendar-create-modal__text-input[readonly]{background:#fff;color:#101828}
+.statistics-training-view__existing{gap:12px}
+.statistics-training-view__existing .calendar-create-modal__existing-item{padding-right:16px}
+.statistics-training-view__existing .calendar-create-modal__existing-title{font-size:14px;line-height:20px}
 
 .statistics-date-modal[hidden]{display:none!important}
 .statistics-date-modal{position:fixed;inset:0;z-index:120}
@@ -63,7 +71,8 @@
 .statistics-date-modal__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px}
 .statistics-date-modal__day{height:36px;border:1px solid transparent;border-radius:10px;background:#fff;font:400 16px/20px Inter,Arial,sans-serif;color:#101828;cursor:pointer}
 .statistics-date-modal__day--muted{color:#98a2b3}
-.statistics-date-modal__day--selected{border-color:#2f67ff;background:#eef3ff}
+.statistics-date-modal__day--in-range{background:#f3f4f6;color:#111827}
+.statistics-date-modal__day--today{border-color:#2f67ff}
 
 .statistics-reviews-modal[hidden]{display:none!important}
 .statistics-reviews-modal{position:fixed;inset:0;z-index:125}

@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Статистика{% endblock %}
@@ -38,7 +38,7 @@
 
         <div class="statistics-card">
             <div class="statistics-card__range">
-                <strong id="statistics-range-label">Понедельник, 2 марта 2026 - Воскресенье, 8 марта 2026</strong>
+                <strong id="statistics-range-label" data-start="{{ range_start_iso }}" data-end="{{ range_end_iso }}">{{ range_label }}</strong>
                 <button type="button" class="statistics-card__range-button" id="statistics-open-picker" aria-label="Выбрать дату">
                     <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                 </button>
@@ -253,7 +253,7 @@
             <label class="calendar-create-modal__field">
                 <span>Дата</span>
                 <div class="calendar-create-modal__input statistics-training-view__input">
-                    <em id="statistics-training-view-date">23 Февраля 2026</em>
+                    <em id="statistics-training-view-date">23.02.2026</em>
                 </div>
             </label>
 
@@ -261,6 +261,7 @@
                 <span>Направление</span>
                 <div class="calendar-create-modal__input statistics-training-view__input">
                     <em id="statistics-training-view-direction">FBB</em>
+                    <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                 </div>
             </label>
 
@@ -273,37 +274,12 @@
 
             <label class="calendar-create-modal__field">
                 <span>Комментарий</span>
-                <textarea class="calendar-create-modal__textarea statistics-training-view__textarea" id="statistics-training-view-comment" readonly>Тренировка на все тело, построена таким образом, чтобы укрепить мышцы и поддержать высокий темп работы.</textarea>
+                <textarea class="calendar-create-modal__textarea statistics-training-view__textarea" id="statistics-training-view-comment" readonly></textarea>
             </label>
 
             <div class="calendar-create-modal__exercise-card">
                 <p class="calendar-create-modal__exercise-name" id="statistics-training-view-name">На все тело</p>
-                <div class="calendar-create-modal__exercise-grid">
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
-                        <span>Блок</span>
-                        <div class="calendar-create-modal__input calendar-create-modal__input--sm statistics-training-view__input">
-                            <em>Силовая</em>
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise">
-                        <span>Упражнение</span>
-                        <input class="calendar-create-modal__text-input" type="text" value="Смит 80%" readonly>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
-                        <span>Тип оценки</span>
-                        <div class="calendar-create-modal__input calendar-create-modal__input--sm statistics-training-view__input">
-                            <em>Время</em>
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
-                        <span>Количество</span>
-                        <div class="calendar-create-modal__count">
-                            <input class="calendar-create-modal__text-input" type="text" value="2 подхода" readonly>
-                            <small>по</small>
-                            <input class="calendar-create-modal__text-input" type="text" value="10 повторений" readonly>
-                        </div>
-                    </label>
-                </div>
+                <div class="calendar-create-modal__existing statistics-training-view__existing" id="statistics-training-view-existing"></div>
             </div>
         </div>
     </section>
@@ -368,6 +344,10 @@
         const reviewsModal = document.getElementById("statistics-reviews-modal");
         const trainingViewModal = document.getElementById("statistics-training-view-modal");
         const trainingViewName = document.getElementById("statistics-training-view-name");
+        const trainingViewDate = document.getElementById("statistics-training-view-date");
+        const trainingViewComment = document.getElementById("statistics-training-view-comment");
+        const trainingViewExisting = document.getElementById("statistics-training-view-existing");
+        const rangeLabel = document.getElementById("statistics-range-label");
         const sidebarReviewsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link:nth-child(3)");
         const monthLabel = document.getElementById("statistics-month-label");
         const grid = document.getElementById("statistics-date-grid");
@@ -381,8 +361,134 @@
         }
 
         const months = ["январь", "февраль", "март", "апрель", "май", "июнь", "июль", "август", "сентябрь", "октябрь", "ноябрь", "декабрь"];
-        let currentMonth = new Date(2026, 2, 1);
-        let selectedDate = new Date(2026, 2, 4);
+        const monthsGenitive = ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"];
+        const weekdays = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
+        const today = normalizeDate(new Date());
+        const initialStartIso = rangeLabel?.getAttribute("data-start") || "";
+        const initialEndIso = rangeLabel?.getAttribute("data-end") || "";
+        let rangeStart = parseIsoDate(initialStartIso) || addDays(today, -((today.getDay() + 6) % 7));
+        let rangeEnd = parseIsoDate(initialEndIso) || addDays(rangeStart, 6);
+        rangeStart = normalizeDate(rangeStart);
+        rangeEnd = normalizeDate(rangeEnd);
+        let currentMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
+        let selectedDate = new Date(rangeEnd);
+        let selectingBoundary = "start";
+        const trainingViewExercises = [
+            { block: "Силовые", text: "Смит x 2 подхода по 10" },
+            { block: "Силовые", text: "Болгарские выпады x 3 подхода по 12" },
+            { block: "Кардио", text: "Гребля x 4 подхода по 250м" },
+            { block: "Метаболическая", text: "Бёрпи x 3 подхода по 15" },
+        ];
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function formatNumericDate(dateValue) {
+            const day = String(dateValue.getDate()).padStart(2, "0");
+            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            return `${day}.${month}.${dateValue.getFullYear()}`;
+        }
+
+        function toIsoDate(dateValue) {
+            const day = String(dateValue.getDate()).padStart(2, "0");
+            const month = String(dateValue.getMonth() + 1).padStart(2, "0");
+            return `${dateValue.getFullYear()}-${month}-${day}`;
+        }
+
+        function parseIsoDate(value) {
+            const text = String(value || "").trim();
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+            const [year, month, day] = text.split("-").map((part) => Number(part));
+            if (!year || !month || !day) return null;
+            return new Date(year, month - 1, day);
+        }
+
+        function normalizeDate(dateValue) {
+            return new Date(dateValue.getFullYear(), dateValue.getMonth(), dateValue.getDate());
+        }
+
+        function addDays(baseDate, days) {
+            return new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate() + days);
+        }
+
+        function daysDiff(startDate, endDate) {
+            const ms = normalizeDate(endDate).getTime() - normalizeDate(startDate).getTime();
+            return Math.round(ms / 86400000);
+        }
+
+        function applyRangeWithLimits(startCandidate, endCandidate) {
+            let start = normalizeDate(startCandidate);
+            let end = normalizeDate(endCandidate);
+            if (end < start) {
+                const tmp = start;
+                start = end;
+                end = tmp;
+            }
+            const diff = daysDiff(start, end);
+            if (diff < 6) {
+                end = addDays(start, 6);
+            }
+            if (daysDiff(start, end) > 30) {
+                end = addDays(start, 30);
+            }
+            rangeStart = start;
+            rangeEnd = end;
+            selectedDate = end;
+        }
+
+        function isSameDate(left, right) {
+            return left.getFullYear() === right.getFullYear()
+                && left.getMonth() === right.getMonth()
+                && left.getDate() === right.getDate();
+        }
+
+        function isInSelectedRange(dateValue) {
+            const normalized = normalizeDate(dateValue);
+            return normalized >= normalizeDate(rangeStart) && normalized <= normalizeDate(rangeEnd);
+        }
+
+        function updateRangeLabel() {
+            if (!rangeLabel) return;
+            rangeLabel.textContent = `${weekdays[rangeStart.getDay()]}, ${rangeStart.getDate()} ${monthsGenitive[rangeStart.getMonth()]} ${rangeStart.getFullYear()} - ${weekdays[rangeEnd.getDay()]}, ${rangeEnd.getDate()} ${monthsGenitive[rangeEnd.getMonth()]} ${rangeEnd.getFullYear()}`;
+            rangeLabel.setAttribute("data-start", toIsoDate(rangeStart));
+            rangeLabel.setAttribute("data-end", toIsoDate(rangeEnd));
+        }
+
+        function applyRangeToPage() {
+            const url = new URL(window.location.href);
+            url.searchParams.set("start", toIsoDate(rangeStart));
+            url.searchParams.set("end", toIsoDate(rangeEnd));
+            window.location.assign(url.toString());
+        }
+
+        function renderTrainingViewExistingExercises() {
+            if (!trainingViewExisting) return;
+            const grouped = new Map();
+            trainingViewExercises.forEach((item) => {
+                const groupName = String(item.block || "Раздел");
+                if (!grouped.has(groupName)) {
+                    grouped.set(groupName, []);
+                }
+                grouped.get(groupName).push(item);
+            });
+
+            trainingViewExisting.innerHTML = Array.from(grouped.entries()).map(([title, items]) => `
+                <section class="calendar-create-modal__existing-group">
+                    <h4 class="calendar-create-modal__existing-title">${escapeHtml(title)}</h4>
+                    ${items.map((entry) => `
+                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--blue" style="--exercise-accent:#8ec5ff;">
+                            <span class="calendar-create-modal__existing-text">${escapeHtml(entry.text || "")}</span>
+                        </article>
+                    `).join("")}
+                </section>
+            `).join("");
+        }
 
         function renderCalendar() {
             monthLabel.textContent = `${months[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
@@ -400,16 +506,22 @@
                 if (date.getMonth() !== currentMonth.getMonth()) {
                     button.classList.add("statistics-date-modal__day--muted");
                 }
-                if (
-                    date.getFullYear() === selectedDate.getFullYear() &&
-                    date.getMonth() === selectedDate.getMonth() &&
-                    date.getDate() === selectedDate.getDate()
-                ) {
-                    button.classList.add("statistics-date-modal__day--selected");
+                if (isInSelectedRange(date)) {
+                    button.classList.add("statistics-date-modal__day--in-range");
+                }
+                if (isSameDate(normalizeDate(date), today)) {
+                    button.classList.add("statistics-date-modal__day--today");
                 }
                 button.textContent = String(date.getDate());
                 button.addEventListener("click", () => {
-                    selectedDate = date;
+                    if (selectingBoundary === "start") {
+                        applyRangeWithLimits(date, addDays(date, 6));
+                        selectingBoundary = "end";
+                    } else {
+                        applyRangeWithLimits(rangeStart, date);
+                        selectingBoundary = "start";
+                    }
+                    updateRangeLabel();
                     renderCalendar();
                 });
                 grid.appendChild(button);
@@ -419,6 +531,7 @@
         openBtn.addEventListener("click", () => {
             modal.hidden = false;
             document.body.style.overflow = "hidden";
+            selectingBoundary = "start";
             renderCalendar();
         });
 
@@ -434,15 +547,13 @@
 
         modal.addEventListener("click", (event) => {
             if (event.target.closest("[data-close-statistics-date]")) {
-                modal.hidden = true;
-                document.body.style.overflow = "";
+                applyRangeToPage();
             }
         });
 
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape" && !modal.hidden) {
-                modal.hidden = true;
-                document.body.style.overflow = "";
+                applyRangeToPage();
             }
             if (event.key === "Escape" && reviewsModal && !reviewsModal.hidden) {
                 reviewsModal.hidden = true;
@@ -464,6 +575,13 @@
                 if (trainingLink && trainingViewName) {
                     trainingViewName.textContent = trainingLink.textContent?.trim() || "На все тело";
                 }
+                if (trainingViewComment) {
+                    trainingViewComment.value = trainingLink?.getAttribute("data-training-comment") || "";
+                }
+                if (trainingViewDate) {
+                    trainingViewDate.textContent = formatNumericDate(rangeEnd);
+                }
+                renderTrainingViewExistingExercises();
                 if (trainingViewModal) {
                     trainingViewModal.hidden = false;
                     document.body.style.overflow = "hidden";
@@ -495,7 +613,10 @@
                 }
             }
         });
+
+        updateRangeLabel();
     })();
 </script>
 {% endblock %}
+
 

@@ -91,6 +91,17 @@ TRAINING_RESULT_TYPE_LABELS = {
     AdminTrainingExercise.RESULT_REPS: 'Кол-во повторений',
 }
 
+EXERCISE_KIND_LABELS = {
+    'exercise': 'Упражнение',
+    'benchmarks': 'Benchmarks',
+}
+
+RESULT_TYPE_UNITS = {
+    TrainingResult.RESULT_TIME: 'мин',
+    TrainingResult.RESULT_WEIGHT: 'кг',
+    TrainingResult.RESULT_REPS: 'повт',
+}
+
 RESULT_MODAL_TYPE_CONFIG = {
     AdminTrainingExercise.RESULT_TIME: {
         'primary_label': 'Минуты',
@@ -167,6 +178,11 @@ def serialize_admin_training(training):
             'block_custom_name': item.block_custom_name,
             'block_label': block_label,
             'exercise_name': item.exercise_name,
+            'exercise_kind': (
+                'benchmarks'
+                if str(item.exercise_name or '').strip().lower() == EXERCISE_KIND_LABELS['benchmarks'].lower()
+                else 'exercise'
+            ),
             'sets': item.sets,
             'reps': item.reps,
             'result_type': item.result_type,
@@ -209,6 +225,87 @@ def serialize_admin_training(training):
         'volume': first_exercise['volume'] if first_exercise else '',
         'sections': grouped_sections,
         'exercises': exercises_payload,
+    }
+
+
+def build_admin_training_results_payload(training):
+    block_to_section = {
+        AdminTrainingExercise.BLOCK_STRENGTH: TrainingResult.SECTION_STRENGTH,
+        AdminTrainingExercise.BLOCK_CARDIO: TrainingResult.SECTION_CARDIO,
+        AdminTrainingExercise.BLOCK_GYMNASTICS: TrainingResult.SECTION_METABOLIC,
+        AdminTrainingExercise.BLOCK_CUSTOM: TrainingResult.SECTION_METABOLIC,
+    }
+    default_titles = {
+        TrainingResult.SECTION_STRENGTH: 'Силовая',
+        TrainingResult.SECTION_CARDIO: 'Кардио',
+        TrainingResult.SECTION_METABOLIC: 'Гимнастика',
+    }
+
+    columns = []
+    section_index = {}
+    for exercise in training.exercises.all():
+        section_key = block_to_section.get(exercise.block_type)
+        if not section_key:
+            continue
+        if section_key in section_index:
+            continue
+
+        if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip():
+            section_title = exercise.block_custom_name.strip()
+        else:
+            section_title = TRAINING_BLOCK_LABELS.get(exercise.block_type) or default_titles.get(section_key, 'Раздел')
+
+        result_type = exercise.result_type or TrainingResult.RESULT_TIME
+        section_index[section_key] = len(columns)
+        columns.append(
+            {
+                'section_key': section_key,
+                'title': section_title,
+                'result_type': result_type,
+                'unit': RESULT_TYPE_UNITS.get(result_type, ''),
+            }
+        )
+
+    if not columns:
+        columns = [
+            {'section_key': TrainingResult.SECTION_STRENGTH, 'title': 'Силовая', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_CARDIO, 'title': 'Кардио', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_METABOLIC, 'title': 'Гимнастика', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+        ]
+        section_index = {col['section_key']: idx for idx, col in enumerate(columns)}
+
+    day_results = (
+        TrainingResult.objects
+        .select_related('user')
+        .filter(training_date=training.training_date, section__in=list(section_index.keys()))
+        .order_by('user__first_name', 'user__last_name', 'user__email', 'section')
+    )
+
+    grouped = {}
+    for item in day_results:
+        user_id = item.user_id
+        if user_id not in grouped:
+            user_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+            grouped[user_id] = {
+                'user_name': user_name,
+                'values': ['--'] * len(columns),
+            }
+        column_position = section_index.get(item.section)
+        if column_position is None:
+            continue
+        grouped[user_id]['values'][column_position] = format_training_result_value(
+            item.result_type or columns[column_position]['result_type'],
+            item.minutes,
+            item.seconds,
+        )
+
+    rows = sorted(grouped.values(), key=lambda row: row['user_name'].lower())
+    return {
+        'training_id': training.id,
+        'training_date': training.training_date.isoformat(),
+        'training_title': get_admin_training_title(training.direction, training.source_type, training.ready_plan_title),
+        'columns': columns,
+        'rows': rows,
     }
 
 
@@ -1461,6 +1558,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
 
         valid_block_values = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
         valid_result_values = {key for key, _ in AdminTrainingExercise.RESULT_CHOICES}
+        valid_exercise_kinds = set(EXERCISE_KIND_LABELS.keys())
         parsed_exercises = []
         errors = {}
 
@@ -1479,17 +1577,25 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
                 errors[f'exercises.{index}.result_type'] = 'invalid_result_type'
                 continue
 
+            exercise_kind = str(raw_item.get('exercise_kind') or 'exercise').strip().lower()
+            if exercise_kind not in valid_exercise_kinds:
+                errors[f'exercises.{index}.exercise_kind'] = 'invalid_exercise_kind'
+                continue
+
             block_custom_name = str(raw_item.get('block_custom_name') or '').strip()
             if block_type == AdminTrainingExercise.BLOCK_CUSTOM and not block_custom_name:
                 errors[f'exercises.{index}.block_custom_name'] = 'block_custom_name_required'
                 continue
 
-            exercise_name = str(raw_item.get('exercise_name') or '').strip()
+            if block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+                exercise_name = str(raw_item.get('exercise_name') or '').strip()
+            else:
+                exercise_name = EXERCISE_KIND_LABELS.get(exercise_kind, EXERCISE_KIND_LABELS['exercise'])
             sets = self._parse_positive_int(raw_item.get('sets'))
             reps = self._parse_positive_int(raw_item.get('reps'))
 
             # Ignore empty placeholder rows from UI.
-            if not exercise_name and sets is None and reps is None:
+            if sets is None and reps is None:
                 continue
             if not exercise_name:
                 errors[f'exercises.{index}.exercise_name'] = 'exercise_name_required'
@@ -1718,6 +1824,23 @@ class AdminTrainingByDateView(AdminProtectedMixin, View):
             .order_by('-updated_at', '-id')
         )
         return JsonResponse({'ok': True, 'trainings': [serialize_admin_training(item) for item in trainings]})
+
+
+class AdminTrainingResultsView(AdminProtectedMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, training_id, *args, **kwargs):
+        training = (
+            AdminTraining.objects
+            .filter(id=training_id)
+            .prefetch_related('exercises')
+            .first()
+        )
+        if training is None:
+            return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
+
+        payload = build_admin_training_results_payload(training)
+        return JsonResponse({'ok': True, 'results': payload})
 
 
 class SaveTrainingResultsView(View):
@@ -2401,12 +2524,11 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
         return (base_value * percent_value + 50) // 100
 
     @classmethod
-    def _build_percent_rows(cls, reps):
+    def _build_percent_rows(cls, base_rep):
         rows = []
         for percent_row in cls.PERCENT_MATRIX:
             row_cells = []
-            for index, percent_value in enumerate(percent_row):
-                base_rep = reps[index]
+            for percent_value in percent_row:
                 computed = cls._round_percent_value(base_rep, percent_value)
                 row_cells.append((str(computed), f'{percent_value}%'))
             rows.append(row_cells)
@@ -2454,7 +2576,7 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
         context['exercise'] = {
             'title': data.get('title') or slug.replace('-', ' ').title(),
             'max': reps,
-            'percent_rows': self._build_percent_rows(reps),
+            'percent_rows': self._build_percent_rows(reps[0]),
         }
         context['exercise_initial_reps_json'] = json.dumps(
             {
@@ -2505,7 +2627,7 @@ class AchievementExerciseUpdateView(View):
             },
         )
         reps = [profile.rep_1, profile.rep_2, profile.rep_3, profile.rep_4]
-        percent_rows = AchievementExerciseView._build_percent_rows(reps)
+        percent_rows = AchievementExerciseView._build_percent_rows(reps[0])
         return JsonResponse(
             {
                 'ok': True,

@@ -47,10 +47,6 @@
                 </div>
                 <div class="calendar-create-menu-wrap">
                     <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
-                    <div class="calendar-create-menu" id="calendar-create-menu" hidden>
-                        <button type="button" id="calendar-create-from-scratch">Тренировка с нуля</button>
-                        <button type="button" id="calendar-create-ready-plan">Готовый комплекс</button>
-                    </div>
                 </div>
             </div>
 
@@ -132,6 +128,8 @@
                 <textarea class="calendar-create-modal__textarea"></textarea>
             </label>
 
+            <div class="calendar-create-modal__existing" id="calendar-create-existing-exercises" hidden></div>
+
             <div class="calendar-create-modal__exercise-card">
                 <p class="calendar-create-modal__exercise-name">Не выбрано</p>
                 <div class="calendar-create-modal__exercise-grid">
@@ -155,9 +153,30 @@
                         <span>&nbsp;</span>
                         <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
                     </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise">
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--measurement" id="calendar-block-measurement-wrap" hidden>
+                        <span>Измерение</span>
+                        <input id="calendar-block-measurement-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise" id="calendar-exercise-kind-wrap">
                         <span>Упражнение</span>
-                        <input id="calendar-create-exercise-input" class="calendar-create-modal__text-input" type="text">
+                        <div class="calendar-create-modal__dropdown" id="calendar-exercise-kind-dropdown">
+                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-exercise-kind-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                <em id="calendar-exercise-kind-value">Упражнение</em>
+                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                            </button>
+                            <div class="calendar-create-modal__dropdown-menu" id="calendar-exercise-kind-menu" role="listbox" hidden>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-exercise-kind-option="exercise" data-exercise-kind-label="Упражнение">Упражнение</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-exercise-kind-option="benchmarks" data-exercise-kind-label="Benchmarks">Benchmarks</button>
+                            </div>
+                            <input type="hidden" name="training_exercise_kind" id="calendar-exercise-kind-input" value="exercise">
+                        </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--benchmark" id="calendar-benchmark-name-wrap" hidden>
+                        <span>Тип комплекса</span>
+                        <div class="calendar-create-modal__search-input-wrap">
+                            <input id="calendar-benchmark-name-input" class="calendar-create-modal__text-input calendar-create-modal__text-input--search" type="text" placeholder="Введите название">
+                            <span class="calendar-create-modal__search-icon" aria-hidden="true"></span>
+                        </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
                         <span>Количество</span>
@@ -168,10 +187,10 @@
                         </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
-                        <span>Тип оценки</span>
+                        <span>Результат</span>
                         <div class="calendar-create-modal__dropdown" id="calendar-result-type-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-result-type-value">Время</em>
+                                <em id="calendar-result-type-value">Результат</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-result-type-menu" role="listbox" hidden>
@@ -328,22 +347,8 @@
         <button type="button" class="calendar-results-modal__close" data-close-results aria-label="Закрыть">×</button>
         <div class="calendar-results-modal__table-wrap">
             <table class="calendar-results-modal__table">
-                <thead>
-                    <tr>
-                        <th>Имя</th>
-                        <th>Силовая <span>(кг)</span></th>
-                        <th>Кардио <span>(кг)</span></th>
-                        <th>Гимнастич. <span>(мин)</span></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td>Виктория С.</td><td>19</td><td>12</td><td>72</td></tr>
-                    <tr><td>Сергей Т.</td><td>20</td><td>10</td><td>50</td></tr>
-                    <tr><td>Евгений Л.</td><td>84</td><td>9</td><td>38</td></tr>
-                    <tr><td>Виктория К.</td><td>23</td><td>8</td><td>35</td></tr>
-                    <tr><td>Семен Р.</td><td>84</td><td>6</td><td>21</td></tr>
-                    <tr><td>Анатолий Б.</td><td>92</td><td>5</td><td>20</td></tr>
-                </tbody>
+                <thead id="calendar-results-head"></thead>
+                <tbody id="calendar-results-body"></tbody>
             </table>
         </div>
     </section>
@@ -357,6 +362,7 @@
             <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--cancel" data-close-delete>Отменить</button>
             <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--confirm" id="calendar-confirm-delete">Удалить</button>
         </div>
+        <div class="calendar-delete-modal__preview" id="calendar-delete-preview"></div>
     </section>
 </div>
 
@@ -377,9 +383,6 @@
         const sidebarStatsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link--wide");
         const sidebarReviewsLink = document.querySelector(".calendar-sidebar__nav .calendar-sidebar__link:nth-child(3)");
         const openCreateBtn = document.getElementById("calendar-open-create");
-        const createMenu = document.getElementById("calendar-create-menu");
-        const createFromScratchBtn = document.getElementById("calendar-create-from-scratch");
-        const createReadyPlanBtn = document.getElementById("calendar-create-ready-plan");
         const calendarListDesktop = document.querySelector(".calendar-list-desktop");
         const createSaveBtn = document.getElementById("calendar-create-save");
         const createDateValue = document.getElementById("calendar-create-date-value");
@@ -391,7 +394,10 @@
         const createDatePrevMonthBtn = document.getElementById("calendar-create-prev-month");
         const createDateNextMonthBtn = document.getElementById("calendar-create-next-month");
         const resultsModal = document.getElementById("calendar-results-modal");
+        const resultsHead = document.getElementById("calendar-results-head");
+        const resultsBody = document.getElementById("calendar-results-body");
         const deleteModal = document.getElementById("calendar-delete-modal");
+        const deletePreview = document.getElementById("calendar-delete-preview");
         const confirmDeleteBtn = document.getElementById("calendar-confirm-delete");
         const readyDateTrigger = document.getElementById("calendar-ready-date-trigger");
         const readyDateValue = document.getElementById("calendar-ready-date-value");
@@ -423,7 +429,15 @@
         const readyPlanOptions = readyPlanMenu?.querySelectorAll("[data-ready-plan-option]") || [];
         const createCommentInput = createModal?.querySelector(".calendar-create-modal__textarea");
         const addExerciseBtn = createModal?.querySelector(".calendar-create-modal__add-exercise");
-        const createExerciseInput = document.getElementById("calendar-create-exercise-input");
+        const existingExercisesWrap = document.getElementById("calendar-create-existing-exercises");
+        const exerciseKindDropdown = document.getElementById("calendar-exercise-kind-dropdown");
+        const exerciseKindTrigger = document.getElementById("calendar-exercise-kind-trigger");
+        const exerciseKindMenu = document.getElementById("calendar-exercise-kind-menu");
+        const exerciseKindValue = document.getElementById("calendar-exercise-kind-value");
+        const exerciseKindInput = document.getElementById("calendar-exercise-kind-input");
+        const exerciseKindOptions = exerciseKindMenu?.querySelectorAll("[data-exercise-kind-option]") || [];
+        const benchmarkNameWrap = document.getElementById("calendar-benchmark-name-wrap");
+        const benchmarkNameInput = document.getElementById("calendar-benchmark-name-input");
         const createSetsInput = document.getElementById("calendar-create-sets-input");
         const createRepsInput = document.getElementById("calendar-create-reps-input");
         const blockDropdown = document.getElementById("calendar-block-dropdown");
@@ -434,6 +448,12 @@
         const blockOptions = blockMenu?.querySelectorAll("[data-block-option]") || [];
         const blockCustomWrap = document.getElementById("calendar-block-custom-wrap");
         const blockCustomInput = document.getElementById("calendar-block-custom-input");
+        const blockMeasurementWrap = document.getElementById("calendar-block-measurement-wrap");
+        const blockMeasurementInput = document.getElementById("calendar-block-measurement-input");
+        const blockCell = createModal?.querySelector(".calendar-create-modal__cell--block");
+        const exerciseKindWrap = document.getElementById("calendar-exercise-kind-wrap");
+        const countCell = createModal?.querySelector(".calendar-create-modal__cell--count");
+        const resultCell = createModal?.querySelector(".calendar-create-modal__cell--result");
         const visibilityDropdown = document.getElementById("calendar-visibility-dropdown");
         const visibilityTrigger = document.getElementById("calendar-visibility-trigger");
         const visibilityMenu = document.getElementById("calendar-visibility-menu");
@@ -457,6 +477,9 @@
         const createTrainingUrl = "{% url 'auth:calendar_admin_training_create' %}";
         const updateTrainingUrlTemplate = "{% url 'auth:calendar_admin_training_update' training_id=0 %}";
         const deleteTrainingUrlTemplate = "{% url 'auth:calendar_admin_training_delete' training_id=0 %}";
+        const trainingResultsUrlTemplate = "{% url 'auth:calendar_admin_training_results' training_id=0 %}";
+        const createExerciseEditIcon = "{% static 'auth/img/calendar-edit-mini.svg' %}";
+        const createExerciseDeleteIcon = "{% static 'auth/img/calendar-trash-mini.svg' %}";
         const byDateTrainingUrl = "{% url 'auth:calendar_admin_training_by_date' %}";
         const calendarTrainingsScript = document.getElementById("calendar-trainings-json");
         const parsedTrainingsPayload = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
@@ -466,7 +489,10 @@
         let trainingsStore = Array.isArray(initialTrainings) ? initialTrainings : [];
         let editingTrainingId = null;
         let deletingTrainingId = null;
+        let activeResultsRequestId = 0;
         let activeCreateSourceType = "manual";
+        let editingExercisesBuffer = [];
+        let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
         function resolveExerciseBlockLabel(card) {
             if (!(card instanceof HTMLElement)) return "Не выбрано";
@@ -494,6 +520,232 @@
             titleNode.textContent = resolveExerciseBlockLabel(card);
         }
 
+        function getExerciseKindLabel(kindValue) {
+            return String(kindValue || "").trim().toLowerCase() === "benchmarks"
+                ? "Benchmarks"
+                : "Упражнение";
+        }
+
+        function resolveExerciseKindByName(exerciseNameValue) {
+            return String(exerciseNameValue || "").trim().toLowerCase() === "benchmarks"
+                ? "benchmarks"
+                : "exercise";
+        }
+
+        function normalizeMeasurementValue(rawValue) {
+            const digitsOnly = String(rawValue || "").replace(/\D+/g, "");
+            return digitsOnly;
+        }
+
+        function getBlockTypeLabel(blockTypeValue) {
+            const normalized = String(blockTypeValue || "strength").trim().toLowerCase();
+            if (normalized === "cardio") return "Кардио";
+            if (normalized === "gymnastics") return "Метаболическая";
+            if (normalized === "custom") return "Свое название";
+            return "Силовые";
+        }
+
+        function getResultTypeLabel(resultTypeValue) {
+            const normalized = String(resultTypeValue || "time").trim().toLowerCase();
+            if (normalized === "weight") return "Вес";
+            if (normalized === "reps") return "Кол-во повторений";
+            return "Время";
+        }
+
+        function getTrainingColorAccent(colorKey) {
+            const normalized = String(colorKey || "blue").trim().toLowerCase();
+            if (normalized === "orange") return "#ffb86a";
+            if (normalized === "green") return "#7bf1a8";
+            if (normalized === "pink") return "#f9a8d4";
+            if (normalized === "violet") return "#a5b4fc";
+            return "#8ec5ff";
+        }
+
+        function normalizeExerciseEntry(exercise, index) {
+            const item = exercise && typeof exercise === "object" ? exercise : {};
+            const blockTypeRaw = String(item.block_type || item.block || "strength").trim().toLowerCase();
+            const normalizedBlockType = blockTypeRaw === "default" ? "strength" : blockTypeRaw;
+            const exerciseKind = String(item.exercise_kind || resolveExerciseKindByName(item.exercise_name || "") || "exercise").trim().toLowerCase();
+            const resultType = String(item.result_type || "time").trim().toLowerCase();
+            return {
+                exercise_kind: exerciseKind === "benchmarks" ? "benchmarks" : "exercise",
+                block_type: normalizedBlockType || "strength",
+                block_custom_name: String(item.block_custom_name || "").trim(),
+                exercise_name: String(item.exercise_name || "").trim(),
+                sets: String(item.sets || "").trim(),
+                reps: String(item.reps || "").trim(),
+                result_type: resultType || "time",
+                block_label: String(item.block_label || "").trim(),
+                result_type_label: String(item.result_type_label || "").trim(),
+                order: Number(item.order ?? index) || index,
+            };
+        }
+
+        function formatExistingExerciseText(exercise) {
+            const baseName = String(exercise.exercise_name || "").trim() || "Без названия";
+            if (exercise.exercise_kind === "benchmarks") {
+                return baseName;
+            }
+            const setsValue = String(exercise.sets || "").trim();
+            const repsValue = String(exercise.reps || "").trim();
+            if (setsValue && repsValue) {
+                return `${baseName} x ${setsValue} подхода по ${repsValue}`;
+            }
+            if (setsValue) {
+                return `${baseName} x ${setsValue} подхода`;
+            }
+            if (repsValue) {
+                return `${baseName} x ${repsValue}`;
+            }
+            return baseName;
+        }
+
+        function isExerciseDraftFilled(exercise) {
+            if (!exercise || typeof exercise !== "object") return false;
+            const exerciseKind = String(exercise.exercise_kind || "exercise").trim().toLowerCase();
+            const exerciseName = String(exercise.exercise_name || "").trim();
+            if (exerciseKind === "benchmarks") {
+                return Boolean(exerciseName);
+            }
+            const blockType = String(exercise.block_type || "strength").trim().toLowerCase();
+            const hasSets = Boolean(String(exercise.sets || "").trim());
+            const hasReps = Boolean(String(exercise.reps || "").trim());
+            const hasCustomName = Boolean(String(exercise.block_custom_name || "").trim());
+            const hasNonDefaultResult = String(exercise.result_type || "time").trim().toLowerCase() !== "time";
+            const hasNonDefaultBlock = blockType !== "strength";
+            const hasMeaningfulName = Boolean(exerciseName) && exerciseName !== "Упражнение";
+            return hasSets || hasReps || hasCustomName || hasNonDefaultResult || hasNonDefaultBlock || hasMeaningfulName;
+        }
+
+        function buildExerciseFromCard(card, index) {
+            return normalizeExerciseEntry({
+                exercise_kind: card.querySelector("#calendar-exercise-kind-input")?.value || "exercise",
+                block_type: (() => {
+                    const raw = card.querySelector("#calendar-block-input")?.value || "default";
+                    return raw === "default" ? "strength" : raw;
+                })(),
+                block_custom_name: (card.querySelector("#calendar-block-custom-input")?.value || "").trim(),
+                exercise_name: (() => {
+                    const exerciseKind = card.querySelector("#calendar-exercise-kind-input")?.value || "exercise";
+                    if (exerciseKind === "benchmarks") {
+                        return (card.querySelector("#calendar-benchmark-name-input")?.value || "").trim();
+                    }
+                    const blockTypeRaw = card.querySelector("#calendar-block-input")?.value || "default";
+                    const normalizedBlockType = blockTypeRaw === "default" ? "strength" : blockTypeRaw;
+                    if (normalizedBlockType === "custom") {
+                        const normalizedMeasurement = normalizeMeasurementValue(
+                            card.querySelector("#calendar-block-measurement-input")?.value || ""
+                        );
+                        return normalizedMeasurement ? `${normalizedMeasurement} кг` : "";
+                    }
+                    return getExerciseKindLabel(card.querySelector("#calendar-exercise-kind-input")?.value || "exercise");
+                })(),
+                sets: (card.querySelector("#calendar-create-sets-input")?.value || "").trim(),
+                reps: (card.querySelector("#calendar-create-reps-input")?.value || "").trim(),
+                result_type: card.querySelector("#calendar-result-type-input")?.value || "time",
+                order: index,
+            }, index);
+        }
+
+        function resetExerciseEditorForm() {
+            const primaryCard = createModal?.querySelector(".calendar-create-modal__exercise-card");
+            if (!(primaryCard instanceof HTMLElement)) return;
+            if (blockInput) blockInput.value = "default";
+            if (blockValue) blockValue.textContent = "Блок";
+            setActiveOption(blockOptions, "data-block-option", "default");
+            if (blockCustomInput) blockCustomInput.value = "";
+            if (blockMeasurementInput) blockMeasurementInput.value = "";
+
+            if (exerciseKindInput) exerciseKindInput.value = "exercise";
+            if (exerciseKindValue) exerciseKindValue.textContent = "Упражнение";
+            setActiveOption(exerciseKindOptions, "data-exercise-kind-option", "exercise");
+            if (benchmarkNameInput) benchmarkNameInput.value = "";
+
+            if (createSetsInput) createSetsInput.value = "";
+            if (createRepsInput) createRepsInput.value = "";
+            if (resultTypeInput) resultTypeInput.value = "time";
+            if (resultTypeValue) resultTypeValue.textContent = "Результат";
+            setActiveOption(resultTypeOptions, "data-result-type-option", "time");
+
+            toggleCustomBlockField("default");
+            syncExerciseTitle(primaryCard);
+            activeExerciseEditIndex = null;
+        }
+
+        function populateExerciseEditorForm(exercise) {
+            const normalized = normalizeExerciseEntry(exercise, 0);
+            if (blockInput) blockInput.value = normalized.block_type || "strength";
+            if (blockValue) blockValue.textContent = normalized.block_label || getBlockTypeLabel(normalized.block_type);
+            setActiveOption(blockOptions, "data-block-option", blockInput?.value || "strength");
+            if (blockCustomInput) blockCustomInput.value = normalized.block_custom_name || "";
+
+            if (exerciseKindInput) exerciseKindInput.value = normalized.exercise_kind || "exercise";
+            if (exerciseKindValue) exerciseKindValue.textContent = getExerciseKindLabel(normalized.exercise_kind);
+            setActiveOption(exerciseKindOptions, "data-exercise-kind-option", exerciseKindInput?.value || "exercise");
+            if (benchmarkNameInput) {
+                benchmarkNameInput.value = normalized.exercise_kind === "benchmarks" ? normalized.exercise_name || "" : "";
+            }
+
+            const measurementFromName = normalizeMeasurementValue(normalized.exercise_name || "");
+            if (blockMeasurementInput) {
+                blockMeasurementInput.value = (blockInput?.value || "") === "custom" ? measurementFromName : "";
+            }
+
+            if (createSetsInput) createSetsInput.value = normalized.sets || "";
+            if (createRepsInput) createRepsInput.value = normalized.reps || "";
+            if (resultTypeInput) resultTypeInput.value = normalized.result_type || "time";
+            if (resultTypeValue) resultTypeValue.textContent = normalized.result_type_label || getResultTypeLabel(normalized.result_type);
+            setActiveOption(resultTypeOptions, "data-result-type-option", resultTypeInput?.value || "time");
+
+            toggleCustomBlockField(blockInput?.value || "strength");
+            syncExerciseTitle(createModal?.querySelector(".calendar-create-modal__exercise-card"));
+        }
+
+        function renderExistingExercises() {
+            if (!existingExercisesWrap) return;
+            if (!editingTrainingId || !editingExercisesBuffer.length) {
+                existingExercisesWrap.hidden = true;
+                existingExercisesWrap.innerHTML = "";
+                return;
+            }
+            const selectedColorKey = selectedColorInput?.value || "blue";
+            const selectedColorAccent = getTrainingColorAccent(selectedColorKey);
+
+            const grouped = new Map();
+            editingExercisesBuffer.forEach((exercise, index) => {
+                const blockType = String(exercise.block_type || "strength").trim().toLowerCase();
+                const groupTitle = blockType === "custom"
+                    ? (String(exercise.block_custom_name || "").trim() || "Свое название")
+                    : getBlockTypeLabel(blockType);
+                if (!grouped.has(groupTitle)) {
+                    grouped.set(groupTitle, []);
+                }
+                grouped.get(groupTitle).push({ exercise, index });
+            });
+
+            const html = Array.from(grouped.entries()).map(([groupTitle, items]) => `
+                <section class="calendar-create-modal__existing-group">
+                    <h4 class="calendar-create-modal__existing-title">${escapeHtml(groupTitle)}</h4>
+                    ${items.map(({ exercise, index }) => `
+                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--${escapeHtml(selectedColorKey)} ${activeExerciseEditIndex === index ? "is-active" : ""}" style="--exercise-accent:${escapeHtml(selectedColorAccent)};">
+                            <span class="calendar-create-modal__existing-text">${escapeHtml(formatExistingExerciseText(exercise))}</span>
+                            <div class="calendar-create-modal__existing-actions">
+                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-edit="${index}" aria-label="Редактировать упражнение">
+                                    <img src="${createExerciseEditIcon}" alt="">
+                                </button>
+                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-delete="${index}" aria-label="Удалить упражнение">
+                                    <img src="${createExerciseDeleteIcon}" alt="">
+                                </button>
+                            </div>
+                        </article>
+                    `).join("")}
+                </section>
+            `).join("");
+
+            existingExercisesWrap.hidden = false;
+            existingExercisesWrap.innerHTML = html;
+        }
+
         const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
         function getWeekStart(dateValue) {
             const base = normalize(dateValue);
@@ -503,9 +755,11 @@
         const today = normalize(new Date());
         let fromDate = getWeekStart(today);
         let toDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 6);
+        let selectedDate = normalize(today);
         let current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
         let draftFrom = new Date(fromDate);
         let draftTo = new Date(toDate);
+        let draftSelectedDate = new Date(selectedDate);
         const hasTrainingsInInitialWeek = trainingsStore.some((item) => {
             const dateValue = parseIsoDateOnly(item.date);
             return dateValue ? inRange(dateValue, fromDate, toDate) : false;
@@ -519,9 +773,11 @@
             if (latestDate) {
                 fromDate = getWeekStart(latestDate);
                 toDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 6);
+                selectedDate = normalize(latestDate);
                 current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
                 draftFrom = new Date(fromDate);
                 draftTo = new Date(toDate);
+                draftSelectedDate = new Date(selectedDate);
             }
         }
 
@@ -565,8 +821,10 @@
             const days = weekOffset * 7;
             fromDate = normalize(new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + days));
             toDate = normalize(new Date(toDate.getFullYear(), toDate.getMonth(), toDate.getDate() + days));
+            selectedDate = normalize(new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate() + days));
             draftFrom = new Date(fromDate);
             draftTo = new Date(toDate);
+            draftSelectedDate = new Date(selectedDate);
             current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
             updateRangeLabel();
             renderCalendarList();
@@ -599,28 +857,21 @@
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = "calendar-range-modal__cell";
-                if (inRange(date, draftFrom, draftTo)) btn.classList.add("calendar-range-modal__cell--in-range");
-                if (same(date, draftFrom) || same(date, draftTo)) btn.classList.add("calendar-range-modal__cell--edge");
+                if (same(date, today)) btn.classList.add("calendar-range-modal__cell--today");
+                if (inRange(date, draftFrom, draftTo)) btn.classList.add("calendar-range-modal__cell--week");
+                if (same(date, draftSelectedDate)) btn.classList.add("calendar-range-modal__cell--selected");
                 btn.textContent = String(day);
                 btn.addEventListener("click", () => {
-                    if (!draftFrom || (draftFrom && draftTo)) {
-                        draftFrom = date;
-                        draftTo = null;
-                    } else if (date.getTime() < draftFrom.getTime()) {
-                        draftTo = draftFrom;
-                        draftFrom = date;
-                    } else {
-                        draftTo = date;
-                    }
-                    if (draftFrom && draftTo) {
-                        fromDate = normalize(draftFrom);
-                        toDate = normalize(draftTo);
-                        updateRangeLabel();
-                        renderCalendarList();
-                        modal.hidden = true;
-                        return;
-                    }
-                    render();
+                    draftSelectedDate = date;
+                    draftFrom = getWeekStart(date);
+                    draftTo = normalize(new Date(draftFrom.getFullYear(), draftFrom.getMonth(), draftFrom.getDate() + 6));
+
+                    selectedDate = normalize(draftSelectedDate);
+                    fromDate = normalize(draftFrom);
+                    toDate = normalize(draftTo);
+                    updateRangeLabel();
+                    renderCalendarList();
+                    modal.hidden = true;
                 });
                 grid.appendChild(btn);
             }
@@ -629,7 +880,8 @@
         function openModal() {
             draftFrom = new Date(fromDate);
             draftTo = new Date(toDate);
-            current = new Date(draftFrom.getFullYear(), draftFrom.getMonth(), 1);
+            draftSelectedDate = new Date(selectedDate);
+            current = new Date(draftSelectedDate.getFullYear(), draftSelectedDate.getMonth(), 1);
             modal.hidden = false;
             render();
         }
@@ -659,10 +911,17 @@
             closeReadyComplexTypeMenu();
             closeBlockMenu();
             closeResultTypeMenu();
+            closeExerciseKindMenu();
         }
 
         function resetCreateFormToDefaults() {
             if (!createModal) return;
+            editingExercisesBuffer = [];
+            activeExerciseEditIndex = null;
+            if (existingExercisesWrap) {
+                existingExercisesWrap.hidden = true;
+                existingExercisesWrap.innerHTML = "";
+            }
 
             const allExerciseCards = Array.from(createModal.querySelectorAll(".calendar-create-modal__exercise-card"));
             const firstCard = allExerciseCards[0];
@@ -684,23 +943,43 @@
                 const blockInputNode = firstCard.querySelector("#calendar-block-input");
                 const blockValueNode = firstCard.querySelector("#calendar-block-value");
                 const blockCustomNode = firstCard.querySelector("#calendar-block-custom-input");
+                const blockMeasurementWrapNode = firstCard.querySelector("#calendar-block-measurement-wrap");
+                const blockMeasurementNode = firstCard.querySelector("#calendar-block-measurement-input");
                 const blockCustomWrapNode = firstCard.querySelector("#calendar-block-custom-wrap");
+                const exerciseKindWrapNode = firstCard.querySelector("#calendar-exercise-kind-wrap");
+                const benchmarkWrapNode = firstCard.querySelector("#calendar-benchmark-name-wrap");
+                const benchmarkInputNode = firstCard.querySelector("#calendar-benchmark-name-input");
                 const resultTypeInputNode = firstCard.querySelector("#calendar-result-type-input");
                 const resultTypeValueNode = firstCard.querySelector("#calendar-result-type-value");
-                const exerciseInputNode = firstCard.querySelector("#calendar-create-exercise-input");
+                const exerciseKindInputNode = firstCard.querySelector("#calendar-exercise-kind-input");
+                const exerciseKindValueNode = firstCard.querySelector("#calendar-exercise-kind-value");
                 const setsInputNode = firstCard.querySelector("#calendar-create-sets-input");
                 const repsInputNode = firstCard.querySelector("#calendar-create-reps-input");
 
                 if (blockInputNode) blockInputNode.value = "default";
                 if (blockValueNode) blockValueNode.textContent = "Блок";
                 if (blockCustomNode) blockCustomNode.value = "";
+                if (blockMeasurementNode) blockMeasurementNode.value = "";
                 if (blockCustomWrapNode) {
                     blockCustomWrapNode.hidden = true;
                     blockCustomWrapNode.style.display = "none";
                 }
+                if (blockMeasurementWrapNode) {
+                    blockMeasurementWrapNode.hidden = true;
+                    blockMeasurementWrapNode.style.display = "none";
+                }
+                if (exerciseKindWrapNode) {
+                    exerciseKindWrapNode.hidden = false;
+                    exerciseKindWrapNode.style.display = "";
+                }
+                if (benchmarkWrapNode) {
+                    benchmarkWrapNode.hidden = true;
+                    benchmarkWrapNode.style.display = "none";
+                }
+                if (benchmarkInputNode) benchmarkInputNode.value = "";
 
                 if (resultTypeInputNode) resultTypeInputNode.value = "time";
-                if (resultTypeValueNode) resultTypeValueNode.textContent = "Время";
+                if (resultTypeValueNode) resultTypeValueNode.textContent = "Результат";
 
                 firstCard.querySelectorAll("[data-block-option]").forEach((button) => {
                     button.classList.toggle("is-active", (button.getAttribute("data-block-option") || "") === "default");
@@ -708,10 +987,15 @@
                 firstCard.querySelectorAll("[data-result-type-option]").forEach((button) => {
                     button.classList.toggle("is-active", (button.getAttribute("data-result-type-option") || "") === "time");
                 });
+                firstCard.querySelectorAll("[data-exercise-kind-option]").forEach((button) => {
+                    button.classList.toggle("is-active", (button.getAttribute("data-exercise-kind-option") || "") === "exercise");
+                });
 
-                if (exerciseInputNode) exerciseInputNode.value = "";
+                if (exerciseKindInputNode) exerciseKindInputNode.value = "exercise";
+                if (exerciseKindValueNode) exerciseKindValueNode.textContent = "Упражнение";
                 if (setsInputNode) setsInputNode.value = "";
                 if (repsInputNode) repsInputNode.value = "";
+                toggleCustomBlockField(blockInputNode?.value || "default");
                 syncExerciseTitle(firstCard);
             }
 
@@ -744,25 +1028,19 @@
             if (createSaveBtn) {
                 createSaveBtn.textContent = "Сохранить";
             }
+            if (addExerciseBtn) {
+                addExerciseBtn.hidden = Boolean(isEditing);
+                addExerciseBtn.style.display = isEditing ? "none" : "";
+            }
         }
 
         function openCreateModal(fromReadyPlan = false) {
             if (!createModal) return;
             setCreateModalMode(Boolean(editingTrainingId));
-            if (createMenu) createMenu.hidden = true;
             if (readyModal) readyModal.hidden = true;
             if (readyPlanField) readyPlanField.hidden = !fromReadyPlan;
             closeAllCreateDropdowns();
             createModal.hidden = false;
-            document.body.style.overflow = "hidden";
-        }
-
-        function openReadyModal() {
-            if (!readyModal) return;
-            if (createMenu) createMenu.hidden = true;
-            if (createModal) createModal.hidden = true;
-            closeAllCreateDropdowns();
-            readyModal.hidden = false;
             document.body.style.overflow = "hidden";
         }
 
@@ -777,15 +1055,55 @@
             document.body.style.overflow = "";
         }
 
-        function openResultsModal() {
+        function openResultsModal(trainingId) {
             if (!resultsModal) return;
             resultsModal.hidden = false;
             document.body.style.overflow = "hidden";
+            renderResultsTable([], []);
+            if (resultsBody) {
+                resultsBody.innerHTML = `<tr><td colspan="4">Загрузка...</td></tr>`;
+            }
+
+            if (!trainingId) {
+                if (resultsBody) {
+                    resultsBody.innerHTML = `<tr><td colspan="4">Тренировка не найдена</td></tr>`;
+                }
+                return;
+            }
+
+            const requestId = Date.now();
+            activeResultsRequestId = requestId;
+            fetch(getTrainingResultsUrl(trainingId), {
+                method: "GET",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                },
+            })
+                .then((response) => response.json().catch(() => ({})).then((data) => ({ response, data })))
+                .then(({ response, data }) => {
+                    if (activeResultsRequestId !== requestId) return;
+                    if (!response.ok || !data.ok) {
+                        const colCount = (Array.isArray(data?.results?.columns) ? data.results.columns.length : 3) + 1;
+                        if (resultsBody) {
+                            resultsBody.innerHTML = `<tr><td colspan="${colCount}">Не удалось загрузить результаты</td></tr>`;
+                        }
+                        return;
+                    }
+                    const payload = data.results || {};
+                    renderResultsTable(payload.columns, payload.rows);
+                })
+                .catch(() => {
+                    if (activeResultsRequestId !== requestId) return;
+                    if (resultsBody) {
+                        resultsBody.innerHTML = `<tr><td colspan="4">Ошибка загрузки результатов</td></tr>`;
+                    }
+                });
         }
 
         function closeResultsModal() {
             if (!resultsModal) return;
             resultsModal.hidden = true;
+            activeResultsRequestId = Date.now();
             if (createModal?.hidden !== false && readyModal?.hidden !== false) {
                 document.body.style.overflow = "";
             }
@@ -794,6 +1112,21 @@
         function openDeleteModal(card) {
             if (!deleteModal || !card) return;
             deletingTrainingId = Number(card.getAttribute("data-training-id") || 0) || null;
+            if (deletePreview) {
+                deletePreview.innerHTML = "";
+                const eventCard = card.querySelector(".calendar-event");
+                if (eventCard instanceof HTMLElement) {
+                    const previewCard = document.createElement("article");
+                    const colorClasses = Array.from(card.classList).filter((className) => className.startsWith("calendar-day--"));
+                    previewCard.className = `calendar-day ${colorClasses.join(" ") || "calendar-day--blue"} calendar-delete-modal__preview-card`;
+                    previewCard.innerHTML = `<div class="calendar-event">${eventCard.innerHTML}</div>`;
+                    const resultLink = previewCard.querySelector("[data-open-results]");
+                    if (resultLink instanceof HTMLElement) {
+                        resultLink.removeAttribute("data-open-results");
+                    }
+                    deletePreview.appendChild(previewCard);
+                }
+            }
             deleteModal.hidden = false;
             document.body.style.overflow = "hidden";
         }
@@ -802,6 +1135,7 @@
             if (!deleteModal) return;
             deleteModal.hidden = true;
             deletingTrainingId = null;
+            if (deletePreview) deletePreview.innerHTML = "";
             if (createModal?.hidden !== false && readyModal?.hidden !== false && resultsModal?.hidden !== false) {
                 document.body.style.overflow = "";
             }
@@ -837,33 +1171,40 @@
             if (directionInput) directionInput.value = nextValue;
         }
 
-        if (createMenu) {
-            createMenu.hidden = true;
-        }
-
         openCreateBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
-            if (!createMenu) {
-                openCreateModal(false);
-                return;
-            }
-            createMenu.hidden = !createMenu.hidden;
-        });
-
-        createFromScratchBtn?.addEventListener("click", () => {
             resetCreateFormToDefaults();
             activeCreateSourceType = "manual";
             selectDirectionOption("fbb", "FBB");
             openCreateModal(false);
         });
-
-        createReadyPlanBtn?.addEventListener("click", () => {
-            resetCreateFormToDefaults();
-            activeCreateSourceType = "ready";
-            openReadyModal();
-        });
         createModal?.addEventListener("click", (event) => {
             if (event.target.closest("[data-close-create]")) closeCreateModal();
+        });
+        existingExercisesWrap?.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const editButton = target.closest("[data-existing-exercise-edit]");
+            if (editButton instanceof HTMLButtonElement) {
+                const index = Number(editButton.getAttribute("data-existing-exercise-edit"));
+                if (!Number.isInteger(index) || index < 0 || index >= editingExercisesBuffer.length) return;
+                activeExerciseEditIndex = index;
+                populateExerciseEditorForm(editingExercisesBuffer[index]);
+                renderExistingExercises();
+                return;
+            }
+
+            const deleteButton = target.closest("[data-existing-exercise-delete]");
+            if (!(deleteButton instanceof HTMLButtonElement)) return;
+            const index = Number(deleteButton.getAttribute("data-existing-exercise-delete"));
+            if (!Number.isInteger(index) || index < 0 || index >= editingExercisesBuffer.length) return;
+            editingExercisesBuffer.splice(index, 1);
+            if (activeExerciseEditIndex === index) {
+                resetExerciseEditorForm();
+            } else if (activeExerciseEditIndex !== null && activeExerciseEditIndex > index) {
+                activeExerciseEditIndex -= 1;
+            }
+            renderExistingExercises();
         });
         readyModal?.addEventListener("click", (event) => {
             if (event.target.closest("[data-close-ready]")) closeCreateModal();
@@ -882,6 +1223,7 @@
             if (!createDateGrid || !createDateMonthLabel) return;
 
             const selectedDate = parseCreateDate(activeDateValue?.textContent || "") || new Date(2026, 7, 22);
+            const todayDate = new Date();
             createDateMonthLabel.textContent = `${months[createPickerMonth.getMonth()]} ${createPickerMonth.getFullYear()}`;
             createDateGrid.innerHTML = "";
 
@@ -900,6 +1242,13 @@
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = "calendar-create-date-picker__cell";
+                if (
+                    date.getFullYear() === todayDate.getFullYear() &&
+                    date.getMonth() === todayDate.getMonth() &&
+                    date.getDate() === todayDate.getDate()
+                ) {
+                    btn.classList.add("calendar-create-date-picker__cell--today");
+                }
                 if (
                     date.getFullYear() === selectedDate.getFullYear() &&
                     date.getMonth() === selectedDate.getMonth() &&
@@ -957,20 +1306,14 @@
         });
 
         document.addEventListener("click", (event) => {
-            if (!createMenu || createMenu.hidden) return;
-            const target = event.target;
-            if (!(target instanceof Element)) return;
-            if (target.closest(".calendar-create-menu-wrap")) return;
-            createMenu.hidden = true;
-        });
-
-        document.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
 
             if (target.closest("[data-open-results]")) {
                 event.preventDefault();
-                openResultsModal();
+                const card = target.closest(".calendar-day");
+                const trainingId = card instanceof HTMLElement ? Number(card.getAttribute("data-training-id") || 0) : 0;
+                openResultsModal(trainingId);
                 return;
             }
 
@@ -986,6 +1329,47 @@
         document.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
+            const copyTrigger = target.closest("[data-copy-training]");
+            if (copyTrigger instanceof HTMLButtonElement) {
+                const card = copyTrigger.closest(".calendar-day");
+                if (!(card instanceof HTMLElement)) return;
+                const trainingId = Number(card.getAttribute("data-training-id") || 0);
+                if (!trainingId) return;
+                const training = trainingsStore.find((item) => Number(item.id) === trainingId);
+                if (!training) return;
+                const statusNode = card.querySelector("[data-copy-status]");
+                const showCopyStatus = (message, isError = false) => {
+                    if (!(statusNode instanceof HTMLElement)) return;
+                    statusNode.textContent = message;
+                    statusNode.hidden = false;
+                    statusNode.classList.toggle("calendar-event__copy-status--error", Boolean(isError));
+                    const previousTimer = Number(statusNode.dataset.hideTimerId || 0);
+                    if (previousTimer) {
+                        window.clearTimeout(previousTimer);
+                    }
+                    const timerId = window.setTimeout(() => {
+                        statusNode.hidden = true;
+                    }, 1400);
+                    statusNode.dataset.hideTimerId = String(timerId);
+                };
+
+                const text = buildTelegramTrainingText(training);
+                copyTextToClipboard(text).then((copied) => {
+                    if (!copied) {
+                        showCopyStatus("Не удалось скопировать", true);
+                        return;
+                    }
+                    copyTrigger.classList.add("calendar-event__copy-btn--copied");
+                    const previousTitle = copyTrigger.getAttribute("title") || "";
+                    copyTrigger.setAttribute("title", "Скопировано");
+                    showCopyStatus("Скопировано");
+                    window.setTimeout(() => {
+                        copyTrigger.classList.remove("calendar-event__copy-btn--copied");
+                        copyTrigger.setAttribute("title", previousTitle || "Скопировать для Telegram");
+                    }, 1200);
+                });
+                return;
+            }
             const toggleButton = target.closest("[data-section-toggle]");
             if (!(toggleButton instanceof HTMLButtonElement)) return;
             const section = toggleButton.closest(".calendar-event__section--compact");
@@ -1020,6 +1404,7 @@
 
             event.preventDefault();
             event.stopPropagation();
+            resetCreateFormToDefaults();
             editingTrainingId = trainingId;
             activeCreateSourceType = "manual";
             populateCreateFormFromTraining(trainingId);
@@ -1072,18 +1457,26 @@
             hiddenInputs.forEach((input) => {
                 if (input.id === "calendar-block-input") input.value = "default";
                 if (input.id === "calendar-result-type-input") input.value = "time";
+                if (input.id === "calendar-exercise-kind-input") input.value = "exercise";
             });
 
             const activeOptions = clone.querySelectorAll(".calendar-create-modal__dropdown-option.is-active");
             activeOptions.forEach((option) => option.classList.remove("is-active"));
             clone.querySelector("[data-block-option='default']")?.classList.add("is-active");
             clone.querySelector("[data-result-type-option='time']")?.classList.add("is-active");
+            clone.querySelector("[data-exercise-kind-option='exercise']")?.classList.add("is-active");
             const clonedBlockValue = clone.querySelector("#calendar-block-value");
             if (clonedBlockValue) clonedBlockValue.textContent = "Блок";
             const clonedResultTypeValue = clone.querySelector("#calendar-result-type-value");
-            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Время";
+            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Результат";
+            const clonedExerciseKindValue = clone.querySelector("#calendar-exercise-kind-value");
+            if (clonedExerciseKindValue) clonedExerciseKindValue.textContent = "Упражнение";
             const clonedCustomWrap = clone.querySelector("#calendar-block-custom-wrap");
             if (clonedCustomWrap) clonedCustomWrap.hidden = true;
+            const clonedMeasurementWrap = clone.querySelector("#calendar-block-measurement-wrap");
+            if (clonedMeasurementWrap) clonedMeasurementWrap.hidden = true;
+            const clonedExerciseWrap = clone.querySelector("#calendar-exercise-kind-wrap");
+            if (clonedExerciseWrap) clonedExerciseWrap.hidden = false;
             const clonedMenus = clone.querySelectorAll(".calendar-create-modal__dropdown-menu");
             clonedMenus.forEach((menu) => {
                 menu.hidden = true;
@@ -1092,6 +1485,7 @@
             addExerciseBtn.parentElement.insertBefore(clone, addExerciseBtn);
             initExerciseCard(clone);
             syncExerciseTitle(clone);
+            applyCreateExerciseCardsColor(selectedColorInput?.value || "blue");
             syncExerciseSaveButtons();
         });
 
@@ -1293,12 +1687,43 @@
         }
 
         function toggleCustomBlockField(currentValue) {
-            if (!blockCustomWrap) return;
             const isCustom = currentValue === "custom";
-            blockCustomWrap.hidden = !isCustom;
-            blockCustomWrap.style.display = isCustom ? "" : "none";
-            if (!isCustom && blockCustomInput) {
+            const isBenchmarks = (exerciseKindInput?.value || "exercise") === "benchmarks";
+            const showCustomFields = !isBenchmarks && isCustom;
+
+            if (blockCell) {
+                blockCell.hidden = isBenchmarks;
+                blockCell.style.display = isBenchmarks ? "none" : "";
+            }
+            if (blockCustomWrap) {
+                blockCustomWrap.hidden = !showCustomFields;
+                blockCustomWrap.style.display = showCustomFields ? "" : "none";
+            }
+            if (blockMeasurementWrap) {
+                blockMeasurementWrap.hidden = !showCustomFields;
+                blockMeasurementWrap.style.display = showCustomFields ? "" : "none";
+            }
+            if (exerciseKindWrap) {
+                exerciseKindWrap.hidden = false;
+                exerciseKindWrap.style.display = "";
+            }
+            if (countCell) {
+                countCell.hidden = isBenchmarks;
+                countCell.style.display = isBenchmarks ? "none" : "";
+            }
+            if (resultCell) {
+                resultCell.hidden = isBenchmarks;
+                resultCell.style.display = isBenchmarks ? "none" : "";
+            }
+            if (benchmarkNameWrap) {
+                benchmarkNameWrap.hidden = !isBenchmarks;
+                benchmarkNameWrap.style.display = isBenchmarks ? "" : "none";
+            }
+            if (!showCustomFields && blockCustomInput) {
                 blockCustomInput.value = "";
+            }
+            if (!showCustomFields && blockMeasurementInput) {
+                blockMeasurementInput.value = "";
             }
         }
 
@@ -1370,6 +1795,41 @@
             });
         });
 
+        function closeExerciseKindMenu() {
+            if (!exerciseKindMenu || !exerciseKindTrigger) return;
+            exerciseKindMenu.hidden = true;
+            exerciseKindTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openExerciseKindMenu() {
+            if (!exerciseKindMenu || !exerciseKindTrigger) return;
+            exerciseKindMenu.hidden = false;
+            exerciseKindTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        exerciseKindTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (exerciseKindMenu?.hidden) {
+                openExerciseKindMenu();
+            } else {
+                closeExerciseKindMenu();
+            }
+        });
+
+        exerciseKindOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-exercise-kind-option") || "exercise";
+                const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "Упражнение";
+                exerciseKindOptions.forEach((btn) => btn.classList.remove("is-active"));
+                optionButton.classList.add("is-active");
+                if (exerciseKindValue) exerciseKindValue.textContent = nextLabel;
+                if (exerciseKindInput) exerciseKindInput.value = nextValue;
+                toggleCustomBlockField(blockInput?.value || "default");
+                closeExerciseKindMenu();
+            });
+        });
+
         document.addEventListener("click", (event) => {
             if (!visibilityDropdown) return;
             const target = event.target;
@@ -1426,6 +1886,14 @@
             closeResultTypeMenu();
         });
 
+        document.addEventListener("click", (event) => {
+            if (!exerciseKindDropdown) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (exerciseKindDropdown.contains(target)) return;
+            closeExerciseKindMenu();
+        });
+
         function updateSelectedColor(colorKey, colorName, activeButton) {
             colorButtons.forEach((button) => {
                 const isActive = button === activeButton;
@@ -1440,6 +1908,8 @@
                 selectedColorText.textContent = `Выбран цвет: ${colorName}`;
             }
             applyCreatePreviewColor(colorKey);
+            applyCreateExerciseCardsColor(colorKey);
+            renderExistingExercises();
         }
 
         function applyCreatePreviewColor(colorKey) {
@@ -1452,6 +1922,20 @@
                 "calendar-create-modal__preview-card--violet"
             );
             createPreviewCard.classList.add(`calendar-create-modal__preview-card--${colorKey}`);
+        }
+
+        function applyCreateExerciseCardsColor(colorKey) {
+            const cards = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || []);
+            cards.forEach((card) => {
+                card.classList.remove(
+                    "calendar-create-modal__exercise-card--blue",
+                    "calendar-create-modal__exercise-card--orange",
+                    "calendar-create-modal__exercise-card--green",
+                    "calendar-create-modal__exercise-card--pink",
+                    "calendar-create-modal__exercise-card--violet"
+                );
+                card.classList.add(`calendar-create-modal__exercise-card--${colorKey}`);
+            });
         }
 
         function applyReadyPreviewColor(colorKey) {
@@ -1491,6 +1975,7 @@
         });
 
         applyCreatePreviewColor(selectedColorInput?.value || "blue");
+        applyCreateExerciseCardsColor(selectedColorInput?.value || "blue");
 
         readyColorButtons.forEach((button) => {
             button.addEventListener("click", () => {
@@ -1527,19 +2012,32 @@
             const localBlockValue = card.querySelector("#calendar-block-value");
             const localBlockInput = card.querySelector("#calendar-block-input");
             const localBlockOptions = card.querySelectorAll("[data-block-option]");
+            const localBlockCell = card.querySelector(".calendar-create-modal__cell--block");
             const localCustomWrap = card.querySelector("#calendar-block-custom-wrap");
             const localCustomInput = card.querySelector("#calendar-block-custom-input");
+            const localMeasurementWrap = card.querySelector("#calendar-block-measurement-wrap");
+            const localMeasurementInput = card.querySelector("#calendar-block-measurement-input");
+            const localExerciseWrap = card.querySelector("#calendar-exercise-kind-wrap");
+            const localBenchmarkWrap = card.querySelector("#calendar-benchmark-name-wrap");
+            const localCountCell = card.querySelector(".calendar-create-modal__cell--count");
+            const localResultCell = card.querySelector(".calendar-create-modal__cell--result");
             const localResultTypeTrigger = card.querySelector("#calendar-result-type-trigger");
             const localResultTypeMenu = card.querySelector("#calendar-result-type-menu");
             const localResultTypeValue = card.querySelector("#calendar-result-type-value");
             const localResultTypeInput = card.querySelector("#calendar-result-type-input");
             const localResultTypeOptions = card.querySelectorAll("[data-result-type-option]");
+            const localExerciseKindTrigger = card.querySelector("#calendar-exercise-kind-trigger");
+            const localExerciseKindMenu = card.querySelector("#calendar-exercise-kind-menu");
+            const localExerciseKindValue = card.querySelector("#calendar-exercise-kind-value");
+            const localExerciseKindInput = card.querySelector("#calendar-exercise-kind-input");
+            const localExerciseKindOptions = card.querySelectorAll("[data-exercise-kind-option]");
             const localSaveButton = card.querySelector("#calendar-create-save");
             const localSetsInput = card.querySelector("#calendar-create-sets-input");
             const localRepsInput = card.querySelector("#calendar-create-reps-input");
 
             enforceIntegerOnlyInput(localSetsInput);
             enforceIntegerOnlyInput(localRepsInput);
+            enforceIntegerOnlyInput(localMeasurementInput);
 
             if (isPrimaryCard) {
                 card.dataset.exerciseCardReady = "true";
@@ -1547,10 +2045,40 @@
             }
 
             const toggleLocalCustomField = (nextValue) => {
-                if (!localCustomWrap) return;
                 const isCustom = nextValue === "custom";
-                localCustomWrap.hidden = !isCustom;
-                localCustomWrap.style.display = isCustom ? "" : "none";
+                const isBenchmarks = (localExerciseKindInput?.value || "exercise") === "benchmarks";
+                const showCustomFields = !isBenchmarks && isCustom;
+                if (localBlockCell) {
+                    localBlockCell.hidden = isBenchmarks;
+                    localBlockCell.style.display = isBenchmarks ? "none" : "";
+                }
+                if (localCustomWrap) {
+                    localCustomWrap.hidden = !showCustomFields;
+                    localCustomWrap.style.display = showCustomFields ? "" : "none";
+                }
+                if (localMeasurementWrap) {
+                    localMeasurementWrap.hidden = !showCustomFields;
+                    localMeasurementWrap.style.display = showCustomFields ? "" : "none";
+                }
+                if (localExerciseWrap) {
+                    localExerciseWrap.hidden = false;
+                    localExerciseWrap.style.display = "";
+                }
+                if (localCountCell) {
+                    localCountCell.hidden = isBenchmarks;
+                    localCountCell.style.display = isBenchmarks ? "none" : "";
+                }
+                if (localResultCell) {
+                    localResultCell.hidden = isBenchmarks;
+                    localResultCell.style.display = isBenchmarks ? "none" : "";
+                }
+                if (localBenchmarkWrap) {
+                    localBenchmarkWrap.hidden = !isBenchmarks;
+                    localBenchmarkWrap.style.display = isBenchmarks ? "" : "none";
+                }
+                if (!showCustomFields && localMeasurementInput) {
+                    localMeasurementInput.value = "";
+                }
             };
 
             toggleLocalCustomField(localBlockInput?.value || "default");
@@ -1606,6 +2134,29 @@
                 });
             });
 
+            localExerciseKindTrigger?.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!localExerciseKindMenu) return;
+                const isHidden = localExerciseKindMenu.hidden;
+                localExerciseKindMenu.hidden = !isHidden;
+                localExerciseKindTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
+            });
+
+            localExerciseKindOptions.forEach((optionButton) => {
+                optionButton.addEventListener("click", () => {
+                    const nextValue = optionButton.getAttribute("data-exercise-kind-option") || "exercise";
+                    const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "Упражнение";
+                    localExerciseKindOptions.forEach((button) => button.classList.remove("is-active"));
+                    optionButton.classList.add("is-active");
+                    if (localExerciseKindValue) localExerciseKindValue.textContent = nextLabel;
+                    if (localExerciseKindInput) localExerciseKindInput.value = nextValue;
+                    toggleLocalCustomField(localBlockInput?.value || "default");
+                    if (localExerciseKindMenu) localExerciseKindMenu.hidden = true;
+                    localExerciseKindTrigger?.setAttribute("aria-expanded", "false");
+                });
+            });
+
             document.addEventListener("click", (event) => {
                 const target = event.target;
                 if (!(target instanceof Element)) return;
@@ -1616,6 +2167,10 @@
                 if (localResultTypeTrigger && !localResultTypeTrigger.contains(target) && localResultTypeMenu && !localResultTypeMenu.contains(target)) {
                     localResultTypeMenu.hidden = true;
                     localResultTypeTrigger.setAttribute("aria-expanded", "false");
+                }
+                if (localExerciseKindTrigger && !localExerciseKindTrigger.contains(target) && localExerciseKindMenu && !localExerciseKindMenu.contains(target)) {
+                    localExerciseKindMenu.hidden = true;
+                    localExerciseKindTrigger.setAttribute("aria-expanded", "false");
                 }
             });
 
@@ -1661,6 +2216,10 @@
             return deleteTrainingUrlTemplate.replace("/0/delete/", `/${trainingId}/delete/`);
         }
 
+        function getTrainingResultsUrl(trainingId) {
+            return trainingResultsUrlTemplate.replace("/0/results/", `/${trainingId}/results/`);
+        }
+
         function parseIsoDate(value) {
             const text = String(value || "").trim();
             if (!text) return null;
@@ -1691,6 +2250,61 @@
             return parsed;
         }
 
+        function renderResultsTable(columns, rows) {
+            if (!resultsHead || !resultsBody) return;
+            const safeColumns = Array.isArray(columns) ? columns : [];
+            const safeRows = Array.isArray(rows) ? rows : [];
+            const colCount = safeColumns.length + 1;
+
+            resultsHead.innerHTML = "";
+            resultsBody.innerHTML = "";
+
+            const headRow = document.createElement("tr");
+            const nameHead = document.createElement("th");
+            nameHead.textContent = "Имя";
+            headRow.appendChild(nameHead);
+
+            safeColumns.forEach((column) => {
+                const th = document.createElement("th");
+                const title = document.createTextNode(String(column?.title || "Раздел"));
+                th.appendChild(title);
+                const unit = String(column?.unit || "").trim();
+                if (unit) {
+                    const span = document.createElement("span");
+                    span.textContent = `(${unit})`;
+                    th.appendChild(document.createTextNode(" "));
+                    th.appendChild(span);
+                }
+                headRow.appendChild(th);
+            });
+            resultsHead.appendChild(headRow);
+
+            if (!safeRows.length) {
+                const emptyRow = document.createElement("tr");
+                const cell = document.createElement("td");
+                cell.colSpan = colCount;
+                cell.textContent = "Нет результатов по этой тренировке";
+                emptyRow.appendChild(cell);
+                resultsBody.appendChild(emptyRow);
+                return;
+            }
+
+            safeRows.forEach((row) => {
+                const tr = document.createElement("tr");
+                const nameCell = document.createElement("td");
+                nameCell.textContent = String(row?.user_name || "Пользователь");
+                tr.appendChild(nameCell);
+
+                const values = Array.isArray(row?.values) ? row.values : [];
+                for (let index = 0; index < safeColumns.length; index += 1) {
+                    const td = document.createElement("td");
+                    td.textContent = String(values[index] ?? "--");
+                    tr.appendChild(td);
+                }
+                resultsBody.appendChild(tr);
+            });
+        }
+
         function escapeHtml(value) {
             return String(value)
                 .replaceAll("&", "&amp;")
@@ -1698,6 +2312,84 @@
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#39;");
+        }
+
+        function normalizeLineBreaks(value) {
+            return String(value || "")
+                .replace(/\r\n/g, "\n")
+                .replace(/\r/g, "\n");
+        }
+
+        function buildTelegramTrainingText(training) {
+            if (!training || typeof training !== "object") return "";
+            const title = String(training.title || training.direction_label || "Тренировка").trim();
+            const parsedDate = parseIsoDate(training.date);
+            const dateText = parsedDate ? formatCreateDate(parsedDate) : "";
+            const comment = String(training.comment || "").trim();
+            const sections = Array.isArray(training.sections) ? training.sections : [];
+
+            const lines = [];
+            lines.push(`${title}`);
+            if (dateText) lines.push(`Дата: ${dateText}`);
+            lines.push("");
+            lines.push("Комментарий:");
+            lines.push(comment || "Без комментария");
+
+            if (sections.length) {
+                lines.push("");
+                lines.push("Блоки:");
+                sections.forEach((section) => {
+                    const sectionTitle = String(section?.title || "Блок").trim();
+                    lines.push(`${sectionTitle}:`);
+                    const rawItems = Array.isArray(section?.items) ? section.items : [];
+                    const normalizedItems = rawItems
+                        .map((item) => normalizeLineBreaks(item).split("\n").map((part) => String(part || "").trim()))
+                        .flat()
+                        .filter(Boolean);
+                    if (!normalizedItems.length) {
+                        lines.push("- Без упражнений");
+                        return;
+                    }
+                    normalizedItems.forEach((item) => {
+                        lines.push(`- ${item}`);
+                    });
+                });
+            }
+
+            return lines.join("\n").trim();
+        }
+
+        async function copyTextToClipboard(text) {
+            const value = String(text || "");
+            if (!value) return false;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(value);
+                    return true;
+                }
+            } catch (error) {
+                console.error(error);
+            }
+
+            const temp = document.createElement("textarea");
+            temp.value = value;
+            temp.setAttribute("readonly", "readonly");
+            temp.style.position = "fixed";
+            temp.style.opacity = "0";
+            temp.style.pointerEvents = "none";
+            document.body.appendChild(temp);
+            temp.focus();
+            temp.select();
+
+            let copied = false;
+            try {
+                copied = document.execCommand("copy");
+            } catch (error) {
+                console.error(error);
+            }
+            temp.remove();
+            return copied;
         }
 
         function enforceIntegerOnlyInput(inputNode) {
@@ -1744,8 +2436,19 @@
                 <article class="calendar-day ${colorClass} ${isFull ? "calendar-day--full" : "calendar-day--short"} ${showDayHead ? "" : "calendar-day--continuation"}" data-training-id="${training.id}">
                     ${showDayHead ? `<div class="calendar-day__head"><span>${escapeHtml(training.day_name || "")}</span><b>${escapeHtml(training.day_number || "")}</b></div>` : ""}
                     <div class="calendar-event">
-                        <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
-                        <p class="calendar-event__comment">Комментарий</p>
+                        <div class="calendar-event__head">
+                            <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
+                            <div class="calendar-event__copy-wrap">
+                                <button type="button" class="calendar-event__copy-btn" data-copy-training aria-label="Скопировать тренировку для Telegram" title="Скопировать для Telegram">
+                                    <svg viewBox="0 0 20 20" aria-hidden="true">
+                                        <rect x="7" y="3" width="10" height="10" rx="2"></rect>
+                                        <rect x="3" y="7" width="10" height="10" rx="2"></rect>
+                                    </svg>
+                                </button>
+                                <span class="calendar-event__copy-status" data-copy-status hidden aria-live="polite">Скопировано</span>
+                            </div>
+                        </div>
+                        <p class="calendar-event__comment-row"><span class="calendar-event__comment">Комментарий</span></p>
                         <p>${escapeHtml(training.comment || "Без комментария")}</p>
                         ${sectionsHtml}
                         <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
@@ -1793,19 +2496,39 @@
             const parsedDate = parseCreateDate(createDateValue?.textContent || "");
             const date = parsedDate || fallbackDate;
             const isoDate = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-
-            const exercises = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || []).map((card, index) => ({
-                block_type: (() => {
-                    const raw = card.querySelector("#calendar-block-input")?.value || "default";
-                    return raw === "default" ? "strength" : raw;
-                })(),
-                block_custom_name: (card.querySelector("#calendar-block-custom-input")?.value || "").trim(),
-                exercise_name: (card.querySelector("#calendar-create-exercise-input")?.value || "").trim(),
-                sets: (card.querySelector("#calendar-create-sets-input")?.value || "").trim(),
-                reps: (card.querySelector("#calendar-create-reps-input")?.value || "").trim(),
-                result_type: card.querySelector("#calendar-result-type-input")?.value || "time",
+            const cardExercises = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || [])
+                .map((card, index) => buildExerciseFromCard(card, index));
+            const primaryDraft = cardExercises[0];
+            const toExerciseRequest = (item, index) => ({
+                exercise_kind: item.exercise_kind || "exercise",
+                block_type: item.block_type || "strength",
+                block_custom_name: item.block_custom_name || "",
+                exercise_name: item.exercise_name || "",
+                sets: item.sets || "",
+                reps: item.reps || "",
+                result_type: item.result_type || "time",
                 order: index,
-            }));
+            });
+
+            let exercises = cardExercises
+                .filter((item) => isExerciseDraftFilled(item))
+                .map((item, index) => toExerciseRequest(item, index));
+
+            if (editingTrainingId) {
+                const buffered = editingExercisesBuffer.map((item, index) => normalizeExerciseEntry(item, index));
+                if (primaryDraft && isExerciseDraftFilled(primaryDraft)) {
+                    if (
+                        activeExerciseEditIndex !== null
+                        && activeExerciseEditIndex >= 0
+                        && activeExerciseEditIndex < buffered.length
+                    ) {
+                        buffered[activeExerciseEditIndex] = normalizeExerciseEntry(primaryDraft, activeExerciseEditIndex);
+                    } else {
+                        buffered.push(normalizeExerciseEntry(primaryDraft, buffered.length));
+                    }
+                }
+                exercises = buffered.map((item, index) => toExerciseRequest(item, index));
+            }
 
             const activeReadyPlan = readyModal?.querySelector(".calendar-ready-modal__plan.is-active");
             return {
@@ -1878,22 +2601,12 @@
             if (visibilityValue) visibilityValue.textContent = training.visibility === "coaches" ? "Только для тренеров" : "Для всех";
             setActiveOption(visibilityOptions, "data-visibility-option", visibilityInput?.value || "all");
 
-            const firstExercise = (training.exercises || [])[0];
-            if (firstExercise) {
-                if (blockInput) blockInput.value = firstExercise.block_type || "default";
-                if (blockValue) blockValue.textContent = firstExercise.block_label || "Блок";
-                setActiveOption(blockOptions, "data-block-option", blockInput?.value || "default");
-                toggleCustomBlockField(blockInput?.value || "default");
-                if (blockCustomInput) blockCustomInput.value = firstExercise.block_custom_name || "";
-
-                if (createExerciseInput) createExerciseInput.value = firstExercise.exercise_name || "";
-                if (createSetsInput) createSetsInput.value = firstExercise.sets || "";
-                if (createRepsInput) createRepsInput.value = firstExercise.reps || "";
-                if (resultTypeInput) resultTypeInput.value = firstExercise.result_type || "time";
-                if (resultTypeValue) resultTypeValue.textContent = firstExercise.result_type_label || "Время";
-                setActiveOption(resultTypeOptions, "data-result-type-option", resultTypeInput?.value || "time");
-                syncExerciseTitle(createModal?.querySelector(".calendar-create-modal__exercise-card"));
-            }
+            editingExercisesBuffer = Array.isArray(training.exercises)
+                ? training.exercises.map((exercise, index) => normalizeExerciseEntry(exercise, index))
+                : [];
+            activeExerciseEditIndex = null;
+            resetExerciseEditorForm();
+            renderExistingExercises();
 
             activeCreateSourceType = training.source_type || "manual";
             if (readyWorkoutInput) readyWorkoutInput.value = training.ready_workout_type || readyWorkoutInput.value;

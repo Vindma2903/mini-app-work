@@ -119,6 +119,7 @@ body {
     justify-content: center;
     justify-items: center;
     gap: 0;
+    cursor: pointer;
 }
 
 .exercise-percent-head__ratio {

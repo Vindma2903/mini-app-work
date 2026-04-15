@@ -288,8 +288,8 @@ class AchievementExerciseRepProfileTests(TestCase):
         self.assertEqual(response.status_code, 200)
         exercise = response.context['exercise']
         self.assertEqual(exercise['max'], [10, 15, 30, 40])
-        self.assertEqual(exercise['percent_rows'][0], [('11', '105%'), ('15', '100%'), ('29', '95%'), ('36', '90%')])
-        self.assertEqual(exercise['percent_rows'][3], [('5', '45%'), ('6', '40%'), ('11', '35%'), ('12', '30%')])
+        self.assertEqual(exercise['percent_rows'][0], [('11', '105%'), ('10', '100%'), ('10', '95%'), ('9', '90%')])
+        self.assertEqual(exercise['percent_rows'][3], [('5', '45%'), ('4', '40%'), ('4', '35%'), ('3', '30%')])
 
 
 class ReviewsOverviewViewTests(TestCase):

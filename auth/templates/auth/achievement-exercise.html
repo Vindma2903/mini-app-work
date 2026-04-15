@@ -29,22 +29,10 @@
 
     <section class="exercise-percent-card">
         <div class="exercise-percent-head">
-            <span class="exercise-percent-head__item exercise-percent-head__item--active">
-                1 REP
-                <small class="exercise-percent-head__ratio" data-head-percent="p1">100%</small>
-            </span>
-            <span class="exercise-percent-head__item">
-                2 REP
-                <small class="exercise-percent-head__ratio" data-head-percent="p2">--</small>
-            </span>
-            <span class="exercise-percent-head__item">
-                3 REP
-                <small class="exercise-percent-head__ratio" data-head-percent="p3">--</small>
-            </span>
-            <span class="exercise-percent-head__item">
-                4 REP
-                <small class="exercise-percent-head__ratio" data-head-percent="p4">--</small>
-            </span>
+            <span class="exercise-percent-head__item exercise-percent-head__item--active" data-rep-tab="0" role="button" tabindex="0">1 REP</span>
+            <span class="exercise-percent-head__item" data-rep-tab="1" role="button" tabindex="0">2 REP</span>
+            <span class="exercise-percent-head__item" data-rep-tab="2" role="button" tabindex="0">3 REP</span>
+            <span class="exercise-percent-head__item" data-rep-tab="3" role="button" tabindex="0">4 REP</span>
         </div>
         {% for row in exercise.percent_rows %}
             <div class="exercise-percent-row" data-percent-row="{{ forloop.counter0 }}">
@@ -117,14 +105,10 @@
             p3: document.querySelector("[data-live-percent='p3']"),
             p4: document.querySelector("[data-live-percent='p4']"),
         };
-        const headPercentNodes = {
-            p1: document.querySelector("[data-head-percent='p1']"),
-            p2: document.querySelector("[data-head-percent='p2']"),
-            p3: document.querySelector("[data-head-percent='p3']"),
-            p4: document.querySelector("[data-head-percent='p4']"),
-        };
         const maxValueNodes = Array.from(document.querySelectorAll("[data-max-rep-value]"));
         const percentRows = Array.from(document.querySelectorAll("[data-percent-row]"));
+        const repTabs = Array.from(document.querySelectorAll("[data-rep-tab]"));
+        let activeRepTabIndex = 0;
 
         const initialRepsNode = document.getElementById("exercise-initial-reps-json");
         const initialPercentsNode = document.getElementById("exercise-relative-percents-json");
@@ -151,18 +135,48 @@
             document.body.style.overflow = visible ? "hidden" : "";
         }
 
-        function renderHeadPercents() {
-            ["p1", "p2", "p3", "p4"].forEach((key) => {
-                const node = headPercentNodes[key];
-                if (!node) return;
-                const value = state.percents?.[key];
-                if (value === null || value === undefined || !Number.isFinite(Number(value))) {
-                    node.textContent = "--";
-                    return;
-                }
-                node.textContent = `${value}%`;
+        function getRepsArray() {
+            return [
+                Number(state.reps.rep_1) || 0,
+                Number(state.reps.rep_2) || 0,
+                Number(state.reps.rep_3) || 0,
+                Number(state.reps.rep_4) || 0,
+            ];
+        }
+
+        function getPercentMatrix() {
+            return percentRows.map((rowNode) => {
+                const percentNodesInRow = Array.from(rowNode.querySelectorAll(".exercise-percent-row__cell span"));
+                return percentNodesInRow.map((node) => {
+                    const raw = String(node.textContent || "").replace("%", "").trim();
+                    const parsed = Number.parseInt(raw, 10);
+                    return Number.isFinite(parsed) ? parsed : 0;
+                });
             });
         }
+
+        function renderPercentTableForActiveRep() {
+            const reps = getRepsArray();
+            const baseRep = reps[activeRepTabIndex] || 0;
+            const matrix = getPercentMatrix();
+            percentRows.forEach((rowNode, rowIndex) => {
+                const valueNodes = Array.from(rowNode.querySelectorAll("[data-percent-value]"));
+                const rowPercents = matrix[rowIndex] || [];
+                valueNodes.forEach((valueNode, colIndex) => {
+                    const percentValue = rowPercents[colIndex] || 0;
+                    valueNode.textContent = String(Math.round((baseRep * percentValue) / 100));
+                });
+            });
+        }
+
+        function setActiveRepTab(index) {
+            activeRepTabIndex = index;
+            repTabs.forEach((tab, tabIndex) => {
+                tab.classList.toggle("exercise-percent-head__item--active", tabIndex === index);
+            });
+            renderPercentTableForActiveRep();
+        }
+
 
         function fillInputsFromState() {
             inputs.rep_1.value = String(state.reps.rep_1 ?? "");
@@ -219,7 +233,7 @@
                     }
                 });
             });
-            renderHeadPercents();
+            renderPercentTableForActiveRep();
         }
 
         async function saveReps() {
@@ -277,7 +291,17 @@
             node.addEventListener("click", () => setModalVisible(false));
         });
 
-        renderHeadPercents();
+        repTabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => setActiveRepTab(index));
+            tab.addEventListener("keydown", (event) => {
+                if (event.key !== "Enter" && event.key !== " ") return;
+                event.preventDefault();
+                setActiveRepTab(index);
+            });
+        });
+
+        setActiveRepTab(0);
+
     })();
 </script>
 {% endblock %}

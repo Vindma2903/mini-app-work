@@ -1,6 +1,7 @@
 """Training view exports."""
 
 from auth.views import (
+    AdminTrainingResultsView,
     AdminTrainingByDateView,
     AdminTrainingCreateView,
     AdminTrainingDeleteView,
@@ -13,6 +14,7 @@ from auth.views import (
 )
 
 __all__ = [
+    "AdminTrainingResultsView",
     "AdminTrainingByDateView",
     "AdminTrainingCreateView",
     "AdminTrainingDeleteView",
@@ -23,4 +25,3 @@ __all__ = [
     "SaveTrainingResultsView",
     "TrainingPlanTodayView",
 ]
-

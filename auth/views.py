@@ -1,6 +1,7 @@
 ﻿import secrets
 import logging
 import json
+import re
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -1846,6 +1847,103 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         )
 
 
+class AdminLibraryUpdateView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+    ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.wmv'}
+    MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024
+
+    def post(self, request, item_id, *args, **kwargs):
+        item = AdminLibraryItem.objects.filter(id=item_id).first()
+        if item is None:
+            return JsonResponse({'ok': False, 'error': 'item_not_found'}, status=404)
+
+        section = str(request.POST.get('section') or '').strip().lower()
+        category = str(request.POST.get('category') or '').strip().lower()
+        name_ru = str(request.POST.get('name_ru') or '').strip()
+        name_en = str(request.POST.get('name_en') or '').strip()
+        desc_ru = str(request.POST.get('desc_ru') or '').strip()
+        desc_en = str(request.POST.get('desc_en') or '').strip()
+        video_file = request.FILES.get('video')
+
+        allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
+        allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+
+        field_errors = {}
+        if section not in allowed_sections:
+            field_errors['section'] = 'invalid_section'
+        if section == AdminLibraryItem.SECTION_BENCHMARKS:
+            if category not in allowed_categories:
+                field_errors['category'] = 'invalid_category'
+        else:
+            category = ''
+        if not name_ru:
+            field_errors['name_ru'] = 'required'
+        if len(name_ru) > 255:
+            field_errors['name_ru'] = 'too_long'
+        if len(name_en) > 255:
+            field_errors['name_en'] = 'too_long'
+        if video_file:
+            extension = Path(video_file.name or '').suffix.lower()
+            if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
+                field_errors['video'] = 'invalid_video_format'
+            elif getattr(video_file, 'size', 0) > self.MAX_VIDEO_SIZE_BYTES:
+                field_errors['video'] = 'video_too_large'
+
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        item.section = section
+        item.benchmark_category = category
+        item.name_ru = name_ru
+        item.name_en = name_en
+        item.desc_ru = desc_ru
+        item.desc_en = desc_en
+        if video_file:
+            item.video_file = video_file
+        item.save(
+            update_fields=[
+                'section',
+                'benchmark_category',
+                'name_ru',
+                'name_en',
+                'desc_ru',
+                'desc_en',
+                'video_file',
+                'updated_at',
+            ]
+        )
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'item': {
+                    'id': item.id,
+                    'section': item.section,
+                    'category': item.benchmark_category,
+                    'name_ru': item.name_ru,
+                    'name_en': item.name_en,
+                    'desc_ru': item.desc_ru,
+                    'desc_en': item.desc_en,
+                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
+                },
+            }
+        )
+
+
+class AdminLibraryDeleteView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, item_id, *args, **kwargs):
+        item = AdminLibraryItem.objects.filter(id=item_id).first()
+        if item is None:
+            return JsonResponse({'ok': False, 'error': 'item_not_found'}, status=404)
+
+        if item.video_file:
+            item.video_file.delete(save=False)
+        item.delete()
+        return JsonResponse({'ok': True, 'deleted_id': item_id})
+
+
 class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 
@@ -3269,6 +3367,68 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, Templa
 class AchievementsView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/achievements.html'
 
+    @staticmethod
+    def _build_library_exercise_slug(item_id):
+        return f'library-item-{item_id}'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        barbell_items = list(
+            AdminLibraryItem.objects
+            .filter(section=AdminLibraryItem.SECTION_BARBELL)
+            .only('id', 'name_ru', 'name_en')
+            .order_by('name_ru', 'name_en', 'id')
+        )
+
+        slug_map = {self._build_library_exercise_slug(item.id): item for item in barbell_items}
+        profiles = {
+            profile.exercise_slug: profile
+            for profile in UserExerciseRepProfile.objects.filter(
+                user=self.request.user,
+                exercise_slug__in=list(slug_map.keys()),
+            )
+        }
+
+        context['barbell_exercises'] = [
+            {
+                'slug': slug,
+                'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                'value': profiles[slug].rep_1 if slug in profiles else None,
+            }
+            for slug, item in slug_map.items()
+        ]
+
+        benchmark_items = list(
+            AdminLibraryItem.objects
+            .filter(section=AdminLibraryItem.SECTION_BENCHMARKS)
+            .only('id', 'name_ru', 'name_en', 'benchmark_category')
+            .order_by('benchmark_category', 'name_ru', 'name_en', 'id')
+        )
+
+        benchmark_slug_map = {self._build_library_exercise_slug(item.id): item for item in benchmark_items}
+        benchmark_profiles = {
+            profile.exercise_slug: profile
+            for profile in UserExerciseRepProfile.objects.filter(
+                user=self.request.user,
+                exercise_slug__in=list(benchmark_slug_map.keys()),
+            )
+        }
+
+        def serialize_benchmark(item):
+            slug = self._build_library_exercise_slug(item.id)
+            return {
+                'slug': slug,
+                'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                'value': benchmark_profiles[slug].rep_1 if slug in benchmark_profiles else None,
+            }
+
+        context['benchmark_exercises'] = {
+            'girls': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_GIRLS],
+            'heroes': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_HEROES],
+            'gymnastics': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_GYMNASTICS],
+        }
+        return context
+
 
 class AchievementExerciseView(UserProtectedMixin, TemplateView):
     template_name = 'auth/achievement-exercise.html'
@@ -3337,6 +3497,23 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         slug = self.kwargs.get('exercise_slug', '')
         data = self.EXERCISE_DATA.get(slug)
+        if data is None:
+            library_match = re.fullmatch(r'library-item-(\d+)', slug)
+            if library_match:
+                item = (
+                    AdminLibraryItem.objects
+                    .filter(
+                        id=int(library_match.group(1)),
+                        section__in=[AdminLibraryItem.SECTION_BARBELL, AdminLibraryItem.SECTION_BENCHMARKS],
+                    )
+                    .only('id', 'name_ru', 'name_en')
+                    .first()
+                )
+                if item is not None:
+                    data = {
+                        'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                        'max': [10, 10, 10, 10],
+                    }
         if data is None:
             title = slug.replace('-', ' ').title()
             data = {

@@ -147,10 +147,19 @@
     text-decoration: none;
     color: #475467;
     font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .admin-library-actions a:last-child {
     color: #f04438;
+}
+
+.admin-library-actions a img {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 .admin-library-modal[hidden] {
@@ -323,6 +332,51 @@
 
 .admin-library-modal__btn--primary {
     border-color: #155dfc;
+    background: #155dfc;
+    color: #fff;
+}
+
+.admin-library-confirm-modal__card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(440px, calc(100vw - 24px));
+    background: #fff;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    padding: 16px 12px 12px;
+    display: grid;
+    gap: 12px;
+}
+
+.admin-library-confirm-modal__card p {
+    margin: 0;
+    color: #101828;
+    font: 600 18px/24px Inter, Arial, sans-serif;
+}
+
+.admin-library-confirm-modal__actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.admin-library-confirm-modal__btn {
+    height: 42px;
+    border-radius: 8px;
+    font: 500 16px/20px Inter, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.admin-library-confirm-modal__btn--ghost {
+    border: 1px solid #155dfc;
+    background: #fff;
+    color: #101828;
+}
+
+.admin-library-confirm-modal__btn--danger {
+    border: 1px solid #155dfc;
     background: #155dfc;
     color: #fff;
 }

@@ -28,28 +28,19 @@
 
     <div data-achievements-panel="barbell">
         <section class="achievements-block">
-            <h2>Squats</h2>
+            <h2>Barbell PRs</h2>
             <div class="achievements-card">
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='back-pause-squat' %}"><p>Back Pause Squat</p><span>10</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='front-squat' %}"><p>Front Squat</p><span>10</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='overhead-squat' %}"><p>Overhead Squat</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='back-squat' %}"><p>Back Squat</p><span>10</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='jump-squat' %}"><p>Jump Squat</p><span>10</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='pistol-squat' %}"><p>Pistol Squat</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='thruster' %}"><p>Thruster</p><span>--</span></a>
-            </div>
-        </section>
-
-        <section class="achievements-block">
-            <h2>Cleans</h2>
-            <div class="achievements-card">
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='power-clean' %}"><p>Power Clean</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='hang-clean' %}"><p>Hang Clean</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='clean-jerk' %}"><p>Clean & Jerk</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='squat-clean' %}"><p>Squat Clean</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='split-jerk' %}"><p>Split Jerk</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='push-jerk' %}"><p>Push Jerk</p><span>--</span></a>
-                <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug='muscle-clean' %}"><p>Muscle Clean</p><span>--</span></a>
+                {% for exercise in barbell_exercises %}
+                    <a class="achievements-row achievements-row--link" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        <p>{{ exercise.title }}</p>
+                        <span>{% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <article class="achievements-row achievements-row--bench">
+                        <p>Нет упражнений в разделе Barbell PRs</p>
+                        <span>--</span>
+                    </article>
+                {% endfor %}
             </div>
         </section>
     </div>
@@ -57,48 +48,51 @@
     <div data-achievements-panel="benchmarks" hidden>
         <section class="achievements-bench">
             <div class="achievements-bench-tabs">
-                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="girls">Girls</button>
-                <button type="button" class="achievements-bench-tabs__item achievements-bench-tabs__item--active" data-bench-tab="heroes">Heroes</button>
-                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="heroes2">Heroes</button>
+                <button type="button" class="achievements-bench-tabs__item achievements-bench-tabs__item--active" data-bench-tab="girls">Girls</button>
+                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="heroes">Heroes</button>
+                <button type="button" class="achievements-bench-tabs__item" data-bench-tab="gymnastics">Gymnastics</button>
             </div>
 
-            <div class="achievements-card achievements-card--bench" data-bench-panel="girls" hidden>
-                <article class="achievements-row achievements-row--bench"><p>Anna Yard</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+            <div class="achievements-card achievements-card--bench" data-bench-panel="girls">
+                {% for exercise in benchmark_exercises.girls %}
+                    <a class="achievements-row achievements-row--link achievements-row--bench" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        <p>{{ exercise.title }}</p>
+                        <span>{% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <article class="achievements-row achievements-row--bench">
+                        <p>Нет упражнений в категории Girls</p>
+                        <span>--</span>
+                    </article>
+                {% endfor %}
             </div>
 
             <div class="achievements-card achievements-card--bench" data-bench-panel="heroes">
-                <article class="achievements-row achievements-row--bench"><p>Anna Yard</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Back Pause Squat</p><span>--</span></article>
+                {% for exercise in benchmark_exercises.heroes %}
+                    <a class="achievements-row achievements-row--link achievements-row--bench" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        <p>{{ exercise.title }}</p>
+                        <span>{% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <article class="achievements-row achievements-row--bench">
+                        <p>Нет упражнений в категории Heroes</p>
+                        <span>--</span>
+                    </article>
+                {% endfor %}
             </div>
 
-            <div class="achievements-card achievements-card--bench" data-bench-panel="heroes2" hidden>
-                <article class="achievements-row achievements-row--bench"><p>Murph</p><span>43:10</span></article>
-                <article class="achievements-row achievements-row--bench"><p>DT</p><span>11:25</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Randy</p><span>05:09</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Fight Gone Bad</p><span>323</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Nate</p><span>--</span></article>
-                <article class="achievements-row achievements-row--bench"><p>Tommy V</p><span>--</span></article>
+            <div class="achievements-card achievements-card--bench" data-bench-panel="gymnastics" hidden>
+                {% for exercise in benchmark_exercises.gymnastics %}
+                    <a class="achievements-row achievements-row--link achievements-row--bench" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        <p>{{ exercise.title }}</p>
+                        <span>{% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}</span>
+                    </a>
+                {% empty %}
+                    <article class="achievements-row achievements-row--bench">
+                        <p>Нет упражнений в категории Gymnastics</p>
+                        <span>--</span>
+                    </article>
+                {% endfor %}
             </div>
         </section>
     </div>
@@ -139,7 +133,7 @@
             tab.addEventListener("click", () => activateBenchTab(tab.dataset.benchTab));
         });
 
-        activateBenchTab("heroes");
+        activateBenchTab("girls");
     })();
 </script>
 {% endblock %}

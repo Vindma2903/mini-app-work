@@ -56,27 +56,22 @@
     <section class="exercise-edit-modal__card" role="dialog" aria-modal="true" aria-label="Редактирование повторений">
         <button type="button" class="exercise-edit-modal__close" data-close-edit-modal aria-label="Закрыть">×</button>
         <h3 class="exercise-edit-modal__title">Введите значения подходов</h3>
-        <p class="exercise-edit-modal__desc">Первый подход принимается за 100%</p>
         <div class="exercise-edit-modal__grid">
             <label class="exercise-edit-modal__field">
-                <span>1 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" />
-                <small data-live-percent="p1">100%</small>
+                <span>1 подход (100%)</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" placeholder="Введите значение 100% для 1 подхода" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>2 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" />
-                <small data-live-percent="p2">--</small>
+                <span>2 подход (100%)</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" placeholder="Введите значение 100% для 2 подхода" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>3 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" />
-                <small data-live-percent="p3">--</small>
+                <span>3 подход (100%)</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" placeholder="Введите значение 100% для 3 подхода" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>4 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" />
-                <small data-live-percent="p4">--</small>
+                <span>4 подход (100%)</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" placeholder="Введите значение 100% для 4 подхода" />
             </label>
         </div>
         <p class="exercise-edit-modal__error" id="exercise-edit-error" hidden></p>
@@ -98,12 +93,6 @@
             rep_2: document.getElementById("exercise-edit-rep-2"),
             rep_3: document.getElementById("exercise-edit-rep-3"),
             rep_4: document.getElementById("exercise-edit-rep-4"),
-        };
-        const percentNodes = {
-            p1: document.querySelector("[data-live-percent='p1']"),
-            p2: document.querySelector("[data-live-percent='p2']"),
-            p3: document.querySelector("[data-live-percent='p3']"),
-            p4: document.querySelector("[data-live-percent='p4']"),
         };
         const maxValueNodes = Array.from(document.querySelectorAll("[data-max-rep-value]"));
         const percentRows = Array.from(document.querySelectorAll("[data-percent-row]"));
@@ -177,32 +166,11 @@
             renderPercentTableForActiveRep();
         }
 
-
         function fillInputsFromState() {
             inputs.rep_1.value = String(state.reps.rep_1 ?? "");
             inputs.rep_2.value = String(state.reps.rep_2 ?? "");
             inputs.rep_3.value = String(state.reps.rep_3 ?? "");
             inputs.rep_4.value = String(state.reps.rep_4 ?? "");
-        }
-
-        function renderLivePercents() {
-            const r1 = normalizePositiveInt(inputs.rep_1.value);
-            const r2 = normalizePositiveInt(inputs.rep_2.value);
-            const r3 = normalizePositiveInt(inputs.rep_3.value);
-            const r4 = normalizePositiveInt(inputs.rep_4.value);
-
-            if (r1 === null) {
-                percentNodes.p1.textContent = "--";
-                percentNodes.p2.textContent = "--";
-                percentNodes.p3.textContent = "--";
-                percentNodes.p4.textContent = "--";
-                return;
-            }
-
-            percentNodes.p1.textContent = "100%";
-            percentNodes.p2.textContent = r2 === null ? "--" : `${Math.round((r2 / r1) * 100)}%`;
-            percentNodes.p3.textContent = r3 === null ? "--" : `${Math.round((r3 / r1) * 100)}%`;
-            percentNodes.p4.textContent = r4 === null ? "--" : `${Math.round((r4 / r1) * 100)}%`;
         }
 
         function applySavedData(data) {
@@ -274,14 +242,9 @@
             }
         }
 
-        Object.values(inputs).forEach((input) => {
-            input.addEventListener("input", renderLivePercents);
-        });
-
         openButton?.addEventListener("click", () => {
             errorNode.hidden = true;
             fillInputsFromState();
-            renderLivePercents();
             setModalVisible(true);
         });
 
@@ -301,7 +264,6 @@
         });
 
         setActiveRepTab(0);
-
     })();
 </script>
 {% endblock %}

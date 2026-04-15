@@ -19,7 +19,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from auth.domain.library.views import AdminLibraryView
+from auth.domain.library.views import AdminLibraryCreateView, AdminLibraryDeleteView, AdminLibraryListView, AdminLibraryUpdateView, AdminLibraryView
 from auth.domain.profile.views import (
     AdminProfilePasswordUpdateView,
     AdminProfileUpdateView,
@@ -35,6 +35,10 @@ urlpatterns = [
     path('admin/profile/users/list/', AdminProfileUsersListView.as_view(), name='admin_profile_users_list_direct'),
     path('admin/profile/users/create/', AdminProfileUserCreateView.as_view(), name='admin_profile_user_create_direct'),
     path('admin/library/', AdminLibraryView.as_view(), name='admin_library_direct'),
+    path('admin/library/list/', AdminLibraryListView.as_view(), name='admin_library_list_direct'),
+    path('admin/library/create/', AdminLibraryCreateView.as_view(), name='admin_library_create_direct'),
+    path('admin/library/update/<int:item_id>/', AdminLibraryUpdateView.as_view(), name='admin_library_update_direct'),
+    path('admin/library/delete/<int:item_id>/', AdminLibraryDeleteView.as_view(), name='admin_library_delete_direct'),
     path('admin/', admin.site.urls),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

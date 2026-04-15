@@ -1,7 +1,7 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Библиотека{% endblock %}
+{% block title %}Р‘РёР±Р»РёРѕС‚РµРєР°{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
@@ -11,40 +11,40 @@
 {% block content %}
 <main class="calendar-desktop admin-library-page">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Р›РѕРіРѕС‚РёРї">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
-            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
-            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
-            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>РЎС‚Р°С‚РёСЃС‚РёРєР°</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>РљР°Р»РµРЅРґР°СЂСЊ</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</span></a>
+            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Р‘РёР±Р»РёРѕС‚РµРєР°</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>РќР°СЃС‚СЂРѕР№РєРё</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Р’С‹Р№С‚Рё</span></a>
         </div>
     </aside>
 
     <section class="calendar-content admin-library-content">
         <header class="admin-library-header">
             <div>
-                <h1>Библиотека</h1>
-                <p>Информация об упражнениях</p>
+                <h1>Р‘РёР±Р»РёРѕС‚РµРєР°</h1>
+                <p>РРЅС„РѕСЂРјР°С†РёСЏ РѕР± СѓРїСЂР°Р¶РЅРµРЅРёСЏС…</p>
             </div>
             <div class="calendar-content__user">
                 <div><strong>{{ admin_header_name }}</strong><span>{{ admin_header_role }}</span></div>
-                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">{{ admin_header_initials }}</a>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅР°">{{ admin_header_initials }}</a>
             </div>
         </header>
 
         <section class="admin-library-card">
             <div class="admin-library-toolbar">
-                <nav class="admin-library-tabs" aria-label="Типы библиотеки">
-                    <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">Упражнения</a>
-                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">Тренировки</a>
+                <nav class="admin-library-tabs" aria-label="РўРёРїС‹ Р±РёР±Р»РёРѕС‚РµРєРё">
+                    <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">РЈРїСЂР°Р¶РЅРµРЅРёСЏ</a>
+                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">РўСЂРµРЅРёСЂРѕРІРєРё</a>
                     <a href="#" class="admin-library-tabs__item" data-tab="barbell">Barbell PRs</a>
                     <a href="#" class="admin-library-tabs__item" data-tab="benchmarks">Benchmarks</a>
                 </nav>
-                <button type="button" class="admin-library-add">+ Добавить</button>
+                <button type="button" class="admin-library-add">+ Р”РѕР±Р°РІРёС‚СЊ</button>
             </div>
 
             <div class="admin-library-benchmark-filters" id="admin-library-benchmark-filters" hidden>
@@ -57,12 +57,12 @@
                 <table class="admin-library-table">
                     <thead>
                         <tr>
-                            <th>Название<br>Русский</th>
-                            <th>Название<br>Английский</th>
-                            <th>Описание<br>Русский</th>
-                            <th>Описание<br>Английский</th>
-                            <th>Видео</th>
-                            <th>Действия</th>
+                            <th>РќР°Р·РІР°РЅРёРµ<br>Р СѓСЃСЃРєРёР№</th>
+                            <th>РќР°Р·РІР°РЅРёРµ<br>РђРЅРіР»РёР№СЃРєРёР№</th>
+                            <th>РћРїРёСЃР°РЅРёРµ<br>Р СѓСЃСЃРєРёР№</th>
+                            <th>РћРїРёСЃР°РЅРёРµ<br>РђРЅРіР»РёР№СЃРєРёР№</th>
+                            <th>Р’РёРґРµРѕ</th>
+                            <th>Р”РµР№СЃС‚РІРёСЏ</th>
                         </tr>
                     </thead>
                     <tbody id="admin-library-table-body">
@@ -75,8 +75,8 @@
                             <td><a href="#" class="admin-library-video">{{ row.video }}</a></td>
                             <td>
                                 <span class="admin-library-actions">
-                                    <a href="#" aria-label="Редактировать">?</a>
-                                    <a href="#" aria-label="Удалить">??</a>
+                                    <a href="#" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ" data-library-edit="{{ row.id }}"><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""></a>
+                                    <a href="#" aria-label="РЈРґР°Р»РёС‚СЊ" data-library-delete="{{ row.id }}"><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></a>
                                 </span>
                             </td>
                         </tr>
@@ -90,25 +90,25 @@
 
 <div class="admin-library-modal" id="admin-library-add-modal" hidden>
     <div class="admin-library-modal__overlay" data-library-modal-close></div>
-    <section class="admin-library-modal__card" role="dialog" aria-modal="true" aria-label="Добавление упражнения">
+    <section class="admin-library-modal__card" role="dialog" aria-modal="true" aria-label="Р¤РѕСЂРјР° СѓРїСЂР°Р¶РЅРµРЅРёСЏ">
         <header class="admin-library-modal__head">
-            <h3>Добавление упражнения</h3>
-            <button type="button" class="admin-library-modal__close" data-library-modal-close aria-label="Закрыть">?</button>
+            <h3 id="admin-library-modal-title">Р”РѕР±Р°РІР»РµРЅРёРµ СѓРїСЂР°Р¶РЅРµРЅРёСЏ</h3>
+            <button type="button" class="admin-library-modal__close" data-library-modal-close aria-label="Р—Р°РєСЂС‹С‚СЊ">&times;</button>
         </header>
 
         <div class="admin-library-modal__body">
             <label class="admin-library-modal__field">
-                <span>Раздел</span>
+                <span>Р Р°Р·РґРµР»</span>
                 <select id="admin-library-form-section" class="admin-library-modal__input">
-                    <option value="exercises">Упражнения</option>
-                    <option value="trainings">Тренировки</option>
+                    <option value="exercises">РЈРїСЂР°Р¶РЅРµРЅРёСЏ</option>
+                    <option value="trainings">РўСЂРµРЅРёСЂРѕРІРєРё</option>
                     <option value="barbell">Barbell PRs</option>
                     <option value="benchmarks">Benchmarks</option>
                 </select>
             </label>
 
             <label class="admin-library-modal__field" id="admin-library-form-category-wrap" hidden>
-                <span>Категория</span>
+                <span>РљР°С‚РµРіРѕСЂРёСЏ</span>
                 <select id="admin-library-form-category" class="admin-library-modal__input">
                     <option value="girls">Girls</option>
                     <option value="heroes">Heroes</option>
@@ -117,40 +117,51 @@
             </label>
 
             <label class="admin-library-modal__field">
-                <span>Название на русском</span>
-                <input type="text" class="admin-library-modal__input" id="admin-library-form-name-ru" placeholder="Введите название на русском">
+                <span>РќР°Р·РІР°РЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј</span>
+                <input type="text" class="admin-library-modal__input" id="admin-library-form-name-ru" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РЅР° СЂСѓСЃСЃРєРѕРј">
             </label>
 
             <label class="admin-library-modal__field">
-                <span>Название на английском</span>
+                <span>РќР°Р·РІР°РЅРёРµ РЅР° Р°РЅРіР»РёР№СЃРєРѕРј</span>
                 <input type="text" class="admin-library-modal__input" id="admin-library-form-name-en" placeholder="Enter name in English">
             </label>
 
             <label class="admin-library-modal__field">
-                <span>Описание</span>
-                <textarea class="admin-library-modal__textarea" id="admin-library-form-desc-ru" placeholder="Введите описание упражнения"></textarea>
+                <span>РћРїРёСЃР°РЅРёРµ</span>
+                <textarea class="admin-library-modal__textarea" id="admin-library-form-desc-ru" placeholder="Р’РІРµРґРёС‚Рµ РѕРїРёСЃР°РЅРёРµ СѓРїСЂР°Р¶РЅРµРЅРёСЏ"></textarea>
             </label>
 
             <label class="admin-library-modal__field">
-                <span>Описание (англ.)</span>
+                <span>РћРїРёСЃР°РЅРёРµ (Р°РЅРіР».)</span>
                 <textarea class="admin-library-modal__textarea" id="admin-library-form-desc-en" placeholder="Enter description in English"></textarea>
             </label>
 
             <section class="admin-library-modal__field">
-                <span>Видео (необязательно)</span>
+                <span>Р’РёРґРµРѕ (РЅРµРѕР±СЏР·Р°С‚РµР»СЊРЅРѕ)</span>
                 <button type="button" class="admin-library-modal__upload" id="admin-library-upload-trigger">
                     <span class="admin-library-modal__upload-plus">+</span>
-                    <b>Нажмите для загрузки видео</b>
-                    <small>MP4, AVI, MOV, WMV (макс. 500 МБ)</small>
+                    <b>РќР°Р¶РјРёС‚Рµ РґР»СЏ Р·Р°РіСЂСѓР·РєРё РІРёРґРµРѕ</b>
+                    <small>MP4, AVI, MOV, WMV (РјР°РєСЃ. 500 РњР‘)</small>
                 </button>
                 <input type="file" id="admin-library-upload-input" accept=".mp4,.avi,.mov,.wmv,video/mp4,video/avi,video/quicktime,video/x-ms-wmv" hidden>
             </section>
         </div>
 
         <footer class="admin-library-modal__actions">
-            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--ghost" data-library-modal-close>Отмена</button>
-            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--primary" id="admin-library-form-submit">Добавить</button>
+            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--ghost" data-library-modal-close>РћС‚РјРµРЅР°</button>
+            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--primary" id="admin-library-form-submit">Р”РѕР±Р°РІРёС‚СЊ</button>
         </footer>
+    </section>
+</div>
+
+<div class="admin-library-modal admin-library-confirm-modal" id="admin-library-delete-modal" hidden>
+    <div class="admin-library-modal__overlay" data-library-delete-modal-close></div>
+    <section class="admin-library-confirm-modal__card" role="dialog" aria-modal="true" aria-label="РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ">
+        <p>Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ ?</p>
+        <div class="admin-library-confirm-modal__actions">
+            <button type="button" class="admin-library-confirm-modal__btn admin-library-confirm-modal__btn--ghost" data-library-delete-modal-close>РћС‚РјРµРЅРёС‚СЊ</button>
+            <button type="button" class="admin-library-confirm-modal__btn admin-library-confirm-modal__btn--danger" id="admin-library-delete-confirm-btn">РЈРґР°Р»РёС‚СЊ</button>
+        </div>
     </section>
 </div>
 
@@ -162,6 +173,8 @@
         const tbody = document.getElementById("admin-library-table-body");
         const addButton = document.querySelector(".admin-library-add");
         const addModal = document.getElementById("admin-library-add-modal");
+        const deleteModal = document.getElementById("admin-library-delete-modal");
+        const deleteConfirmButton = document.getElementById("admin-library-delete-confirm-btn");
         const uploadTrigger = document.getElementById("admin-library-upload-trigger");
         const uploadInput = document.getElementById("admin-library-upload-input");
         const sectionInput = document.getElementById("admin-library-form-section");
@@ -172,16 +185,29 @@
         const descRuInput = document.getElementById("admin-library-form-desc-ru");
         const descEnInput = document.getElementById("admin-library-form-desc-en");
         const submitButton = document.getElementById("admin-library-form-submit");
+        const modalTitle = document.getElementById("admin-library-modal-title");
         const rowsPayloadEl = document.getElementById("admin-library-rows-data");
         const benchmarkFiltersWrap = document.getElementById("admin-library-benchmark-filters");
         const benchmarkFilterButtons = benchmarkFiltersWrap?.querySelectorAll("[data-benchmark-filter]") || [];
+
         if (!tabs.length || !tbody) return;
+
         const parsedRows = JSON.parse(rowsPayloadEl?.textContent || "[]");
         let rowsCache = Array.isArray(parsedRows) ? parsedRows : [];
 
         const initialActiveTab = document.querySelector(".admin-library-tabs__item.is-active")?.getAttribute("data-tab");
         let activeTab = initialActiveTab || "exercises";
         let currentBenchmarkFilter = "girls";
+        let modalMode = "create";
+        let editingItemId = null;
+        let deletingItemId = null;
+
+        const CREATE_TITLE = "Р”РѕР±Р°РІР»РµРЅРёРµ СѓРїСЂР°Р¶РЅРµРЅРёСЏ";
+        const EDIT_TITLE = "Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ СѓРїСЂР°Р¶РЅРµРЅРёРµ";
+        const CREATE_BUTTON = "Р”РѕР±Р°РІРёС‚СЊ";
+        const EDIT_BUTTON = "РЎРѕС…СЂР°РЅРёС‚СЊ";
+        const SAVING_LABEL = "РЎРѕС…СЂР°РЅСЏРµРј...";
+        const EMPTY_VIDEO_TEXT = "РќР°Р¶РјРёС‚Рµ РґР»СЏ Р·Р°РіСЂСѓР·РєРё РІРёРґРµРѕ";
 
         function escapeHtml(value) {
             return String(value)
@@ -219,8 +245,8 @@
                     <td><a href="#" class="admin-library-video">${escapeHtml(row.video || "")}</a></td>
                     <td>
                         <span class="admin-library-actions">
-                            <a href="#" aria-label="Редактировать">?</a>
-                            <a href="#" aria-label="Удалить">??</a>
+                            <a href="#" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ" data-library-edit="${String(row.id || "")}"><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""></a>
+                            <a href="#" aria-label="РЈРґР°Р»РёС‚СЊ" data-library-delete="${String(row.id || "")}"><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></a>
                         </span>
                     </td>
                 </tr>
@@ -228,7 +254,7 @@
             if (!rows.length) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="6">Пока нет записей</td>
+                        <td colspan="6">РџРѕРєР° РЅРµС‚ Р·Р°РїРёСЃРµР№</td>
                     </tr>
                 `;
             }
@@ -248,6 +274,19 @@
             }
         }
 
+        function setDeleteModalOpen(open) {
+            if (!deleteModal) return;
+            deleteModal.hidden = !open;
+            document.body.style.overflow = open ? "hidden" : "";
+            if (!open) {
+                deletingItemId = null;
+                if (deleteConfirmButton) {
+                    deleteConfirmButton.disabled = false;
+                    deleteConfirmButton.textContent = "РЈРґР°Р»РёС‚СЊ";
+                }
+            }
+        }
+
         function toggleCategoryField() {
             if (!sectionInput || !categoryWrap) return;
             const shouldShowCategory = String(sectionInput.value || "").toLowerCase() === "benchmarks";
@@ -256,6 +295,99 @@
             if (!shouldShowCategory && categoryInput) {
                 categoryInput.value = "girls";
             }
+        }
+
+        function setModalMode(mode) {
+            modalMode = mode === "edit" ? "edit" : "create";
+            if (modalTitle) {
+                modalTitle.textContent = modalMode === "edit" ? EDIT_TITLE : CREATE_TITLE;
+            }
+            if (submitButton) {
+                submitButton.textContent = modalMode === "edit" ? EDIT_BUTTON : CREATE_BUTTON;
+            }
+        }
+
+        function resetModalForm() {
+            if (sectionInput) {
+                sectionInput.value = activeTab || "exercises";
+            }
+            if (categoryInput) {
+                categoryInput.value = "girls";
+            }
+            if (nameRuInput) {
+                nameRuInput.value = "";
+            }
+            if (nameEnInput) {
+                nameEnInput.value = "";
+            }
+            if (descRuInput) {
+                descRuInput.value = "";
+            }
+            if (descEnInput) {
+                descEnInput.value = "";
+            }
+            if (uploadInput) {
+                uploadInput.value = "";
+            }
+            const uploadTitle = uploadTrigger?.querySelector("b");
+            if (uploadTitle) {
+                uploadTitle.textContent = EMPTY_VIDEO_TEXT;
+            }
+            toggleCategoryField();
+        }
+
+        function openCreateModal() {
+            editingItemId = null;
+            setModalMode("create");
+            resetModalForm();
+            setAddModalOpen(true);
+        }
+
+        function openEditModal(itemId) {
+            const targetId = Number(itemId);
+            const item = rowsCache.find((row) => Number(row.id) === targetId);
+            if (!item) {
+                alert("РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ Р·Р°РїРёСЃСЊ РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ.");
+                return;
+            }
+
+            editingItemId = targetId;
+            setModalMode("edit");
+
+            if (sectionInput) {
+                sectionInput.value = String(item.section || "exercises");
+            }
+            if (categoryInput) {
+                categoryInput.value = String(item.category || "girls");
+            }
+            if (nameRuInput) {
+                nameRuInput.value = String(item.name_ru || "");
+            }
+            if (nameEnInput) {
+                nameEnInput.value = String(item.name_en || "");
+            }
+            if (descRuInput) {
+                descRuInput.value = String(item.desc_ru || "");
+            }
+            if (descEnInput) {
+                descEnInput.value = String(item.desc_en || "");
+            }
+            if (uploadInput) {
+                uploadInput.value = "";
+            }
+            const uploadTitle = uploadTrigger?.querySelector("b");
+            if (uploadTitle) {
+                uploadTitle.textContent = String(item.video || "").trim() || EMPTY_VIDEO_TEXT;
+            }
+
+            toggleCategoryField();
+            setAddModalOpen(true);
+        }
+
+        function openDeleteModal(itemId) {
+            deletingItemId = Number(itemId || 0);
+            if (!deletingItemId) return;
+            setDeleteModalOpen(true);
         }
 
         async function fetchRowsFromServer() {
@@ -282,6 +414,11 @@
 
         async function submitCreateItem() {
             if (!sectionInput || !nameRuInput || !submitButton) return;
+            if (modalMode === "edit" && !editingItemId) {
+                alert("РќРµ СѓРґР°Р»РѕСЃСЊ РѕРїСЂРµРґРµР»РёС‚СЊ Р·Р°РїРёСЃСЊ РґР»СЏ СЂРµРґР°РєС‚РёСЂРѕРІР°РЅРёСЏ.");
+                return;
+            }
+
             const formData = new FormData();
             formData.append("section", sectionInput.value);
             if (sectionInput.value === "benchmarks") {
@@ -297,9 +434,15 @@
 
             submitButton.disabled = true;
             const initialText = submitButton.textContent;
-            submitButton.textContent = "Сохраняем...";
+            submitButton.textContent = SAVING_LABEL;
+
             try {
-                const response = await fetch("{% url 'auth:admin_library_create' %}", {
+                const updateUrlBase = "{% url 'auth:admin_library_update' 0 %}";
+                const endpoint = modalMode === "edit"
+                    ? updateUrlBase.replace(/0\/$/, `${editingItemId}/`)
+                    : "{% url 'auth:admin_library_create' %}";
+
+                const response = await fetch(endpoint, {
                     method: "POST",
                     body: formData,
                     headers: {
@@ -307,24 +450,55 @@
                     }
                 });
                 const payload = await response.json();
+
                 if (!response.ok || !payload?.ok || !payload?.item) {
                     const videoError = payload?.field_errors?.video || "";
                     if (videoError === "invalid_video_format") {
-                        throw new Error("Разрешены только форматы MP4, AVI, MOV, WMV.");
+                        throw new Error("Р Р°Р·СЂРµС€РµРЅС‹ С‚РѕР»СЊРєРѕ С„РѕСЂРјР°С‚С‹ MP4, AVI, MOV, WMV.");
                     }
                     if (videoError === "video_too_large") {
-                        throw new Error("Видео слишком большое. Максимальный размер файла: 500 МБ.");
+                        throw new Error("Р’РёРґРµРѕ СЃР»РёС€РєРѕРј Р±РѕР»СЊС€РѕРµ. РњР°РєСЃРёРјР°Р»СЊРЅС‹Р№ СЂР°Р·РјРµСЂ С„Р°Р№Р»Р°: 500 РњР‘.");
                     }
-                    throw new Error("Не удалось сохранить запись. Проверьте обязательные поля.");
+                    throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ Р·Р°РїРёСЃСЊ. РџСЂРѕРІРµСЂСЊС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ.");
                 }
+
                 await fetchRowsFromServer();
                 setAddModalOpen(false);
+                editingItemId = null;
+                setModalMode("create");
                 renderRows();
             } catch (error) {
-                alert(error?.message || "Не удалось сохранить запись. Проверьте обязательные поля.");
+                alert(error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ Р·Р°РїРёСЃСЊ. РџСЂРѕРІРµСЂСЊС‚Рµ РѕР±СЏР·Р°С‚РµР»СЊРЅС‹Рµ РїРѕР»СЏ.");
             } finally {
                 submitButton.disabled = false;
-                submitButton.textContent = initialText || "Добавить";
+                submitButton.textContent = initialText || (modalMode === "edit" ? EDIT_BUTTON : CREATE_BUTTON);
+            }
+        }
+
+        async function submitDeleteItem() {
+            if (!deletingItemId || !deleteConfirmButton) return;
+            deleteConfirmButton.disabled = true;
+            deleteConfirmButton.textContent = "РЈРґР°Р»СЏРµРј...";
+            try {
+                const deleteUrlBase = "{% url 'auth:admin_library_delete' 0 %}";
+                const endpoint = deleteUrlBase.replace(/0\/$/, `${deletingItemId}/`);
+                const response = await fetch(endpoint, {
+                    method: "POST",
+                    headers: {
+                        "X-CSRFToken": getCsrfToken()
+                    }
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok) {
+                    throw new Error("РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р·Р°РїРёСЃСЊ.");
+                }
+                await fetchRowsFromServer();
+                setDeleteModalOpen(false);
+                renderRows();
+            } catch (error) {
+                alert(error?.message || "РќРµ СѓРґР°Р»РѕСЃСЊ СѓРґР°Р»РёС‚СЊ Р·Р°РїРёСЃСЊ.");
+                deleteConfirmButton.disabled = false;
+                deleteConfirmButton.textContent = "РЈРґР°Р»РёС‚СЊ";
             }
         }
 
@@ -362,22 +536,61 @@
         });
 
         if (addButton && addModal) {
-            addButton.addEventListener("click", () => setAddModalOpen(true));
+            addButton.addEventListener("click", openCreateModal);
 
             addModal.addEventListener("click", (event) => {
                 const target = event.target;
                 if (!(target instanceof Element)) return;
                 if (target.closest("[data-library-modal-close]")) {
                     setAddModalOpen(false);
+                    editingItemId = null;
+                    setModalMode("create");
                 }
             });
 
             document.addEventListener("keydown", (event) => {
                 if (event.key === "Escape" && !addModal.hidden) {
                     setAddModalOpen(false);
+                    editingItemId = null;
+                    setModalMode("create");
+                }
+                if (event.key === "Escape" && deleteModal && !deleteModal.hidden) {
+                    setDeleteModalOpen(false);
                 }
             });
         }
+
+        if (deleteModal) {
+            deleteModal.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (target.closest("[data-library-delete-modal-close]")) {
+                    setDeleteModalOpen(false);
+                }
+            });
+        }
+
+        tbody.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const editLink = target.closest("[data-library-edit]");
+            const deleteLink = target.closest("[data-library-delete]");
+            if (editLink) {
+                event.preventDefault();
+                const itemId = Number(editLink.getAttribute("data-library-edit") || "0");
+                if (itemId > 0) {
+                    openEditModal(itemId);
+                }
+                return;
+            }
+            if (deleteLink) {
+                event.preventDefault();
+                const itemId = Number(deleteLink.getAttribute("data-library-delete") || "0");
+                if (itemId > 0) {
+                    openDeleteModal(itemId);
+                }
+            }
+        });
 
         if (uploadTrigger && uploadInput) {
             uploadTrigger.addEventListener("click", () => uploadInput.click());
@@ -399,7 +612,11 @@
         if (submitButton) {
             submitButton.addEventListener("click", submitCreateItem);
         }
+        if (deleteConfirmButton) {
+            deleteConfirmButton.addEventListener("click", submitDeleteItem);
+        }
 
+        setModalMode("create");
         toggleBenchmarkFilters();
         fetchRowsFromServer().then(renderRows).catch(() => {
             rowsCache = [];

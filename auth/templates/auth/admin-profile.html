@@ -31,14 +31,14 @@
                 <p>Данные аккаунта</p>
             </div>
             <div class="calendar-content__user">
-                <div><strong>Ксения Иванова</strong><span>Admin</span></div>
-                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">AM</a>
+                <div><strong id="admin-profile-header-name">{{ admin_profile_full_name }}</strong><span>Admin</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа" id="admin-profile-header-avatar">{{ admin_profile_initials }}</a>
             </div>
         </header>
 
         <section class="admin-profile-card">
             <div class="admin-profile-photo">
-                <div class="admin-profile-photo__circle">КИ</div>
+                <div class="admin-profile-photo__circle" id="admin-profile-photo-initials">{{ admin_profile_initials }}</div>
                 <button type="button" class="admin-profile-photo__camera" aria-label="Загрузить фото">
                     <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                 </button>
@@ -52,28 +52,28 @@
                 <label class="admin-profile-form__field">
                     <span>Имя</span>
                     <span class="admin-profile-form__input-wrap">
-                        <input type="text" value="Ксения" data-initial-value="Ксения">
+                        <input type="text" id="admin-profile-first-name" value="{{ admin_profile_first_name }}" data-initial-value="{{ admin_profile_first_name }}">
                         <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
                     </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Фамилия</span>
                     <span class="admin-profile-form__input-wrap">
-                        <input type="text" value="Иванова" data-initial-value="Иванова">
+                        <input type="text" id="admin-profile-last-name" value="{{ admin_profile_last_name }}" data-initial-value="{{ admin_profile_last_name }}">
                         <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
                     </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Электронная почта</span>
                     <span class="admin-profile-form__input-wrap">
-                        <input type="email" value="admin@example.com" data-initial-value="admin@example.com">
+                        <input type="email" id="admin-profile-email" value="{{ admin_profile_email }}" data-initial-value="{{ admin_profile_email }}">
                         <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
                     </span>
                 </label>
                 <label class="admin-profile-form__field">
                     <span>Номер телефона</span>
                     <span class="admin-profile-form__input-wrap">
-                        <input type="text" value="+7 (999) 123-45-67" data-initial-value="+7 (999) 123-45-67">
+                        <input type="text" id="admin-profile-phone" value="{{ admin_profile_phone }}" data-initial-value="{{ admin_profile_phone }}">
                         <button class="admin-profile-form__icon" type="button" aria-label="Редактировать">✎</button>
                     </span>
                 </label>
@@ -111,23 +111,193 @@
                     <button type="button" class="admin-profile-actions__btn admin-profile-actions__btn--primary" id="admin-profile-password-save">Сохранить изменения</button>
                 </div>
             </form>
+
+            {% if admin_profile_can_manage_users %}
+            <section class="admin-profile-users">
+                <h2>Добавление пользователей</h2>
+                <div class="admin-profile-users__head">
+                    <span>Имя</span>
+                    <span>Фамилия</span>
+                    <span>Электронная почта</span>
+                    <span>Роль</span>
+                    <span></span>
+                </div>
+                <div class="admin-profile-users__rows" id="admin-profile-users-rows"></div>
+                <p class="admin-profile-users__hint" id="admin-profile-users-hint" hidden></p>
+            </section>
+            {% endif %}
         </section>
     </section>
 </main>
 
+{% if admin_profile_can_manage_users %}
+{{ admin_profile_users_rows_json|json_script:"admin-profile-users-json" }}
+{% endif %}
+
 <script>
     (function () {
+        function getCsrfToken() {
+            const pair = document.cookie.split(";").map((item) => item.trim()).find((item) => item.startsWith("csrftoken="));
+            if (pair) {
+                return decodeURIComponent(pair.split("=")[1] || "");
+            }
+            return "{{ csrf_token }}";
+        }
+
+        function showMessage(text) {
+            alert(text);
+        }
+
         const dataForm = document.getElementById("admin-profile-data-form");
         const dataActions = document.getElementById("admin-profile-data-actions");
         const dataCancel = document.getElementById("admin-profile-data-cancel");
         const dataSave = document.getElementById("admin-profile-data-save");
         const dataInputs = dataForm?.querySelectorAll("input[data-initial-value]") || [];
+        const firstNameInput = document.getElementById("admin-profile-first-name");
+        const lastNameInput = document.getElementById("admin-profile-last-name");
+        const emailInput = document.getElementById("admin-profile-email");
+        const phoneInput = document.getElementById("admin-profile-phone");
+        const headerName = document.getElementById("admin-profile-header-name");
+        const headerAvatar = document.getElementById("admin-profile-header-avatar");
+        const photoInitials = document.getElementById("admin-profile-photo-initials");
+        const usersRowsWrap = document.getElementById("admin-profile-users-rows");
+        const usersHint = document.getElementById("admin-profile-users-hint");
+        const usersPayloadEl = document.getElementById("admin-profile-users-json");
+        const usersRowsInitial = usersPayloadEl ? JSON.parse(usersPayloadEl.textContent || "[]") : [];
+        let usersRows = Array.isArray(usersRowsInitial) ? usersRowsInitial : [];
 
         const passwordForm = document.getElementById("admin-profile-password-form");
         const passwordActions = document.getElementById("admin-profile-password-actions");
         const passwordCancel = document.getElementById("admin-profile-password-cancel");
         const passwordSave = document.getElementById("admin-profile-password-save");
         const passwordInputs = passwordForm?.querySelectorAll("input[type='password'],input[type='text']") || [];
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
+        }
+
+        function normalizeRoleLabel(value) {
+            const normalized = String(value || "").toLowerCase();
+            if (normalized === "admin") return "Админ";
+            if (normalized === "trainer") return "Тренер";
+            return "Пользователь";
+        }
+
+        function buildCreatedRow(row) {
+            return `
+                <div class="admin-profile-users__row is-created">
+                    <input type="text" value="${escapeHtml(row.first_name)}" readonly>
+                    <input type="text" value="${escapeHtml(row.last_name)}" readonly>
+                    <input type="email" value="${escapeHtml(row.email)}" readonly>
+                    <select disabled>
+                        <option>${normalizeRoleLabel(row.role)}</option>
+                    </select>
+                    <button type="button" class="admin-profile-users__btn admin-profile-users__btn--created" disabled>Создан</button>
+                </div>
+            `;
+        }
+
+        function buildDraftRow() {
+            return `
+                <div class="admin-profile-users__row admin-profile-users__row--draft" data-user-create-row>
+                    <input type="text" placeholder="Имя" data-field="first_name">
+                    <input type="text" placeholder="Фамилия" data-field="last_name">
+                    <input type="email" placeholder="email@example.com" data-field="email">
+                    <select data-field="role">
+                        <option value="trainer">Тренер</option>
+                        <option value="admin">Админ</option>
+                    </select>
+                    <button type="button" class="admin-profile-users__btn admin-profile-users__btn--create" data-user-create-btn>Создать пользователя</button>
+                </div>
+            `;
+        }
+
+        function renderUsersBlock() {
+            if (!usersRowsWrap) return;
+            const createdRows = usersRows.map((row) => buildCreatedRow(row)).join("");
+            usersRowsWrap.innerHTML = `${buildDraftRow()}${createdRows}`;
+            const createButton = usersRowsWrap.querySelector("[data-user-create-btn]");
+            createButton?.addEventListener("click", handleCreateUserClick);
+        }
+
+        function showUsersHint(message, kind = "info") {
+            if (!usersHint) return;
+            usersHint.hidden = false;
+            usersHint.textContent = message;
+            usersHint.dataset.kind = kind;
+        }
+
+        async function refreshUsersRows() {
+            if (!usersRowsWrap) return;
+            const response = await fetch("{% url 'auth:admin_profile_users_list' %}");
+            const payload = await response.json();
+            if (!response.ok || !payload?.ok || !Array.isArray(payload.rows)) {
+                throw new Error("load_failed");
+            }
+            usersRows = payload.rows;
+            renderUsersBlock();
+        }
+
+        async function handleCreateUserClick(event) {
+            const button = event.currentTarget;
+            if (!(button instanceof HTMLButtonElement)) return;
+            const row = button.closest("[data-user-create-row]");
+            if (!(row instanceof Element)) return;
+
+            const firstName = (row.querySelector("[data-field='first_name']")?.value || "").trim();
+            const lastName = (row.querySelector("[data-field='last_name']")?.value || "").trim();
+            const email = (row.querySelector("[data-field='email']")?.value || "").trim();
+            const role = (row.querySelector("[data-field='role']")?.value || "trainer").trim();
+
+            if (!firstName || !lastName || !email) {
+                showUsersHint("Заполните имя, фамилию и email.", "error");
+                return;
+            }
+
+            button.disabled = true;
+            const initialLabel = button.textContent;
+            button.textContent = "Создаем...";
+            try {
+                const response = await fetch("{% url 'auth:admin_profile_user_create' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        first_name: firstName,
+                        last_name: lastName,
+                        email: email,
+                        role: role,
+                    }),
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok || !payload?.created) {
+                    if (payload?.field_errors?.email === "already_exists") {
+                        throw new Error("Пользователь с таким email уже существует.");
+                    }
+                    throw new Error("Не удалось создать пользователя.");
+                }
+
+                await refreshUsersRows();
+                showUsersHint(
+                    payload.invite_sent
+                        ? "Пользователь создан. Письмо со ссылкой на установку пароля отправлено."
+                        : "Пользователь создан, но письмо отправить не удалось.",
+                    payload.invite_sent ? "success" : "error",
+                );
+            } catch (error) {
+                showUsersHint(error?.message || "Не удалось создать пользователя.", "error");
+            } finally {
+                button.disabled = false;
+                button.textContent = initialLabel || "Создать пользователя";
+            }
+        }
 
         function updateDataActions() {
             const isDirty = Array.from(dataInputs).some((input) => input.value !== (input.getAttribute("data-initial-value") || ""));
@@ -151,11 +321,49 @@
             updateDataActions();
         });
 
-        dataSave?.addEventListener("click", () => {
-            dataInputs.forEach((input) => {
-                input.setAttribute("data-initial-value", input.value);
-            });
-            updateDataActions();
+        dataSave?.addEventListener("click", async () => {
+            const payload = {
+                first_name: firstNameInput?.value || "",
+                last_name: lastNameInput?.value || "",
+                email: emailInput?.value || "",
+                phone: phoneInput?.value || "",
+            };
+
+            dataSave.disabled = true;
+            try {
+                const response = await fetch("{% url 'auth:admin_profile_update' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok || !result?.ok || !result?.profile) {
+                    const fieldErrors = result?.field_errors || {};
+                    if (fieldErrors.email === "already_exists") {
+                        throw new Error("Этот email уже используется.");
+                    }
+                    if (fieldErrors.phone === "already_exists") {
+                        throw new Error("Этот номер телефона уже используется.");
+                    }
+                    throw new Error("Не удалось сохранить данные профиля.");
+                }
+
+                dataInputs.forEach((input) => {
+                    input.setAttribute("data-initial-value", input.value);
+                });
+                if (headerName) headerName.textContent = result.profile.full_name || "";
+                if (headerAvatar) headerAvatar.textContent = result.profile.initials || "AD";
+                if (photoInitials) photoInitials.textContent = result.profile.initials || "AD";
+                updateDataActions();
+                showMessage("Данные профиля сохранены.");
+            } catch (error) {
+                showMessage(error?.message || "Не удалось сохранить данные профиля.");
+            } finally {
+                dataSave.disabled = false;
+            }
         });
 
         passwordInputs.forEach((input) => {
@@ -171,12 +379,48 @@
             updatePasswordActions();
         });
 
-        passwordSave?.addEventListener("click", () => {
-            passwordInputs.forEach((input) => {
-                input.value = "";
-                input.type = "password";
-            });
-            updatePasswordActions();
+        passwordSave?.addEventListener("click", async () => {
+            const payload = {
+                old_password: document.getElementById("admin-old-password")?.value || "",
+                new_password: document.getElementById("admin-new-password")?.value || "",
+                repeat_password: document.getElementById("admin-repeat-password")?.value || "",
+            };
+            passwordSave.disabled = true;
+            try {
+                const response = await fetch("{% url 'auth:admin_profile_password' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCsrfToken(),
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const result = await response.json();
+                if (!response.ok || !result?.ok) {
+                    const fieldErrors = result?.field_errors || {};
+                    if (fieldErrors.old_password === "invalid") {
+                        throw new Error("Старый пароль введен неверно.");
+                    }
+                    if (fieldErrors.repeat_password === "mismatch") {
+                        throw new Error("Новый пароль и повтор не совпадают.");
+                    }
+                    if (fieldErrors.new_password === "weak") {
+                        throw new Error("Новый пароль слишком простой.");
+                    }
+                    throw new Error("Не удалось изменить пароль.");
+                }
+
+                passwordInputs.forEach((input) => {
+                    input.value = "";
+                    input.type = "password";
+                });
+                updatePasswordActions();
+                showMessage("Пароль успешно обновлен.");
+            } catch (error) {
+                showMessage(error?.message || "Не удалось изменить пароль.");
+            } finally {
+                passwordSave.disabled = false;
+            }
         });
 
         document.querySelectorAll("[data-toggle-password]").forEach((button) => {
@@ -187,6 +431,13 @@
                 input.type = input.type === "password" ? "text" : "password";
             });
         });
+
+        if (usersRowsWrap) {
+            renderUsersBlock();
+            refreshUsersRows().catch(() => {
+                showUsersHint("Не удалось загрузить список пользователей.", "error");
+            });
+        }
 
         updateDataActions();
         updatePasswordActions();

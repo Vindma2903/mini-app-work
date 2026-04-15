@@ -187,3 +187,89 @@
 .admin-profile-form__field--empty {
     visibility: hidden;
 }
+
+.admin-profile-users {
+    margin-top: 22px;
+    border-top: 1px solid #e4e7ec;
+    padding-top: 14px;
+}
+
+.admin-profile-users h2 {
+    margin: 0 0 14px;
+    font: 600 24px/30px Inter, Arial, sans-serif;
+    color: #101828;
+}
+
+.admin-profile-users__head {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.1fr .9fr 180px;
+    gap: 14px;
+    margin-bottom: 10px;
+}
+
+.admin-profile-users__head span {
+    font: 500 14px/20px Inter, Arial, sans-serif;
+    color: #344054;
+}
+
+.admin-profile-users__rows {
+    display: grid;
+    gap: 10px;
+}
+
+.admin-profile-users__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.1fr .9fr 180px;
+    gap: 14px;
+}
+
+.admin-profile-users__row input,
+.admin-profile-users__row select {
+    width: 100%;
+    height: 40px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font: 400 14px/20px Inter, Arial, sans-serif;
+    color: #101828;
+    background: #fff;
+}
+
+.admin-profile-users__row select:disabled,
+.admin-profile-users__row input[readonly] {
+    background: #f9fafb;
+    color: #667085;
+}
+
+.admin-profile-users__btn {
+    height: 40px;
+    border: 0;
+    border-radius: 8px;
+    font: 500 14px/20px Inter, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.admin-profile-users__btn--create {
+    background: #155dfc;
+    color: #fff;
+}
+
+.admin-profile-users__btn--created {
+    background: #9aa0a6;
+    color: #fff;
+    cursor: default;
+}
+
+.admin-profile-users__hint {
+    margin: 10px 0 0;
+    font: 500 13px/18px Inter, Arial, sans-serif;
+    color: #344054;
+}
+
+.admin-profile-users__hint[data-kind="success"] {
+    color: #027a48;
+}
+
+.admin-profile-users__hint[data-kind="error"] {
+    color: #b42318;
+}

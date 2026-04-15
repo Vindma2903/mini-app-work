@@ -1,7 +1,7 @@
-п»ї{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РљР°Р»РµРЅРґР°СЂСЊ{% endblock %}
+{% block title %}Календарь{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
@@ -10,43 +10,43 @@
 {% block content %}
 <main class="calendar-desktop">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Р›РѕРіРѕС‚РёРї">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>РЎС‚Р°С‚РёСЃС‚РёРєР°</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>РљР°Р»РµРЅРґР°СЂСЊ</span></a>
-            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</span></a>
-            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Р‘РёР±Р»РёРѕС‚РµРєР°</span></a>
-            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>РќР°СЃС‚СЂРѕР№РєРё</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Р’С‹Р№С‚Рё</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
         </div>
     </aside>
 
     <section class="calendar-content">
         <header class="calendar-content__header">
             <div>
-                <h1>РљР°Р»РµРЅРґР°СЂСЊ</h1>
-                <p>Р—Р°РїСЂРѕРіСЂР°РјРјРёСЂРѕРІР°С‚СЊ С‚СЂРµРЅРёСЂРѕРІРєСѓ</p>
+                <h1>Календарь</h1>
+                <p>Запрограммировать тренировку</p>
             </div>
             <div class="calendar-content__user">
-                <div><strong>РљСЃРµРЅРёСЏ РРІР°РЅРѕРІР°</strong><span>Admin</span></div>
-                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅР°">AM</a>
+                <div><strong>{{ admin_header_name }}</strong><span>{{ admin_header_role }}</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">{{ admin_header_initials }}</a>
             </div>
         </header>
 
         <div class="calendar-card">
             <div class="calendar-card__top">
                 <div class="calendar-card__title-row">
-                    <img class="calendar-card__arrow" id="calendar-prev-week" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="РџСЂРµРґС‹РґСѓС‰Р°СЏ РЅРµРґРµР»СЏ" role="button" tabindex="0">
-                    <span class="calendar-card__range" id="calendar-range-label">23 Р¤РµРІСЂР°Р»СЏ - 1 РњР°СЂС‚Р° 2026</span>
-                    <img class="calendar-card__arrow" id="calendar-next-week" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="РЎР»РµРґСѓСЋС‰Р°СЏ РЅРµРґРµР»СЏ" role="button" tabindex="0">
-                    <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Р’С‹Р±СЂР°С‚СЊ РґРёР°РїР°Р·РѕРЅ РґР°С‚">
+                    <img class="calendar-card__arrow" id="calendar-prev-week" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="Предыдущая неделя" role="button" tabindex="0">
+                    <span class="calendar-card__range" id="calendar-range-label">23 Февраля - 1 Марта 2026</span>
+                    <img class="calendar-card__arrow" id="calendar-next-week" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="Следующая неделя" role="button" tabindex="0">
+                    <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Выбрать диапазон дат">
                         <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                     </button>
                 </div>
                 <div class="calendar-create-menu-wrap">
-                    <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Р”РѕР±Р°РІРёС‚СЊ</button>
+                    <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
                 </div>
             </div>
 
@@ -58,18 +58,18 @@
 
 <div class="calendar-range-modal" id="calendar-range-modal" hidden>
     <div class="calendar-range-modal__overlay" data-close-range></div>
-    <section class="calendar-range-modal__card" role="dialog" aria-modal="true" aria-label="Р’С‹Р±РѕСЂ РґРёР°РїР°Р·РѕРЅР° РґР°С‚">
+    <section class="calendar-range-modal__card" role="dialog" aria-modal="true" aria-label="Выбор диапазона дат">
         <header class="calendar-range-modal__head">
-            <h3>Р’С‹Р±РµСЂРёС‚Рµ РґРёР°РїР°Р·РѕРЅ</h3>
-            <button type="button" class="calendar-range-modal__close" data-close-range>Г—</button>
+            <h3>Выберите диапазон</h3>
+            <button type="button" class="calendar-range-modal__close" data-close-range>?</button>
         </header>
         <div class="calendar-range-modal__month">
-            <button type="button" id="calendar-prev-month">вЂ№</button>
+            <button type="button" id="calendar-prev-month">‹</button>
             <strong id="calendar-month-label"></strong>
-            <button type="button" id="calendar-next-month">вЂє</button>
+            <button type="button" id="calendar-next-month">›</button>
         </div>
         <div class="calendar-range-modal__weekdays">
-            <span>РџРЅ</span><span>Р’С‚</span><span>РЎСЂ</span><span>Р§С‚</span><span>РџС‚</span><span>РЎР±</span><span>Р’СЃ</span>
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
         </div>
         <div class="calendar-range-modal__grid" id="calendar-range-grid"></div>
     </section>
@@ -77,15 +77,15 @@
 
 <div class="calendar-create-modal" id="calendar-create-modal" hidden>
     <div class="calendar-create-modal__overlay" data-close-create></div>
-    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Р”РѕР±Р°РІР»РµРЅРёРµ С‚СЂРµРЅРёСЂРѕРІРєРё">
+    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление тренировки">
         <header class="calendar-create-modal__head">
-            <h3>Р”РѕР±Р°РІР»РµРЅРёРµ С‚СЂРµРЅРёСЂРѕРІРєРё</h3>
-            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+            <h3>Добавление тренировки</h3>
+            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Закрыть">?</button>
         </header>
 
         <div class="calendar-create-modal__body">
             <label class="calendar-create-modal__field">
-                <span>Р”Р°С‚Р°</span>
+                <span>Дата</span>
                 <button type="button" class="calendar-create-modal__input" id="calendar-create-date-trigger">
                     <em id="calendar-create-date-value">22.08.2026</em>
                     <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
@@ -93,7 +93,7 @@
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>РќР°РїСЂР°РІР»РµРЅРёРµ</span>
+                <span>Направление</span>
                 <div class="calendar-create-modal__dropdown" id="calendar-direction-dropdown">
                     <button type="button" class="calendar-create-modal__input" id="calendar-direction-trigger" aria-haspopup="listbox" aria-expanded="false">
                         <em id="calendar-create-direction-value">FBB</em>
@@ -101,136 +101,136 @@
                     </button>
                     <div class="calendar-create-modal__dropdown-menu" id="calendar-direction-menu" role="listbox" hidden>
                         <button type="button" class="calendar-create-modal__dropdown-option is-active" data-direction-option="fbb" data-direction-label="FBB">FBB</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="crossfit" data-direction-label="РљСЂРѕСЃСЃС„РёС‚ СЃ Р”РµРЅРёСЃРѕРј Р—Р°Р»РѕР·РЅРёРј">РљСЂРѕСЃСЃС„РёС‚ СЃ Р”РµРЅРёСЃРѕРј Р—Р°Р»РѕР·РЅРёРј</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="gymnastics" data-direction-label="Р“РёРјРЅР°СЃС‚РёРєР°">Р“РёРјРЅР°СЃС‚РёРєР°</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="workout" data-direction-label="Р’РѕСЂРєР°СѓС‚ РґРЅСЏ">Р’РѕСЂРєР°СѓС‚ РґРЅСЏ</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="crossfit" data-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="gymnastics" data-direction-label="Гимнастика">Гимнастика</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="workout" data-direction-label="Воркаут дня">Воркаут дня</button>
                     </div>
                     <input type="hidden" name="training_direction" id="calendar-direction-input" value="fbb">
                 </div>
             </label>
 <label class="calendar-create-modal__field">
-                <span>Р’РёРґРёРјРѕСЃС‚СЊ</span>
+                <span>Видимость</span>
                 <div class="calendar-create-modal__dropdown" id="calendar-visibility-dropdown">
                     <button type="button" class="calendar-create-modal__input" id="calendar-visibility-trigger" aria-haspopup="listbox" aria-expanded="false">
-                        <em id="calendar-visibility-value">Р”Р»СЏ РІСЃРµС…</em>
+                        <em id="calendar-visibility-value">Для всех</em>
                         <img id="calendar-visibility-chevron" src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                     </button>
                     <div class="calendar-create-modal__dropdown-menu" id="calendar-visibility-menu" role="listbox" hidden>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-visibility-option="coaches" data-visibility-label="РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ">РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-visibility-option="all" data-visibility-label="Р”Р»СЏ РІСЃРµС…">Р”Р»СЏ РІСЃРµС…</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-visibility-option="coaches" data-visibility-label="Только для тренеров">Только для тренеров</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-visibility-option="all" data-visibility-label="Для всех">Для всех</button>
                     </div>
                     <input type="hidden" name="training_visibility" id="calendar-visibility-input" value="all">
                 </div>
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>РљРѕРјРјРµРЅС‚Р°СЂРёР№</span>
+                <span>Комментарий</span>
                 <textarea class="calendar-create-modal__textarea"></textarea>
             </label>
 
             <div class="calendar-create-modal__existing" id="calendar-create-existing-exercises" hidden></div>
 
             <div class="calendar-create-modal__exercise-card">
-                <p class="calendar-create-modal__exercise-name">РќРµ РІС‹Р±СЂР°РЅРѕ</p>
+                <p class="calendar-create-modal__exercise-name">Не выбрано</p>
                 <div class="calendar-create-modal__exercise-grid">
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
-                        <span>Р‘Р»РѕРє</span>
+                        <span>Блок</span>
                         <div class="calendar-create-modal__dropdown" id="calendar-block-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-block-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-block-value">Р‘Р»РѕРє</em><img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                                <em id="calendar-block-value">Блок</em><img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-block-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-block-option="default" data-block-label="Р‘Р»РѕРє">Р‘Р»РѕРє</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="strength" data-block-label="РЎРёР»РѕРІР°СЏ">РЎРёР»РѕРІР°СЏ</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="cardio" data-block-label="РљР°СЂРґРёРѕ">РљР°СЂРґРёРѕ</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="gymnastics" data-block-label="Р“РёРјРЅР°СЃС‚РёРєР°">Р“РёРјРЅР°СЃС‚РёРєР°</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="custom" data-block-label="РЎРІРѕРµ РЅР°Р·РІР°РЅРёРµ">РЎРІРѕРµ РЅР°Р·РІР°РЅРёРµ</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-block-option="default" data-block-label="Блок">Блок</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="strength" data-block-label="Силовая">Силовая</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="cardio" data-block-label="Кардио">Кардио</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="gymnastics" data-block-label="Гимнастика">Гимнастика</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="custom" data-block-label="Свое название">Свое название</button>
                             </div>
                             <input type="hidden" name="training_block_type" id="calendar-block-input" value="default">
                         </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--block-custom" id="calendar-block-custom-wrap" hidden>
                         <span>&nbsp;</span>
-                        <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ">
+                        <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--measurement" id="calendar-block-measurement-wrap" hidden>
-                        <span>РР·РјРµСЂРµРЅРёРµ</span>
+                        <span>Измерение</span>
                         <input id="calendar-block-measurement-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise" id="calendar-exercise-kind-wrap">
-                        <span>РЈРїСЂР°Р¶РЅРµРЅРёРµ</span>
+                        <span>Упражнение</span>
                         <div class="calendar-create-modal__dropdown" id="calendar-exercise-kind-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-exercise-kind-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-exercise-kind-value">РЈРїСЂР°Р¶РЅРµРЅРёРµ</em>
+                                <em id="calendar-exercise-kind-value">Упражнение</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-exercise-kind-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-exercise-kind-option="exercise" data-exercise-kind-label="РЈРїСЂР°Р¶РЅРµРЅРёРµ">РЈРїСЂР°Р¶РЅРµРЅРёРµ</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-exercise-kind-option="exercise" data-exercise-kind-label="Упражнение">Упражнение</button>
                                 <button type="button" class="calendar-create-modal__dropdown-option" data-exercise-kind-option="benchmarks" data-exercise-kind-label="Benchmarks">Benchmarks</button>
                             </div>
                             <input type="hidden" name="training_exercise_kind" id="calendar-exercise-kind-input" value="exercise">
                         </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--benchmark" id="calendar-benchmark-name-wrap" hidden>
-                        <span>РўРёРї РєРѕРјРїР»РµРєСЃР°</span>
+                        <span>Тип комплекса</span>
                         <div class="calendar-create-modal__search-input-wrap">
-                            <input id="calendar-benchmark-name-input" class="calendar-create-modal__text-input calendar-create-modal__text-input--search" type="text" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ">
+                            <input id="calendar-benchmark-name-input" class="calendar-create-modal__text-input calendar-create-modal__text-input--search" type="text" placeholder="Введите название">
                             <span class="calendar-create-modal__search-icon" aria-hidden="true"></span>
                         </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
-                        <span>РљРѕР»РёС‡РµСЃС‚РІРѕ</span>
+                        <span>Количество</span>
                         <div class="calendar-create-modal__count">
-                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="РџРѕРґС…РѕРґРѕРІ">
-                            <small>РїРѕ</small>
-                            <input id="calendar-create-reps-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="РџРѕРІС‚РѕСЂРµРЅРёР№">
+                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
+                            <small>по</small>
+                            <input id="calendar-create-reps-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
                         </div>
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
-                        <span>Р РµР·СѓР»СЊС‚Р°С‚</span>
+                        <span>Результат</span>
                         <div class="calendar-create-modal__dropdown" id="calendar-result-type-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-result-type-value">Р РµР·СѓР»СЊС‚Р°С‚</em>
+                                <em id="calendar-result-type-value">Результат</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-result-type-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="time" data-result-type-label="Р’СЂРµРјСЏ">Р’СЂРµРјСЏ</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Р’РµСЃ">Р’РµСЃ</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="РљРѕР»-РІРѕ РїРѕРІС‚РѕСЂРµРЅРёР№">РљРѕР»-РІРѕ РїРѕРІС‚РѕСЂРµРЅРёР№</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="time" data-result-type-label="Время">Время</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
                             </div>
                             <input type="hidden" name="training_result_type" id="calendar-result-type-input" value="time">
                         </div>
                     </label>
                 </div>
-                <button type="button" class="calendar-create-modal__save" id="calendar-create-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+                <button type="button" class="calendar-create-modal__save" id="calendar-create-save">Сохранить</button>
             </div>
 
             <button type="button" class="calendar-create-modal__add-exercise">
-                <img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Р”РѕР±Р°РІРёС‚СЊ СѓРїСЂР°Р¶РЅРµРЅРёРµ
+                <img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить упражнение
             </button>
 
             <div class="calendar-create-modal__colors">
-                <p>Р¦РІРµС‚ С‚СЂРµРЅРёСЂРѕРІРєРё РІ Р°РґРјРёРЅ РїР°РЅРµР»Рё</p>
+                <p>Цвет тренировки в админ панели</p>
                 <div>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="РЎРёРЅРёР№" aria-pressed="true" data-create-color="blue"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="РћСЂР°РЅР¶РµРІС‹Р№" aria-pressed="false" data-create-color="orange"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Р—РµР»РµРЅС‹Р№" aria-pressed="false" data-create-color="green"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Р РѕР·РѕРІС‹Р№" aria-pressed="false" data-create-color="pink"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--violet" aria-label="Р¤РёРѕР»РµС‚РѕРІС‹Р№" aria-pressed="false" data-create-color="violet"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-create-color="blue"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-create-color="orange"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-create-color="green"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-create-color="pink"></button>
+                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--violet" aria-label="Фиолетовый" aria-pressed="false" data-create-color="violet"></button>
                 </div>
                 <input type="hidden" name="training_color" id="calendar-create-color" value="blue">
-                <small id="calendar-create-color-selected">Р’С‹Р±СЂР°РЅ С†РІРµС‚: РЎРёРЅРёР№</small>
-                <small>Р’С‹Р±РµСЂРёС‚Рµ С†РІРµС‚ РґР»СЏ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ С‚СЂРµРЅРёСЂРѕРІРєРё РІ РєР°Р»РµРЅРґР°СЂРµ</small>
+                <small id="calendar-create-color-selected">Выбран цвет: Синий</small>
+                <small>Выберите цвет для визуального отображения тренировки в календаре</small>
             </div>
 
             <div class="calendar-create-modal__preview">
-                <p>РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ</p>
+                <p>Предпросмотр</p>
                 <article id="calendar-create-preview-card" class="calendar-create-modal__preview-card calendar-create-modal__preview-card--blue">
                     <h4>HIIT Training</h4>
                     <ul>
-                        <li>РЎРјРёС‚ 10 С…1</li>
-                        <li>РџСЂРёСЃРµРґ 10 С…1</li>
-                        <li>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…1</li>
+                        <li>Смит 10 х1</li>
+                        <li>Присед 10 х1</li>
+                        <li>Отжимания 10 х1</li>
                     </ul>
                 </article>
             </div>
@@ -240,82 +240,82 @@
 
 <div class="calendar-ready-modal" id="calendar-ready-modal" hidden>
     <div class="calendar-ready-modal__overlay" data-close-ready></div>
-    <section class="calendar-ready-modal__card" role="dialog" aria-modal="true" aria-label="Р“РѕС‚РѕРІС‹Р№ РєРѕРјРїР»РµРєСЃ">
+    <section class="calendar-ready-modal__card" role="dialog" aria-modal="true" aria-label="Готовый комплекс">
         <header class="calendar-ready-modal__head">
-            <h3>Р“РѕС‚РѕРІС‹Р№ РєРѕРјРїР»РµРєСЃ</h3>
-            <button type="button" class="calendar-ready-modal__close" data-close-ready aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+            <h3>Готовый комплекс</h3>
+            <button type="button" class="calendar-ready-modal__close" data-close-ready aria-label="Закрыть">?</button>
         </header>
         <div class="calendar-ready-modal__body">
             <label class="calendar-ready-modal__field">
-                <span>Р”Р°С‚Р°</span>
+                <span>Дата</span>
                 <button type="button" class="calendar-ready-modal__input" id="calendar-ready-date-trigger">
                     <em id="calendar-ready-date-value">22.08.2026</em>
                     <img src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
                 </button>
             </label>
             <label class="calendar-ready-modal__field">
-                <span>РўСЂРµРЅРёСЂРѕРІРєР°</span>
+                <span>Тренировка</span>
                 <div class="calendar-ready-modal__dropdown" id="calendar-ready-workout-dropdown">
                     <button type="button" class="calendar-ready-modal__input" id="calendar-ready-workout-trigger" aria-haspopup="listbox" aria-expanded="false">
-                        <em id="calendar-ready-workout-value">Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё</em>
+                        <em id="calendar-ready-workout-value">Готовые тренировки</em>
                         <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                     </button>
                     <div class="calendar-ready-modal__dropdown-menu" id="calendar-ready-workout-menu" role="listbox" hidden>
-                        <button type="button" class="calendar-ready-modal__dropdown-option is-active" data-ready-workout-option="ready" data-ready-workout-label="Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё">Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё</button>
+                        <button type="button" class="calendar-ready-modal__dropdown-option is-active" data-ready-workout-option="ready" data-ready-workout-label="Готовые тренировки">Готовые тренировки</button>
                         <button type="button" class="calendar-ready-modal__dropdown-option" data-ready-workout-option="benchmarks" data-ready-workout-label="Benchmarks">Benchmarks</button>
                     </div>
                     <input type="hidden" name="ready_workout_type" id="calendar-ready-workout-input" value="ready">
                 </div>
             </label>
             <label class="calendar-ready-modal__field">
-                <span>РўРёРї РєРѕРјРїР»РµРєСЃР°</span>
+                <span>Тип комплекса</span>
                 <div class="calendar-ready-modal__dropdown" id="calendar-ready-complex-type-dropdown">
                     <button type="button" class="calendar-ready-modal__input" id="calendar-ready-complex-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                        <em id="calendar-ready-complex-type-value">Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё</em>
+                        <em id="calendar-ready-complex-type-value">Готовые тренировки</em>
                         <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                     </button>
                     <div class="calendar-ready-modal__dropdown-menu" id="calendar-ready-complex-type-menu" role="listbox" hidden>
-                        <button type="button" class="calendar-ready-modal__dropdown-option is-active" data-ready-complex-type-option="ready" data-ready-complex-type-label="Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё">Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё</button>
+                        <button type="button" class="calendar-ready-modal__dropdown-option is-active" data-ready-complex-type-option="ready" data-ready-complex-type-label="Готовые тренировки">Готовые тренировки</button>
                         <button type="button" class="calendar-ready-modal__dropdown-option" data-ready-complex-type-option="benchmarks" data-ready-complex-type-label="Benchmarks">Benchmarks</button>
                     </div>
                     <input type="hidden" name="ready_complex_type" id="calendar-ready-complex-type-input" value="ready">
                 </div>
             </label>
             <label class="calendar-ready-modal__field">
-                <span>РќР°Р№С‚Рё РєРѕРјРїР»РµРєСЃ</span>
-                <input type="text" class="calendar-ready-modal__text-input" placeholder="Р’РІРµРґРёС‚Рµ РЅР°Р·РІР°РЅРёРµ РєРѕРјРїР»РµРєСЃР°">
+                <span>Найти комплекс</span>
+                <input type="text" class="calendar-ready-modal__text-input" placeholder="Введите название комплекса">
             </label>
             <div class="calendar-ready-modal__list">
-                <button type="button" class="calendar-ready-modal__plan is-active" aria-pressed="true">РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№</button>
-                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">РЎРёРЅРґРё</button>
+                <button type="button" class="calendar-ready-modal__plan is-active" aria-pressed="true">Тренировка с Ксенией</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Тренировка с Ксенией</button>
+                <button type="button" class="calendar-ready-modal__plan" aria-pressed="false">Синди</button>
             </div>
             <div class="calendar-ready-modal__colors">
-                <p>Р¦РІРµС‚ С‚СЂРµРЅРёСЂРѕРІРєРё РІ Р°РґРјРёРЅ РїР°РЅРµР»Рё</p>
+                <p>Цвет тренировки в админ панели</p>
                 <div>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--blue is-active" aria-label="РЎРёРЅРёР№" aria-pressed="true" data-ready-color="blue"></button>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--orange" aria-label="РћСЂР°РЅР¶РµРІС‹Р№" aria-pressed="false" data-ready-color="orange"></button>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--green" aria-label="Р—РµР»РµРЅС‹Р№" aria-pressed="false" data-ready-color="green"></button>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--pink" aria-label="Р РѕР·РѕРІС‹Р№" aria-pressed="false" data-ready-color="pink"></button>
-                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--violet" aria-label="Р¤РёРѕР»РµС‚РѕРІС‹Р№" aria-pressed="false" data-ready-color="violet"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-ready-color="blue"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-ready-color="orange"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-ready-color="green"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-ready-color="pink"></button>
+                    <button type="button" class="calendar-ready-modal__color calendar-ready-modal__color--violet" aria-label="Фиолетовый" aria-pressed="false" data-ready-color="violet"></button>
                 </div>
                 <input type="hidden" name="ready_training_color" id="calendar-ready-color" value="blue">
-                <small id="calendar-ready-color-selected">Р’С‹Р±СЂР°РЅ С†РІРµС‚: РЎРёРЅРёР№</small>
-                <small>Р’С‹Р±РµСЂРёС‚Рµ С†РІРµС‚ РґР»СЏ РІРёР·СѓР°Р»СЊРЅРѕРіРѕ РѕС‚РѕР±СЂР°Р¶РµРЅРёСЏ С‚СЂРµРЅРёСЂРѕРІРєРё РІ РєР°Р»РµРЅРґР°СЂРµ</small>
+                <small id="calendar-ready-color-selected">Выбран цвет: Синий</small>
+                <small>Выберите цвет для визуального отображения тренировки в календаре</small>
             </div>
             <div class="calendar-ready-modal__preview">
-                <p>РџСЂРµРґРїСЂРѕСЃРјРѕС‚СЂ</p>
+                <p>Предпросмотр</p>
                 <article id="calendar-ready-preview-card" class="calendar-ready-modal__preview-card calendar-ready-modal__preview-card--blue">
-                    <h4>РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№</h4>
+                    <h4>Тренировка с Ксенией</h4>
                     <ul>
-                        <li>РЎРјРёС‚ 10 С…1</li>
-                        <li>РџСЂРёСЃРµРґ 10 С…1</li>
-                        <li>РћС‚Р¶РёРјР°РЅРёСЏ 10 С…1</li>
+                        <li>Смит 10 х1</li>
+                        <li>Присед 10 х1</li>
+                        <li>Отжимания 10 х1</li>
                     </ul>
                 </article>
             </div>
@@ -324,18 +324,18 @@
 </div>
 
 <div class="calendar-create-date-picker" id="calendar-create-date-picker" hidden>
-    <section class="calendar-create-date-picker__card" role="dialog" aria-modal="false" aria-label="Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ С‚СЂРµРЅРёСЂРѕРІРєРё">
+    <section class="calendar-create-date-picker__card" role="dialog" aria-modal="false" aria-label="Выберите дату тренировки">
         <header class="calendar-create-date-picker__head">
-            <h3>Р’С‹Р±РµСЂРёС‚Рµ РґР°С‚Сѓ</h3>
-            <button type="button" class="calendar-create-date-picker__close" id="calendar-create-date-close" aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+            <h3>Выберите дату</h3>
+            <button type="button" class="calendar-create-date-picker__close" id="calendar-create-date-close" aria-label="Закрыть">?</button>
         </header>
         <div class="calendar-create-date-picker__month">
-            <button type="button" id="calendar-create-prev-month">вЂ№</button>
+            <button type="button" id="calendar-create-prev-month">‹</button>
             <strong id="calendar-create-month-label"></strong>
-            <button type="button" id="calendar-create-next-month">вЂє</button>
+            <button type="button" id="calendar-create-next-month">›</button>
         </div>
         <div class="calendar-create-date-picker__weekdays">
-            <span>РџРЅ</span><span>Р’С‚</span><span>РЎСЂ</span><span>Р§С‚</span><span>РџС‚</span><span>РЎР±</span><span>Р’СЃ</span>
+            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
         </div>
         <div class="calendar-create-date-picker__grid" id="calendar-create-date-grid"></div>
     </section>
@@ -343,8 +343,8 @@
 
 <div class="calendar-results-modal" id="calendar-results-modal" hidden>
     <div class="calendar-results-modal__overlay" data-close-results></div>
-    <section class="calendar-results-modal__card" role="dialog" aria-modal="true" aria-label="Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚СЂРµРЅРёСЂРѕРІРєРё">
-        <button type="button" class="calendar-results-modal__close" data-close-results aria-label="Р—Р°РєСЂС‹С‚СЊ">Г—</button>
+    <section class="calendar-results-modal__card" role="dialog" aria-modal="true" aria-label="Результаты тренировки">
+        <button type="button" class="calendar-results-modal__close" data-close-results aria-label="Закрыть">?</button>
         <div class="calendar-results-modal__table-wrap">
             <table class="calendar-results-modal__table">
                 <thead id="calendar-results-head"></thead>
@@ -356,11 +356,11 @@
 
 <div class="calendar-delete-modal" id="calendar-delete-modal" hidden>
     <div class="calendar-delete-modal__overlay" data-close-delete></div>
-    <section class="calendar-delete-modal__card" role="dialog" aria-modal="true" aria-label="РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ СѓРґР°Р»РµРЅРёСЏ С‚СЂРµРЅРёСЂРѕРІРєРё">
-        <h3 class="calendar-delete-modal__title">Р’С‹ СѓРІРµСЂРµРЅС‹, С‡С‚Рѕ С…РѕС‚РёС‚Рµ СѓРґР°Р»РёС‚СЊ С‚СЂРµРЅРёСЂРѕРІРєСѓ?</h3>
+    <section class="calendar-delete-modal__card" role="dialog" aria-modal="true" aria-label="Подтверждение удаления тренировки">
+        <h3 class="calendar-delete-modal__title">Вы уверены, что хотите удалить тренировку?</h3>
         <div class="calendar-delete-modal__actions">
-            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--cancel" data-close-delete>РћС‚РјРµРЅРёС‚СЊ</button>
-            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--confirm" id="calendar-confirm-delete">РЈРґР°Р»РёС‚СЊ</button>
+            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--cancel" data-close-delete>Отменить</button>
+            <button type="button" class="calendar-delete-modal__button calendar-delete-modal__button--confirm" id="calendar-confirm-delete">Удалить</button>
         </div>
         <div class="calendar-delete-modal__preview" id="calendar-delete-preview"></div>
     </section>
@@ -495,7 +495,7 @@
         let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
         function resolveExerciseBlockLabel(card) {
-            if (!(card instanceof HTMLElement)) return "РќРµ РІС‹Р±СЂР°РЅРѕ";
+            if (!(card instanceof HTMLElement)) return "Не выбрано";
             const blockInputNode = card.querySelector("#calendar-block-input");
             const blockValueNode = card.querySelector("#calendar-block-value");
             const customInputNode = card.querySelector("#calendar-block-custom-input");
@@ -505,10 +505,10 @@
             const customLabel = (customInputNode?.value || "").trim();
 
             if (blockType === "custom") {
-                return customLabel || "РќРµ РІС‹Р±СЂР°РЅРѕ";
+                return customLabel || "Не выбрано";
             }
-            if (!selectedLabel || selectedLabel.toLowerCase() === "Р±Р»РѕРє" || blockType === "default") {
-                return "РќРµ РІС‹Р±СЂР°РЅРѕ";
+            if (!selectedLabel || selectedLabel.toLowerCase() === "блок" || blockType === "default") {
+                return "Не выбрано";
             }
             return selectedLabel;
         }
@@ -523,7 +523,7 @@
         function getExerciseKindLabel(kindValue) {
             return String(kindValue || "").trim().toLowerCase() === "benchmarks"
                 ? "Benchmarks"
-                : "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+                : "Упражнение";
         }
 
         function resolveExerciseKindByName(exerciseNameValue) {
@@ -539,17 +539,17 @@
 
         function getBlockTypeLabel(blockTypeValue) {
             const normalized = String(blockTypeValue || "strength").trim().toLowerCase();
-            if (normalized === "cardio") return "РљР°СЂРґРёРѕ";
-            if (normalized === "gymnastics") return "РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ";
-            if (normalized === "custom") return "РЎРІРѕРµ РЅР°Р·РІР°РЅРёРµ";
-            return "РЎРёР»РѕРІС‹Рµ";
+            if (normalized === "cardio") return "Кардио";
+            if (normalized === "gymnastics") return "Метаболическая";
+            if (normalized === "custom") return "Свое название";
+            return "Силовые";
         }
 
         function getResultTypeLabel(resultTypeValue) {
             const normalized = String(resultTypeValue || "time").trim().toLowerCase();
-            if (normalized === "weight") return "Р’РµСЃ";
-            if (normalized === "reps") return "РљРѕР»-РІРѕ РїРѕРІС‚РѕСЂРµРЅРёР№";
-            return "Р’СЂРµРјСЏ";
+            if (normalized === "weight") return "Вес";
+            if (normalized === "reps") return "Кол-во повторений";
+            return "Время";
         }
 
         function getTrainingColorAccent(colorKey) {
@@ -582,17 +582,17 @@
         }
 
         function formatExistingExerciseText(exercise) {
-            const baseName = String(exercise.exercise_name || "").trim() || "Р‘РµР· РЅР°Р·РІР°РЅРёСЏ";
+            const baseName = String(exercise.exercise_name || "").trim() || "Без названия";
             if (exercise.exercise_kind === "benchmarks") {
                 return baseName;
             }
             const setsValue = String(exercise.sets || "").trim();
             const repsValue = String(exercise.reps || "").trim();
             if (setsValue && repsValue) {
-                return `${baseName} x ${setsValue} РїРѕРґС…РѕРґР° РїРѕ ${repsValue}`;
+                return `${baseName} x ${setsValue} подхода по ${repsValue}`;
             }
             if (setsValue) {
-                return `${baseName} x ${setsValue} РїРѕРґС…РѕРґР°`;
+                return `${baseName} x ${setsValue} подхода`;
             }
             if (repsValue) {
                 return `${baseName} x ${repsValue}`;
@@ -613,7 +613,7 @@
             const hasCustomName = Boolean(String(exercise.block_custom_name || "").trim());
             const hasNonDefaultResult = String(exercise.result_type || "time").trim().toLowerCase() !== "time";
             const hasNonDefaultBlock = blockType !== "strength";
-            const hasMeaningfulName = Boolean(exerciseName) && exerciseName !== "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+            const hasMeaningfulName = Boolean(exerciseName) && exerciseName !== "Упражнение";
             return hasSets || hasReps || hasCustomName || hasNonDefaultResult || hasNonDefaultBlock || hasMeaningfulName;
         }
 
@@ -636,7 +636,7 @@
                         const normalizedMeasurement = normalizeMeasurementValue(
                             card.querySelector("#calendar-block-measurement-input")?.value || ""
                         );
-                        return normalizedMeasurement ? `${normalizedMeasurement} РєРі` : "";
+                        return normalizedMeasurement ? `${normalizedMeasurement} кг` : "";
                     }
                     return getExerciseKindLabel(card.querySelector("#calendar-exercise-kind-input")?.value || "exercise");
                 })(),
@@ -651,20 +651,20 @@
             const primaryCard = createModal?.querySelector(".calendar-create-modal__exercise-card");
             if (!(primaryCard instanceof HTMLElement)) return;
             if (blockInput) blockInput.value = "default";
-            if (blockValue) blockValue.textContent = "Р‘Р»РѕРє";
+            if (blockValue) blockValue.textContent = "Блок";
             setActiveOption(blockOptions, "data-block-option", "default");
             if (blockCustomInput) blockCustomInput.value = "";
             if (blockMeasurementInput) blockMeasurementInput.value = "";
 
             if (exerciseKindInput) exerciseKindInput.value = "exercise";
-            if (exerciseKindValue) exerciseKindValue.textContent = "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+            if (exerciseKindValue) exerciseKindValue.textContent = "Упражнение";
             setActiveOption(exerciseKindOptions, "data-exercise-kind-option", "exercise");
             if (benchmarkNameInput) benchmarkNameInput.value = "";
 
             if (createSetsInput) createSetsInput.value = "";
             if (createRepsInput) createRepsInput.value = "";
             if (resultTypeInput) resultTypeInput.value = "time";
-            if (resultTypeValue) resultTypeValue.textContent = "Р РµР·СѓР»СЊС‚Р°С‚";
+            if (resultTypeValue) resultTypeValue.textContent = "Результат";
             setActiveOption(resultTypeOptions, "data-result-type-option", "time");
 
             toggleCustomBlockField("default");
@@ -715,7 +715,7 @@
             editingExercisesBuffer.forEach((exercise, index) => {
                 const blockType = String(exercise.block_type || "strength").trim().toLowerCase();
                 const groupTitle = blockType === "custom"
-                    ? (String(exercise.block_custom_name || "").trim() || "РЎРІРѕРµ РЅР°Р·РІР°РЅРёРµ")
+                    ? (String(exercise.block_custom_name || "").trim() || "Свое название")
                     : getBlockTypeLabel(blockType);
                 if (!grouped.has(groupTitle)) {
                     grouped.set(groupTitle, []);
@@ -730,10 +730,10 @@
                         <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--${escapeHtml(selectedColorKey)} ${activeExerciseEditIndex === index ? "is-active" : ""}" style="--exercise-accent:${escapeHtml(selectedColorAccent)};">
                             <span class="calendar-create-modal__existing-text">${escapeHtml(formatExistingExerciseText(exercise))}</span>
                             <div class="calendar-create-modal__existing-actions">
-                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-edit="${index}" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ СѓРїСЂР°Р¶РЅРµРЅРёРµ">
+                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-edit="${index}" aria-label="Редактировать упражнение">
                                     <img src="${createExerciseEditIcon}" alt="">
                                 </button>
-                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-delete="${index}" aria-label="РЈРґР°Р»РёС‚СЊ СѓРїСЂР°Р¶РЅРµРЅРёРµ">
+                                <button type="button" class="calendar-create-modal__existing-action" data-existing-exercise-delete="${index}" aria-label="Удалить упражнение">
                                     <img src="${createExerciseDeleteIcon}" alt="">
                                 </button>
                             </div>
@@ -746,7 +746,7 @@
             existingExercisesWrap.innerHTML = html;
         }
 
-        const months = ["РЇРЅРІР°СЂСЏ","Р¤РµРІСЂР°Р»СЏ","РњР°СЂС‚Р°","РђРїСЂРµР»СЏ","РњР°СЏ","РСЋРЅСЏ","РСЋР»СЏ","РђРІРіСѓСЃС‚Р°","РЎРµРЅС‚СЏР±СЂСЏ","РћРєС‚СЏР±СЂСЏ","РќРѕСЏР±СЂСЏ","Р”РµРєР°Р±СЂСЏ"];
+        const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
         function getWeekStart(dateValue) {
             const base = normalize(dateValue);
             const weekday = (base.getDay() + 6) % 7; // Monday=0 ... Sunday=6
@@ -935,7 +935,7 @@
 
             selectDirectionOption("fbb", "FBB");
             if (visibilityInput) visibilityInput.value = "all";
-            if (visibilityValue) visibilityValue.textContent = "Р”Р»СЏ РІСЃРµС…";
+            if (visibilityValue) visibilityValue.textContent = "Для всех";
             setActiveOption(visibilityOptions, "data-visibility-option", "all");
             setCreateColor("blue");
 
@@ -957,7 +957,7 @@
                 const repsInputNode = firstCard.querySelector("#calendar-create-reps-input");
 
                 if (blockInputNode) blockInputNode.value = "default";
-                if (blockValueNode) blockValueNode.textContent = "Р‘Р»РѕРє";
+                if (blockValueNode) blockValueNode.textContent = "Блок";
                 if (blockCustomNode) blockCustomNode.value = "";
                 if (blockMeasurementNode) blockMeasurementNode.value = "";
                 if (blockCustomWrapNode) {
@@ -979,7 +979,7 @@
                 if (benchmarkInputNode) benchmarkInputNode.value = "";
 
                 if (resultTypeInputNode) resultTypeInputNode.value = "time";
-                if (resultTypeValueNode) resultTypeValueNode.textContent = "Р РµР·СѓР»СЊС‚Р°С‚";
+                if (resultTypeValueNode) resultTypeValueNode.textContent = "Результат";
 
                 firstCard.querySelectorAll("[data-block-option]").forEach((button) => {
                     button.classList.toggle("is-active", (button.getAttribute("data-block-option") || "") === "default");
@@ -992,7 +992,7 @@
                 });
 
                 if (exerciseKindInputNode) exerciseKindInputNode.value = "exercise";
-                if (exerciseKindValueNode) exerciseKindValueNode.textContent = "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+                if (exerciseKindValueNode) exerciseKindValueNode.textContent = "Упражнение";
                 if (setsInputNode) setsInputNode.value = "";
                 if (repsInputNode) repsInputNode.value = "";
                 toggleCustomBlockField(blockInputNode?.value || "default");
@@ -1000,13 +1000,13 @@
             }
 
             if (readyWorkoutInput) readyWorkoutInput.value = "ready";
-            if (readyWorkoutValue) readyWorkoutValue.textContent = "Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+            if (readyWorkoutValue) readyWorkoutValue.textContent = "Готовые тренировки";
             readyWorkoutOptions.forEach((btn) => {
                 btn.classList.toggle("is-active", (btn.getAttribute("data-ready-workout-option") || "") === "ready");
             });
 
             if (readyComplexTypeInput) readyComplexTypeInput.value = "ready";
-            if (readyComplexTypeValue) readyComplexTypeValue.textContent = "Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+            if (readyComplexTypeValue) readyComplexTypeValue.textContent = "Готовые тренировки";
             readyComplexTypeOptions.forEach((btn) => {
                 btn.classList.toggle("is-active", (btn.getAttribute("data-ready-complex-type-option") || "") === "ready");
             });
@@ -1023,10 +1023,10 @@
 
         function setCreateModalMode(isEditing) {
             if (createModalTitle) {
-                createModalTitle.textContent = isEditing ? "Р РµРґР°РєС‚РёСЂРѕРІР°РЅРёРµ С‚СЂРµРЅРёСЂРѕРІРєРё" : "Р”РѕР±Р°РІР»РµРЅРёРµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+                createModalTitle.textContent = isEditing ? "Редактирование тренировки" : "Добавление тренировки";
             }
             if (createSaveBtn) {
-                createSaveBtn.textContent = "РЎРѕС…СЂР°РЅРёС‚СЊ";
+                createSaveBtn.textContent = "Сохранить";
             }
             if (addExerciseBtn) {
                 addExerciseBtn.hidden = Boolean(isEditing);
@@ -1061,12 +1061,12 @@
             document.body.style.overflow = "hidden";
             renderResultsTable([], []);
             if (resultsBody) {
-                resultsBody.innerHTML = `<tr><td colspan="4">Р—Р°РіСЂСѓР·РєР°...</td></tr>`;
+                resultsBody.innerHTML = `<tr><td colspan="4">Загрузка...</td></tr>`;
             }
 
             if (!trainingId) {
                 if (resultsBody) {
-                    resultsBody.innerHTML = `<tr><td colspan="4">РўСЂРµРЅРёСЂРѕРІРєР° РЅРµ РЅР°Р№РґРµРЅР°</td></tr>`;
+                    resultsBody.innerHTML = `<tr><td colspan="4">Тренировка не найдена</td></tr>`;
                 }
                 return;
             }
@@ -1085,7 +1085,7 @@
                     if (!response.ok || !data.ok) {
                         const colCount = (Array.isArray(data?.results?.columns) ? data.results.columns.length : 3) + 1;
                         if (resultsBody) {
-                            resultsBody.innerHTML = `<tr><td colspan="${colCount}">РќРµ СѓРґР°Р»РѕСЃСЊ Р·Р°РіСЂСѓР·РёС‚СЊ СЂРµР·СѓР»СЊС‚Р°С‚С‹</td></tr>`;
+                            resultsBody.innerHTML = `<tr><td colspan="${colCount}">Не удалось загрузить результаты</td></tr>`;
                         }
                         return;
                     }
@@ -1095,7 +1095,7 @@
                 .catch(() => {
                     if (activeResultsRequestId !== requestId) return;
                     if (resultsBody) {
-                        resultsBody.innerHTML = `<tr><td colspan="4">РћС€РёР±РєР° Р·Р°РіСЂСѓР·РєРё СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ</td></tr>`;
+                        resultsBody.innerHTML = `<tr><td colspan="4">Ошибка загрузки результатов</td></tr>`;
                     }
                 });
         }
@@ -1152,7 +1152,7 @@
                 trigger.type = "button";
                 trigger.className = "calendar-event__results-link";
                 trigger.setAttribute("data-open-results", "");
-                trigger.textContent = "Р РµР·СѓР»СЊС‚Р°С‚С‹";
+                trigger.textContent = "Результаты";
                 row.appendChild(trigger);
 
                 if (icons) {
@@ -1356,16 +1356,16 @@
                 const text = buildTelegramTrainingText(training);
                 copyTextToClipboard(text).then((copied) => {
                     if (!copied) {
-                        showCopyStatus("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРєРѕРїРёСЂРѕРІР°С‚СЊ", true);
+                        showCopyStatus("Не удалось скопировать", true);
                         return;
                     }
                     copyTrigger.classList.add("calendar-event__copy-btn--copied");
                     const previousTitle = copyTrigger.getAttribute("title") || "";
-                    copyTrigger.setAttribute("title", "РЎРєРѕРїРёСЂРѕРІР°РЅРѕ");
-                    showCopyStatus("РЎРєРѕРїРёСЂРѕРІР°РЅРѕ");
+                    copyTrigger.setAttribute("title", "Скопировано");
+                    showCopyStatus("Скопировано");
                     window.setTimeout(() => {
                         copyTrigger.classList.remove("calendar-event__copy-btn--copied");
-                        copyTrigger.setAttribute("title", previousTitle || "РЎРєРѕРїРёСЂРѕРІР°С‚СЊ РґР»СЏ Telegram");
+                        copyTrigger.setAttribute("title", previousTitle || "Скопировать для Telegram");
                     }, 1200);
                 });
                 return;
@@ -1446,7 +1446,7 @@
             const clone = sourceCard.cloneNode(true);
             // cloned node inherits init flag from source card; reset it so handlers are bound
             delete clone.dataset.exerciseCardReady;
-            clone.querySelector(".calendar-create-modal__exercise-name")?.replaceChildren(document.createTextNode("РќРµ РІС‹Р±СЂР°РЅРѕ"));
+            clone.querySelector(".calendar-create-modal__exercise-name")?.replaceChildren(document.createTextNode("Не выбрано"));
 
             const textInputs = clone.querySelectorAll("input[type='text']");
             textInputs.forEach((input) => {
@@ -1466,11 +1466,11 @@
             clone.querySelector("[data-result-type-option='time']")?.classList.add("is-active");
             clone.querySelector("[data-exercise-kind-option='exercise']")?.classList.add("is-active");
             const clonedBlockValue = clone.querySelector("#calendar-block-value");
-            if (clonedBlockValue) clonedBlockValue.textContent = "Р‘Р»РѕРє";
+            if (clonedBlockValue) clonedBlockValue.textContent = "Блок";
             const clonedResultTypeValue = clone.querySelector("#calendar-result-type-value");
-            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Р РµР·СѓР»СЊС‚Р°С‚";
+            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Результат";
             const clonedExerciseKindValue = clone.querySelector("#calendar-exercise-kind-value");
-            if (clonedExerciseKindValue) clonedExerciseKindValue.textContent = "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+            if (clonedExerciseKindValue) clonedExerciseKindValue.textContent = "Упражнение";
             const clonedCustomWrap = clone.querySelector("#calendar-block-custom-wrap");
             if (clonedCustomWrap) clonedCustomWrap.hidden = true;
             const clonedMeasurementWrap = clone.querySelector("#calendar-block-measurement-wrap");
@@ -1516,7 +1516,7 @@
         visibilityOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-visibility-option") || "all";
-                const nextLabel = optionButton.getAttribute("data-visibility-label") || "Р”Р»СЏ РІСЃРµС…";
+                const nextLabel = optionButton.getAttribute("data-visibility-label") || "Для всех";
 
                 visibilityOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
@@ -1584,7 +1584,7 @@
         readyPlanOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-ready-plan-option") || "ready";
-                const nextLabel = optionButton.getAttribute("data-ready-plan-label") || "Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+                const nextLabel = optionButton.getAttribute("data-ready-plan-label") || "Готовые тренировки";
                 readyPlanOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
                 if (readyPlanValue) readyPlanValue.textContent = nextLabel;
@@ -1618,7 +1618,7 @@
         readyWorkoutOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-ready-workout-option") || "ready";
-                const nextLabel = optionButton.getAttribute("data-ready-workout-label") || "Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+                const nextLabel = optionButton.getAttribute("data-ready-workout-label") || "Готовые тренировки";
                 readyWorkoutOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
                 if (readyWorkoutValue) readyWorkoutValue.textContent = nextLabel;
@@ -1652,7 +1652,7 @@
         readyComplexTypeOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-ready-complex-type-option") || "ready";
-                const nextLabel = optionButton.getAttribute("data-ready-complex-type-label") || "Р“РѕС‚РѕРІС‹Рµ С‚СЂРµРЅРёСЂРѕРІРєРё";
+                const nextLabel = optionButton.getAttribute("data-ready-complex-type-label") || "Готовые тренировки";
                 readyComplexTypeOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
                 if (readyComplexTypeValue) readyComplexTypeValue.textContent = nextLabel;
@@ -1740,7 +1740,7 @@
         blockOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-block-option") || "strength";
-                const nextLabel = optionButton.getAttribute("data-block-label") || "РЎРёР»РѕРІР°СЏ";
+                const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
 
                 blockOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
@@ -1783,7 +1783,7 @@
         resultTypeOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-result-type-option") || "time";
-                const nextLabel = optionButton.getAttribute("data-result-type-label") || "Р’СЂРµРјСЏ";
+                const nextLabel = optionButton.getAttribute("data-result-type-label") || "Время";
 
                 resultTypeOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
@@ -1820,7 +1820,7 @@
         exerciseKindOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-exercise-kind-option") || "exercise";
-                const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+                const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "Упражнение";
                 exerciseKindOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
                 if (exerciseKindValue) exerciseKindValue.textContent = nextLabel;
@@ -1905,7 +1905,7 @@
                 selectedColorInput.value = colorKey;
             }
             if (selectedColorText) {
-                selectedColorText.textContent = `Р’С‹Р±СЂР°РЅ С†РІРµС‚: ${colorName}`;
+                selectedColorText.textContent = `Выбран цвет: ${colorName}`;
             }
             applyCreatePreviewColor(colorKey);
             applyCreateExerciseCardsColor(colorKey);
@@ -1961,7 +1961,7 @@
                 readySelectedColorInput.value = colorKey;
             }
             if (readySelectedColorText) {
-                readySelectedColorText.textContent = `Р’С‹Р±СЂР°РЅ С†РІРµС‚: ${colorName}`;
+                readySelectedColorText.textContent = `Выбран цвет: ${colorName}`;
             }
             applyReadyPreviewColor(colorKey);
         }
@@ -1969,7 +1969,7 @@
         colorButtons.forEach((button) => {
             button.addEventListener("click", () => {
                 const colorKey = button.getAttribute("data-create-color") || "blue";
-                const colorName = button.getAttribute("aria-label") || "РЎРёРЅРёР№";
+                const colorName = button.getAttribute("aria-label") || "Синий";
                 updateSelectedColor(colorKey, colorName, button);
             });
         });
@@ -1980,7 +1980,7 @@
         readyColorButtons.forEach((button) => {
             button.addEventListener("click", () => {
                 const colorKey = button.getAttribute("data-ready-color") || "blue";
-                const colorName = button.getAttribute("aria-label") || "РЎРёРЅРёР№";
+                const colorName = button.getAttribute("aria-label") || "Синий";
                 updateReadySelectedColor(colorKey, colorName, button);
             });
         });
@@ -1998,7 +1998,7 @@
             const normalized = colorKey || "blue";
             const activeButton = Array.from(colorButtons).find((button) => (button.getAttribute("data-create-color") || "") === normalized) || colorButtons[0];
             if (!activeButton) return;
-            const colorName = activeButton.getAttribute("aria-label") || "РЎРёРЅРёР№";
+            const colorName = activeButton.getAttribute("aria-label") || "Синий";
             updateSelectedColor(normalized, colorName, activeButton);
         }
 
@@ -2096,7 +2096,7 @@
             localBlockOptions.forEach((optionButton) => {
                 optionButton.addEventListener("click", () => {
                     const nextValue = optionButton.getAttribute("data-block-option") || "strength";
-                    const nextLabel = optionButton.getAttribute("data-block-label") || "РЎРёР»РѕРІР°СЏ";
+                    const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
                     localBlockOptions.forEach((button) => button.classList.remove("is-active"));
                     optionButton.classList.add("is-active");
                     if (localBlockValue) localBlockValue.textContent = nextLabel;
@@ -2124,7 +2124,7 @@
             localResultTypeOptions.forEach((optionButton) => {
                 optionButton.addEventListener("click", () => {
                     const nextValue = optionButton.getAttribute("data-result-type-option") || "time";
-                    const nextLabel = optionButton.getAttribute("data-result-type-label") || "Р’СЂРµРјСЏ";
+                    const nextLabel = optionButton.getAttribute("data-result-type-label") || "Время";
                     localResultTypeOptions.forEach((button) => button.classList.remove("is-active"));
                     optionButton.classList.add("is-active");
                     if (localResultTypeValue) localResultTypeValue.textContent = nextLabel;
@@ -2146,7 +2146,7 @@
             localExerciseKindOptions.forEach((optionButton) => {
                 optionButton.addEventListener("click", () => {
                     const nextValue = optionButton.getAttribute("data-exercise-kind-option") || "exercise";
-                    const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "РЈРїСЂР°Р¶РЅРµРЅРёРµ";
+                    const nextLabel = optionButton.getAttribute("data-exercise-kind-label") || "Упражнение";
                     localExerciseKindOptions.forEach((button) => button.classList.remove("is-active"));
                     optionButton.classList.add("is-active");
                     if (localExerciseKindValue) localExerciseKindValue.textContent = nextLabel;
@@ -2261,12 +2261,12 @@
 
             const headRow = document.createElement("tr");
             const nameHead = document.createElement("th");
-            nameHead.textContent = "РРјСЏ";
+            nameHead.textContent = "Имя";
             headRow.appendChild(nameHead);
 
             safeColumns.forEach((column) => {
                 const th = document.createElement("th");
-                const title = document.createTextNode(String(column?.title || "Р Р°Р·РґРµР»"));
+                const title = document.createTextNode(String(column?.title || "Раздел"));
                 th.appendChild(title);
                 const unit = String(column?.unit || "").trim();
                 if (unit) {
@@ -2283,7 +2283,7 @@
                 const emptyRow = document.createElement("tr");
                 const cell = document.createElement("td");
                 cell.colSpan = colCount;
-                cell.textContent = "РќРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РїРѕ СЌС‚РѕР№ С‚СЂРµРЅРёСЂРѕРІРєРµ";
+                cell.textContent = "Нет результатов по этой тренировке";
                 emptyRow.appendChild(cell);
                 resultsBody.appendChild(emptyRow);
                 return;
@@ -2292,7 +2292,7 @@
             safeRows.forEach((row) => {
                 const tr = document.createElement("tr");
                 const nameCell = document.createElement("td");
-                nameCell.textContent = String(row?.user_name || "РџРѕР»СЊР·РѕРІР°С‚РµР»СЊ");
+                nameCell.textContent = String(row?.user_name || "Пользователь");
                 tr.appendChild(nameCell);
 
                 const values = Array.isArray(row?.values) ? row.values : [];
@@ -2322,7 +2322,7 @@
 
         function buildTelegramTrainingText(training) {
             if (!training || typeof training !== "object") return "";
-            const title = String(training.title || training.direction_label || "РўСЂРµРЅРёСЂРѕРІРєР°").trim();
+            const title = String(training.title || training.direction_label || "Тренировка").trim();
             const parsedDate = parseIsoDate(training.date);
             const dateText = parsedDate ? formatCreateDate(parsedDate) : "";
             const comment = String(training.comment || "").trim();
@@ -2330,16 +2330,16 @@
 
             const lines = [];
             lines.push(`${title}`);
-            if (dateText) lines.push(`Р”Р°С‚Р°: ${dateText}`);
+            if (dateText) lines.push(`Дата: ${dateText}`);
             lines.push("");
-            lines.push("РљРѕРјРјРµРЅС‚Р°СЂРёР№:");
-            lines.push(comment || "Р‘РµР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ");
+            lines.push("Комментарий:");
+            lines.push(comment || "Без комментария");
 
             if (sections.length) {
                 lines.push("");
-                lines.push("Р‘Р»РѕРєРё:");
+                lines.push("Блоки:");
                 sections.forEach((section) => {
-                    const sectionTitle = String(section?.title || "Р‘Р»РѕРє").trim();
+                    const sectionTitle = String(section?.title || "Блок").trim();
                     lines.push(`${sectionTitle}:`);
                     const rawItems = Array.isArray(section?.items) ? section.items : [];
                     const normalizedItems = rawItems
@@ -2347,7 +2347,7 @@
                         .flat()
                         .filter(Boolean);
                     if (!normalizedItems.length) {
-                        lines.push("- Р‘РµР· СѓРїСЂР°Р¶РЅРµРЅРёР№");
+                        lines.push("- Без упражнений");
                         return;
                     }
                     normalizedItems.forEach((item) => {
@@ -2439,19 +2439,19 @@
                         <div class="calendar-event__head">
                             <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
                             <div class="calendar-event__copy-wrap">
-                                <button type="button" class="calendar-event__copy-btn" data-copy-training aria-label="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ С‚СЂРµРЅРёСЂРѕРІРєСѓ РґР»СЏ Telegram" title="РЎРєРѕРїРёСЂРѕРІР°С‚СЊ РґР»СЏ Telegram">
+                                <button type="button" class="calendar-event__copy-btn" data-copy-training aria-label="Скопировать тренировку для Telegram" title="Скопировать для Telegram">
                                     <svg viewBox="0 0 20 20" aria-hidden="true">
                                         <rect x="7" y="3" width="10" height="10" rx="2"></rect>
                                         <rect x="3" y="7" width="10" height="10" rx="2"></rect>
                                     </svg>
                                 </button>
-                                <span class="calendar-event__copy-status" data-copy-status hidden aria-live="polite">РЎРєРѕРїРёСЂРѕРІР°РЅРѕ</span>
+                                <span class="calendar-event__copy-status" data-copy-status hidden aria-live="polite">Скопировано</span>
                             </div>
                         </div>
-                        <p class="calendar-event__comment-row"><span class="calendar-event__comment">РљРѕРјРјРµРЅС‚Р°СЂРёР№</span></p>
-                        <p>${escapeHtml(training.comment || "Р‘РµР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ")}</p>
+                        <p class="calendar-event__comment-row"><span class="calendar-event__comment">Комментарий</span></p>
+                        <p>${escapeHtml(training.comment || "Без комментария")}</p>
                         ${sectionsHtml}
-                        <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Р РµР·СѓР»СЊС‚Р°С‚С‹</button> <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                        <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
                     </div>
                 </article>
             `;
@@ -2598,7 +2598,7 @@
             if (createCommentInput) createCommentInput.value = training.comment || "";
             setCreateColor(training.color || "blue");
             if (visibilityInput) visibilityInput.value = training.visibility || "all";
-            if (visibilityValue) visibilityValue.textContent = training.visibility === "coaches" ? "РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ" : "Р”Р»СЏ РІСЃРµС…";
+            if (visibilityValue) visibilityValue.textContent = training.visibility === "coaches" ? "Только для тренеров" : "Для всех";
             setActiveOption(visibilityOptions, "data-visibility-option", visibilityInput?.value || "all");
 
             editingExercisesBuffer = Array.isArray(training.exercises)

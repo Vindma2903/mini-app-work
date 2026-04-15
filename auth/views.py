@@ -3,17 +3,22 @@ import logging
 import json
 from datetime import datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 
 from allauth.account.models import EmailAddress
 from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
 from django.contrib import messages
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.models import User
+from django.contrib.auth.password_validation import validate_password
 from django.core.mail import send_mail
+from django.core.exceptions import ValidationError
+from django.core import signing
 from django.db import transaction
 from django.db.models import Avg, Count, Q
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.http import HttpResponse, JsonResponse
 from django.utils.decorators import method_decorator
@@ -35,6 +40,8 @@ from .forms import (
 )
 from .jwt_utils import build_token_pair_for_user, clear_jwt_cookies, get_jwt_cookie_names, set_jwt_cookies
 from .models import (
+    AdminContact,
+    AdminLibraryItem,
     AdminTraining,
     AdminTrainingExercise,
     AdminPasswordResetRequest,
@@ -48,6 +55,7 @@ from .models import (
 REGISTER_SESSION_KEY = 'register_step_data'
 ADMIN_PASSWORD_RESET_SESSION_KEY = 'admin_password_reset_request_id'
 ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY = 'admin_password_reset_code_verified'
+ADMIN_PASSWORD_RESET_LINK_SALT = 'admin_password_reset_link_v1'
 TELEGRAM_LINK_TTL_MINUTES = 10
 logger = logging.getLogger(__name__)
 
@@ -486,17 +494,33 @@ def build_telegram_deep_link(token):
 
 def get_user_role(user):
     if user.is_staff or user.is_superuser:
-        return 'admin'
+        return UserProfile.ROLE_ADMIN
     profile = getattr(user, 'profile', None)
     if profile is None and getattr(user, 'pk', None):
         profile = UserProfile.objects.filter(user=user).only('role').first()
-    if profile and profile.role == UserProfile.ROLE_TRAINER:
-        return UserProfile.ROLE_TRAINER
+    if profile and profile.role in {UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN}:
+        return profile.role
     return UserProfile.ROLE_USER
 
 
 def user_has_admin_panel_access(user):
-    return get_user_role(user) in {'admin', UserProfile.ROLE_TRAINER}
+    return get_user_role(user) in {UserProfile.ROLE_ADMIN, UserProfile.ROLE_TRAINER}
+
+
+def can_manage_admin_users(user):
+    return get_user_role(user) == UserProfile.ROLE_ADMIN
+
+
+def build_admin_password_reset_link(request, reset_request):
+    token = signing.dumps(
+        {
+            'request_id': reset_request.id,
+            'code': reset_request.code,
+        },
+        salt=ADMIN_PASSWORD_RESET_LINK_SALT,
+    )
+    url = reverse('auth:admin_password_reset_new_password')
+    return request.build_absolute_uri(f'{url}?token={token}')
 
 
 class LoginView(FormView):
@@ -694,6 +718,38 @@ class AdminPasswordResetNewPasswordView(FormView):
     success_url = reverse_lazy('auth:admin_login')
 
     def dispatch(self, request, *args, **kwargs):
+        if (
+            ADMIN_PASSWORD_RESET_SESSION_KEY not in request.session
+            and request.GET.get('token')
+        ):
+            raw_token = str(request.GET.get('token') or '').strip()
+            try:
+                payload = signing.loads(
+                    raw_token,
+                    salt=ADMIN_PASSWORD_RESET_LINK_SALT,
+                    max_age=10 * 60,
+                )
+            except signing.BadSignature:
+                payload = None
+            except signing.SignatureExpired:
+                payload = None
+
+            if payload:
+                request_id = payload.get('request_id')
+                expected_code = str(payload.get('code') or '')
+                reset_request = AdminPasswordResetRequest.objects.filter(
+                    id=request_id,
+                    is_used=False,
+                ).first()
+                if (
+                    reset_request
+                    and not reset_request.is_expired
+                    and reset_request.code == expected_code
+                ):
+                    request.session[ADMIN_PASSWORD_RESET_SESSION_KEY] = reset_request.id
+                    request.session[ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY] = True
+                    request.session.modified = True
+
         if ADMIN_PASSWORD_RESET_SESSION_KEY not in request.session:
             return redirect('auth:admin_password_reset_start')
         if not request.session.get(ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY):
@@ -1396,39 +1452,398 @@ class CalendarView(AdminProtectedMixin, TemplateView):
         return context
 
 
+def serialize_admin_user_row(user):
+    first_name = (user.first_name or '').strip()
+    last_name = (user.last_name or '').strip()
+    email = (user.email or '').strip()
+    profile_role = getattr(getattr(user, 'profile', None), 'role', None) or UserProfile.ROLE_USER
+    if user.is_staff or user.is_superuser:
+        role = UserProfile.ROLE_ADMIN
+    elif profile_role in {UserProfile.ROLE_ADMIN, UserProfile.ROLE_TRAINER}:
+        role = profile_role
+    else:
+        role = UserProfile.ROLE_USER
+    return {
+        'first_name': first_name,
+        'last_name': last_name,
+        'email': email,
+        'role': role,
+        'created': True,
+    }
+
+
+def get_admin_profile_users_queryset():
+    return (
+        User.objects
+        .select_related('profile')
+        .filter(is_active=True)
+        .filter(
+            Q(is_staff=True)
+            | Q(is_superuser=True)
+            | Q(profile__role__in=[UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN])
+        )
+        .exclude(email__isnull=True)
+        .exclude(email='')
+        .order_by('-date_joined', '-id')
+    )
+
+
 class AdminProfileView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/admin-profile.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        contact = AdminContact.objects.filter(user=user).only('phone').first()
+        first_name = (user.first_name or '').strip()
+        last_name = (user.last_name or '').strip()
+        initials = ((first_name[:1] + last_name[:1]).upper() or (user.email[:2].upper() if user.email else 'AD'))
+
+        context['admin_profile_first_name'] = first_name
+        context['admin_profile_last_name'] = last_name
+        context['admin_profile_email'] = user.email or ''
+        context['admin_profile_phone'] = contact.phone if contact else ''
+        context['admin_profile_full_name'] = f'{first_name} {last_name}'.strip() or user.email or 'Admin'
+        context['admin_profile_initials'] = initials
+        context['admin_profile_can_manage_users'] = can_manage_admin_users(user)
+
+        manage_users = get_admin_profile_users_queryset()[:50]
+        rows = [serialize_admin_user_row(item) for item in manage_users]
+        context['admin_profile_users_rows_json'] = json.dumps(rows, ensure_ascii=False)
+        return context
+
+
+class AdminProfileUpdateView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        first_name = str(payload.get('first_name') or '').strip()
+        last_name = str(payload.get('last_name') or '').strip()
+        email = str(payload.get('email') or '').strip().lower()
+        phone = str(payload.get('phone') or '').strip()
+
+        field_errors = {}
+        if not first_name:
+            field_errors['first_name'] = 'required'
+        if not last_name:
+            field_errors['last_name'] = 'required'
+        if not email:
+            field_errors['email'] = 'required'
+        if len(first_name) > 150:
+            field_errors['first_name'] = 'too_long'
+        if len(last_name) > 150:
+            field_errors['last_name'] = 'too_long'
+        if len(email) > 254:
+            field_errors['email'] = 'too_long'
+        if phone and len(phone) > 32:
+            field_errors['phone'] = 'too_long'
+        if phone and AdminContact.objects.exclude(user=request.user).filter(phone=phone).exists():
+            field_errors['phone'] = 'already_exists'
+
+        if email and User.objects.exclude(pk=request.user.pk).filter(email__iexact=email).exists():
+            field_errors['email'] = 'already_exists'
+
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        with transaction.atomic():
+            request.user.first_name = first_name
+            request.user.last_name = last_name
+            request.user.email = email
+            request.user.username = email
+            request.user.save(update_fields=['first_name', 'last_name', 'email', 'username'])
+
+            contact = AdminContact.objects.filter(user=request.user).first()
+            if phone:
+                if contact is None:
+                    AdminContact.objects.create(user=request.user, phone=phone)
+                else:
+                    contact.phone = phone
+                    contact.save(update_fields=['phone', 'updated_at'])
+            elif contact is not None:
+                contact.delete()
+
+        full_name = f'{first_name} {last_name}'.strip() or email
+        initials = ((first_name[:1] + last_name[:1]).upper() or (email[:2].upper() if email else 'AD'))
+        return JsonResponse(
+            {
+                'ok': True,
+                'profile': {
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'email': email,
+                    'phone': phone,
+                    'full_name': full_name,
+                    'initials': initials,
+                },
+            }
+        )
+
+
+class AdminProfilePasswordUpdateView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        old_password = str(payload.get('old_password') or '')
+        new_password = str(payload.get('new_password') or '')
+        repeat_password = str(payload.get('repeat_password') or '')
+
+        field_errors = {}
+        if not old_password:
+            field_errors['old_password'] = 'required'
+        if not new_password:
+            field_errors['new_password'] = 'required'
+        if not repeat_password:
+            field_errors['repeat_password'] = 'required'
+        if new_password and repeat_password and new_password != repeat_password:
+            field_errors['repeat_password'] = 'mismatch'
+        if old_password and not request.user.check_password(old_password):
+            field_errors['old_password'] = 'invalid'
+
+        if not field_errors and new_password:
+            try:
+                validate_password(new_password, user=request.user)
+            except ValidationError:
+                field_errors['new_password'] = 'weak'
+
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        request.user.set_password(new_password)
+        request.user.save(update_fields=['password'])
+        update_session_auth_hash(request, request.user)
+        return JsonResponse({'ok': True})
+
+
+class AdminProfileUsersListView(AdminProtectedMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        if not can_manage_admin_users(request.user):
+            return JsonResponse({'ok': False, 'error': 'permission_denied'}, status=403)
+
+        users = get_admin_profile_users_queryset()[:100]
+        rows = [serialize_admin_user_row(item) for item in users]
+        return JsonResponse({'ok': True, 'rows': rows})
+
+
+class AdminProfileUserCreateView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        if not can_manage_admin_users(request.user):
+            return JsonResponse({'ok': False, 'error': 'permission_denied'}, status=403)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        first_name = str(payload.get('first_name') or '').strip()
+        last_name = str(payload.get('last_name') or '').strip()
+        email = str(payload.get('email') or '').strip().lower()
+        role = str(payload.get('role') or '').strip().lower()
+
+        field_errors = {}
+        if not first_name:
+            field_errors['first_name'] = 'required'
+        if not last_name:
+            field_errors['last_name'] = 'required'
+        if not email:
+            field_errors['email'] = 'required'
+        if role not in {UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN}:
+            field_errors['role'] = 'invalid_role'
+        if len(first_name) > 150:
+            field_errors['first_name'] = 'too_long'
+        if len(last_name) > 150:
+            field_errors['last_name'] = 'too_long'
+        if len(email) > 254:
+            field_errors['email'] = 'too_long'
+        if email and User.objects.filter(email__iexact=email).exists():
+            field_errors['email'] = 'already_exists'
+
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        with transaction.atomic():
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=None,
+                first_name=first_name,
+                last_name=last_name,
+                is_active=True,
+                is_staff=False,
+                is_superuser=False,
+            )
+            user.set_unusable_password()
+            user.save(update_fields=['password'])
+
+            profile, _ = UserProfile.objects.get_or_create(user=user)
+            profile.role = role
+            profile.save(update_fields=['role', 'updated_at'])
+
+            reset_request = AdminPasswordResetRequest.objects.create(
+                user=user,
+                code=f'{secrets.randbelow(1000000):06d}',
+                expires_at=timezone.now() + timedelta(minutes=10),
+            )
+
+            invite_sent = True
+            try:
+                reset_link = build_admin_password_reset_link(request, reset_request)
+                send_mail(
+                    subject='Приглашение в админ-панель',
+                    message=(
+                        'Вы были добавлены в систему.\n\n'
+                        'Для установки пароля откройте ссылку:\n'
+                        f'{reset_link}\n\n'
+                        'Ссылка действует 10 минут.'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[email],
+                    fail_silently=False,
+                )
+            except Exception:
+                invite_sent = False
+                logger.exception(
+                    'Admin invite email send failed user_id=%s email=%s',
+                    user.id,
+                    email,
+                )
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'created': True,
+                'invite_sent': invite_sent,
+                'user': serialize_admin_user_row(user),
+            }
+        )
 
 
 class AdminLibraryView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/admin-library.html'
 
+    @staticmethod
+    def _serialize_item(item):
+        return {
+            'id': item.id,
+            'section': item.section,
+            'category': item.benchmark_category,
+            'name_ru': item.name_ru,
+            'name_en': item.name_en,
+            'desc_ru': item.desc_ru,
+            'desc_en': item.desc_en,
+            'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
+        }
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['library_rows'] = [
-            {
-                'name_ru': 'РђРјР°РЅРґР°',
-                'name_en': 'Amanda',
-                'desc_ru': '9-7-5 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ: Р’С‹С…РѕРґС‹ РЅР° РєРѕР»СЊС†Р°С… РџСЂРёСЃРµРґР°РЅРёСЏ СЃРѕ С€С‚Р°РЅРіРѕР№ (61/43 РєРі)',
-                'desc_en': '9-7-5 reps for time: Ring muscle-ups Squats with a barbell (61/43 kg)',
-                'video': 5,
-            },
-            {
-                'name_ru': 'РЎРёРЅРґРё',
-                'name_en': 'Cindy',
-                'desc_ru': '20 РјРёРЅСѓС‚ AMRAP: 5 РїРѕРґС‚СЏРіРёРІР°РЅРёР№ 10 РѕС‚Р¶РёРјР°РЅРёР№ 15 РїСЂРёСЃРµРґР°РЅРёР№',
-                'desc_en': '20 minutes AMRAP: 5 pull-ups 10 push-ups 15 squats',
-                'video': 3,
-            },
-            {
-                'name_ru': 'Р¤СЂР°РЅ',
-                'name_en': 'Fran',
-                'desc_ru': '21-15-9 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ: РўСЂР°СЃС‚РµСЂС‹ (43/29 РєРі) РџРѕРґС‚СЏРіРёРІР°РЅРёСЏ',
-                'desc_en': '21-15-9 reps for time: Thrusters (43/29 kg) Pull-ups',
-                'video': 8,
-            },
-        ]
+        rows = [self._serialize_item(item) for item in AdminLibraryItem.objects.all()]
+        context['library_rows'] = rows
+        context['library_rows_json'] = json.dumps(rows, ensure_ascii=False)
         return context
+
+
+class AdminLibraryListView(AdminProtectedMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        section = str(request.GET.get('section') or AdminLibraryItem.SECTION_EXERCISES).strip().lower()
+        category = str(request.GET.get('category') or '').strip().lower()
+
+        valid_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
+        valid_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+        if section not in valid_sections:
+            return JsonResponse({'ok': False, 'error': 'invalid_section'}, status=400)
+
+        query = AdminLibraryItem.objects.filter(section=section)
+        if section == AdminLibraryItem.SECTION_BENCHMARKS:
+            normalized_category = category if category in valid_categories else AdminLibraryItem.CATEGORY_GIRLS
+            query = query.filter(benchmark_category=normalized_category)
+
+        rows = [AdminLibraryView._serialize_item(item) for item in query]
+        return JsonResponse({'ok': True, 'rows': rows})
+
+
+class AdminLibraryCreateView(AdminProtectedMixin, View):
+    http_method_names = ['post']
+    ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.wmv'}
+    MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024
+
+    def post(self, request, *args, **kwargs):
+        section = str(request.POST.get('section') or '').strip().lower()
+        category = str(request.POST.get('category') or '').strip().lower()
+        name_ru = str(request.POST.get('name_ru') or '').strip()
+        name_en = str(request.POST.get('name_en') or '').strip()
+        desc_ru = str(request.POST.get('desc_ru') or '').strip()
+        desc_en = str(request.POST.get('desc_en') or '').strip()
+        video_file = request.FILES.get('video')
+
+        allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
+        allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+
+        field_errors = {}
+        if section not in allowed_sections:
+            field_errors['section'] = 'invalid_section'
+        if section == AdminLibraryItem.SECTION_BENCHMARKS:
+            if category not in allowed_categories:
+                field_errors['category'] = 'invalid_category'
+        else:
+            category = ''
+        if not name_ru:
+            field_errors['name_ru'] = 'required'
+        if len(name_ru) > 255:
+            field_errors['name_ru'] = 'too_long'
+        if len(name_en) > 255:
+            field_errors['name_en'] = 'too_long'
+        if video_file:
+            extension = Path(video_file.name or '').suffix.lower()
+            if extension not in self.ALLOWED_VIDEO_EXTENSIONS:
+                field_errors['video'] = 'invalid_video_format'
+            elif getattr(video_file, 'size', 0) > self.MAX_VIDEO_SIZE_BYTES:
+                field_errors['video'] = 'video_too_large'
+
+        if field_errors:
+            return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
+
+        item = AdminLibraryItem.objects.create(
+            section=section,
+            benchmark_category=category,
+            name_ru=name_ru,
+            name_en=name_en,
+            desc_ru=desc_ru,
+            desc_en=desc_en,
+            video_file=video_file,
+            created_by=request.user,
+        )
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'item': {
+                    'id': item.id,
+                    'section': item.section,
+                    'category': item.benchmark_category,
+                    'name_ru': item.name_ru,
+                    'name_en': item.name_en,
+                    'desc_ru': item.desc_ru,
+                    'desc_en': item.desc_en,
+                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
+                },
+            }
+        )
 
 
 class StatisticsView(AdminProtectedMixin, TemplateView):
@@ -1705,6 +2120,44 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         activity_rows.sort(key=lambda item: (-item['trainings'], -item['received'], -item['sent'], item['name']))
         context['activity_rows'] = activity_rows[:12]
 
+        registered_users_count = UserProfile.objects.filter(role=UserProfile.ROLE_USER).count()
+        active_user_ids = set(
+            TrainingResult.objects
+            .filter(training_date__range=(period_start, period_end))
+            .values_list('user_id', flat=True)
+            .distinct()
+        )
+        active_user_ids.update(
+            TrainingRate.objects
+            .filter(training_date__range=(period_start, period_end))
+            .values_list('user_id', flat=True)
+            .distinct()
+        )
+        active_user_ids.update(
+            CommunityReaction.objects
+            .filter(training_date__range=(period_start, period_end))
+            .values_list('sender_id', flat=True)
+            .distinct()
+        )
+        active_user_ids.update(
+            CommunityReaction.objects
+            .filter(training_date__range=(period_start, period_end))
+            .values_list('target_user_id', flat=True)
+            .distinct()
+        )
+        active_users_count = UserProfile.objects.filter(
+            role=UserProfile.ROLE_USER,
+            user_id__in=active_user_ids,
+        ).count()
+        context['users_registered_count'] = registered_users_count
+        context['users_active_count'] = active_users_count
+
+        today = timezone.localdate()
+        context['results_today_count'] = TrainingResult.objects.filter(training_date=today).count()
+        context['results_period_count'] = TrainingResult.objects.filter(
+            training_date__range=(period_start, period_end)
+        ).count()
+
         visited_counts = {
             row['user_id']: row['visited']
             for row in (
@@ -1754,7 +2207,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _stars(value):
         rating = max(1, min(5, int(value)))
-        return ('в…' * rating) + ('в†' * (5 - rating))
+        return ('★' * rating) + ('☆' * (5 - rating))
 
     @staticmethod
     def _rating_label(value):
@@ -2436,6 +2889,11 @@ class LogoutView(View):
 class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-day.html'
 
+    def get_template_names(self):
+        if user_has_admin_panel_access(self.request.user):
+            return ['auth/leaderboard-day-admin.html']
+        return [self.template_name]
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         raw_date = str(self.request.GET.get('date') or '').strip()
@@ -2532,6 +2990,48 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateV
         context['leaderboard_training_groups'] = leaderboard_training_groups
         context['leaderboard_week_days'] = build_week_days(selected_date)
         context['leaderboard_training_direction_label'] = TRAINING_DIRECTION_LABELS.get(direction_value, 'FBB')
+
+        # Dedicated presentation payload for admin leaderboard page:
+        # list of training cards with exercises grouped by block.
+        admin_cards = []
+        for training in trainings:
+            ordered_exercises = sorted(training.exercises.all(), key=lambda item: (item.order, item.id))
+            grouped_blocks = {}
+            for exercise in ordered_exercises:
+                block_label = (
+                    exercise.block_custom_name.strip()
+                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Силовая')
+                )
+                secondary = ''
+                if exercise.sets is not None and exercise.reps is not None:
+                    secondary = f'{exercise.sets} подходов / {exercise.reps} повторений'
+                elif exercise.sets is not None:
+                    secondary = f'{exercise.sets} подходов'
+                elif exercise.reps is not None:
+                    secondary = f'{exercise.reps} повторений'
+                grouped_blocks.setdefault(block_label, []).append(
+                    {
+                        'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                        'meta': secondary,
+                    }
+                )
+
+            blocks = [
+                {
+                    'title': block_name,
+                    'items': items,
+                }
+                for block_name, items in grouped_blocks.items()
+            ]
+            admin_cards.append(
+                {
+                    'title': get_admin_training_title(training.direction, training.source_type, training.ready_plan_title),
+                    'blocks': blocks,
+                }
+            )
+
+        context['leaderboard_admin_cards'] = admin_cards
         return context
 
 

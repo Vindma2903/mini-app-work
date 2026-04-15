@@ -1,6 +1,10 @@
 """Profile view exports."""
 
 from auth.views import (
+    AdminProfileUserCreateView,
+    AdminProfileUsersListView,
+    AdminProfilePasswordUpdateView,
+    AdminProfileUpdateView,
     AdminProfileView,
     ProfileView,
     SettingsView,
@@ -13,6 +17,10 @@ from auth.views import (
 
 __all__ = [
     "AdminProfileView",
+    "AdminProfileUpdateView",
+    "AdminProfilePasswordUpdateView",
+    "AdminProfileUsersListView",
+    "AdminProfileUserCreateView",
     "ProfileView",
     "SettingsView",
     "StartTelegramLinkView",
@@ -21,4 +29,3 @@ __all__ = [
     "UpdateProfileDataView",
     "UpdateProfileGoalView",
 ]
-

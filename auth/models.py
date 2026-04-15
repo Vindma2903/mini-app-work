@@ -268,9 +268,11 @@ class AdminTrainingExercise(models.Model):
 class UserProfile(models.Model):
     ROLE_USER = 'user'
     ROLE_TRAINER = 'trainer'
+    ROLE_ADMIN = 'admin'
     ROLE_CHOICES = (
         (ROLE_USER, 'User'),
         (ROLE_TRAINER, 'Trainer'),
+        (ROLE_ADMIN, 'Admin'),
     )
 
     user = models.OneToOneField(
@@ -292,3 +294,54 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'Profile of {self.user.email}'
+
+
+class AdminLibraryItem(models.Model):
+    SECTION_EXERCISES = 'exercises'
+    SECTION_TRAININGS = 'trainings'
+    SECTION_BARBELL = 'barbell'
+    SECTION_BENCHMARKS = 'benchmarks'
+    SECTION_CHOICES = (
+        (SECTION_EXERCISES, 'Exercises'),
+        (SECTION_TRAININGS, 'Trainings'),
+        (SECTION_BARBELL, 'Barbell PRs'),
+        (SECTION_BENCHMARKS, 'Benchmarks'),
+    )
+
+    CATEGORY_GIRLS = 'girls'
+    CATEGORY_HEROES = 'heroes'
+    CATEGORY_GYMNASTICS = 'gymnastics'
+    BENCHMARK_CATEGORY_CHOICES = (
+        (CATEGORY_GIRLS, 'Girls'),
+        (CATEGORY_HEROES, 'Heroes'),
+        (CATEGORY_GYMNASTICS, 'Gymnastics'),
+    )
+
+    section = models.CharField(max_length=16, choices=SECTION_CHOICES, default=SECTION_EXERCISES, db_index=True)
+    benchmark_category = models.CharField(
+        max_length=16,
+        choices=BENCHMARK_CATEGORY_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+    )
+    name_ru = models.CharField(max_length=255)
+    name_en = models.CharField(max_length=255, blank=True, default='')
+    desc_ru = models.TextField(blank=True, default='')
+    desc_en = models.TextField(blank=True, default='')
+    video_file = models.FileField(upload_to='library/videos/', blank=True, null=True)
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='library_items_created',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at', '-id']
+
+    def __str__(self):
+        return f'{self.name_ru} ({self.section})'

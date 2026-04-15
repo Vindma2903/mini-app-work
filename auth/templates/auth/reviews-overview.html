@@ -1,7 +1,7 @@
-п»ї{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹{% endblock %}
+{% block title %}Оценка и отзывы{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
@@ -11,28 +11,28 @@
 {% block content %}
 <main class="calendar-desktop reviews-page">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Р›РѕРіРѕС‚РёРї">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>РЎС‚Р°С‚РёСЃС‚РёРєР°</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>РљР°Р»РµРЅРґР°СЂСЊ</span></a>
-            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</span></a>
-            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Р‘РёР±Р»РёРѕС‚РµРєР°</span></a>
-            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>РќР°СЃС‚СЂРѕР№РєРё</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Р’С‹Р№С‚Рё</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
         </div>
     </aside>
 
     <section class="calendar-content reviews-content">
         <header class="calendar-content__header">
             <div>
-                <h1>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</h1>
-                <p>РћС‚СЃР»РµР¶РёРІР°РЅРёРµ СЂРµР№С‚РёРЅРіР° С‚СЂРµРЅРёСЂРѕРІРѕРє</p>
+                <h1>Оценка и отзывы</h1>
+                <p>Отслеживание рейтинга тренировок</p>
             </div>
             <div class="calendar-content__user">
-                <div><strong>РљСЃРµРЅРёСЏ РРІР°РЅРѕРІР°</strong><span>Admin</span></div>
-                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅР°">AM</a>
+                <div><strong>{{ admin_header_name }}</strong><span>{{ admin_header_role }}</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">{{ admin_header_initials }}</a>
             </div>
         </header>
 
@@ -40,30 +40,30 @@
             <div class="reviews-toolbar">
                 <label class="reviews-search">
                     <input type="text" placeholder="">
-                    <span class="reviews-search__icon">вЊ•</span>
+                    <span class="reviews-search__icon">?</span>
                 </label>
 
                 <div class="reviews-toolbar__row">
                     <div class="reviews-select-wrap" id="reviews-load-type-filter">
                         <button type="button" class="reviews-select" id="reviews-select-trigger" aria-haspopup="listbox" aria-expanded="false">
-                            <span id="reviews-select-value">РћР±С‰Р°СЏ</span>
-                            <span class="reviews-select__chevron">вЊ„</span>
+                            <span id="reviews-select-value">Общая</span>
+                            <span class="reviews-select__chevron">?</span>
                         </button>
                         <div class="reviews-select-menu" id="reviews-select-menu" role="listbox" hidden>
-                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'all' %} is-active{% endif %}" data-load-type="all" data-load-label="РћР±С‰Р°СЏ">РћР±С‰Р°СЏ</button>
-                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="РљР°СЂРґРёРѕ">РљР°СЂРґРёРѕ</button>
-                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'metabolic' %} is-active{% endif %}" data-load-type="metabolic" data-load-label="РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ">РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ</button>
-                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="РЎРёР»РѕРІР°СЏ">РЎРёР»РѕРІР°СЏ</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'all' %} is-active{% endif %}" data-load-type="all" data-load-label="Общая">Общая</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="Кардио">Кардио</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'metabolic' %} is-active{% endif %}" data-load-type="metabolic" data-load-label="Метаболическая">Метаболическая</button>
+                            <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="Силовая">Силовая</button>
                         </div>
                         <input type="hidden" id="reviews-select-input" name="load_type" value="{{ selected_load_type|default:'all' }}">
                     </div>
                     <div class="reviews-toolbar__actions">
-                        <button type="button" aria-label="РЎРѕСЂС‚РёСЂРѕРІРєР°">в‡…</button>
+                        <button type="button" aria-label="Сортировка">?</button>
                         <div class="reviews-filter-wrap" id="reviews-order-filter">
-                            <button type="button" aria-label="Р¤РёР»СЊС‚СЂ" id="reviews-filter-trigger">в°</button>
+                            <button type="button" aria-label="Фильтр" id="reviews-filter-trigger">?</button>
                             <div class="reviews-filter-menu" id="reviews-filter-menu" role="listbox" hidden>
-                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'date' %} is-active{% endif %}" data-order-value="date" data-order-label="РџРѕ РґР°С‚Рµ">РџРѕ РґР°С‚Рµ</button>
-                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'rating' %} is-active{% endif %}" data-order-value="rating" data-order-label="РџРѕ СЂРµР№С‚РёРЅРіСѓ">РџРѕ СЂРµР№С‚РёРЅРіСѓ</button>
+                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'date' %} is-active{% endif %}" data-order-value="date" data-order-label="По дате">По дате</button>
+                                <button type="button" class="reviews-filter-menu__item{% if selected_order_by == 'rating' %} is-active{% endif %}" data-order-value="rating" data-order-label="По рейтингу">По рейтингу</button>
                             </div>
                             <input type="hidden" id="reviews-order-input" name="order_by" value="{{ selected_order_by|default:'date' }}">
                         </div>
@@ -77,24 +77,24 @@
                     <div class="reviews-card__head">
                         <div>
                             <h3>{{ card.training_title }}</h3>
-                            <p>{{ card.date_label }} В· {{ card.author_name }}</p>
+                            <p>{{ card.date_label }} · {{ card.author_name }}</p>
                         </div>
-                        <span class="reviews-card__eye">вЉ™</span>
+                        <span class="reviews-card__eye">?</span>
                     </div>
 
                     <div class="reviews-card__ratings">
-                        <div><span>РћР±С‰Р°СЏ:</span><b>{{ card.overall_stars }}</b><strong>{{ card.overall_value }}</strong></div>
-                        <div><span>РЎРёР»РѕРІР°СЏ</span><b>{{ card.strength_stars }}</b><strong>{{ card.strength_value }}</strong></div>
-                        <div><span>РљР°СЂРґРёРѕ</span><b>{{ card.cardio_stars }}</b><strong>{{ card.cardio_value }}</strong></div>
-                        <div><span>РњРµС‚Р°Р±РѕР».</span><b>{{ card.metabolic_stars }}</b><strong>{{ card.metabolic_value }}</strong></div>
+                        <div><span>Общая:</span><b>{{ card.overall_stars }}</b><strong>{{ card.overall_value }}</strong></div>
+                        <div><span>Силовая</span><b>{{ card.strength_stars }}</b><strong>{{ card.strength_value }}</strong></div>
+                        <div><span>Кардио</span><b>{{ card.cardio_stars }}</b><strong>{{ card.cardio_value }}</strong></div>
+                        <div><span>Метабол.</span><b>{{ card.metabolic_stars }}</b><strong>{{ card.metabolic_value }}</strong></div>
                     </div>
 
                     <div class="reviews-card__text">{{ card.comment }}</div>
                 </article>
                 {% empty %}
                 <article class="reviews-card reviews-card--violet">
-                    <div class="reviews-card__head"><div><h3>HIIT Training</h3><p>РџРѕРєР° РЅРµС‚ РѕС‚Р·С‹РІРѕРІ</p></div></div>
-                    <div class="reviews-card__text">РџРѕР»СЊР·РѕРІР°С‚РµР»Рё РµС‰С‘ РЅРµ РѕСЃС‚Р°РІРёР»Рё РѕС†РµРЅРєСѓ С‚СЂРµРЅРёСЂРѕРІРєРё.</div>
+                    <div class="reviews-card__head"><div><h3>HIIT Training</h3><p>Пока нет отзывов</p></div></div>
+                    <div class="reviews-card__text">Пользователи ещё не оставили оценку тренировки.</div>
                 </article>
                 {% endfor %}
             </div>
@@ -116,18 +116,18 @@
 
         const params = new URLSearchParams(window.location.search);
         const labelsByLoadType = {
-            all: "РћР±С‰Р°СЏ",
-            cardio: "РљР°СЂРґРёРѕ",
-            metabolic: "РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ",
-            strength: "РЎРёР»РѕРІР°СЏ"
+            all: "Общая",
+            cardio: "Кардио",
+            metabolic: "Метаболическая",
+            strength: "Силовая"
         };
         const labelsByOrder = {
-            date: "РџРѕ РґР°С‚Рµ",
-            rating: "РџРѕ СЂРµР№С‚РёРЅРіСѓ"
+            date: "По дате",
+            rating: "По рейтингу"
         };
 
         const initialLoadType = (input.value || "all").toLowerCase();
-        value.textContent = labelsByLoadType[initialLoadType] || "РћР±С‰Р°СЏ";
+        value.textContent = labelsByLoadType[initialLoadType] || "Общая";
 
         const options = menu.querySelectorAll(".reviews-select-menu__item");
 
@@ -150,7 +150,7 @@
         options.forEach(function (option) {
             option.addEventListener("click", function () {
                 const nextValue = option.getAttribute("data-load-type") || "all";
-                const nextLabel = option.getAttribute("data-load-label") || "РћР±С‰Р°СЏ";
+                const nextLabel = option.getAttribute("data-load-label") || "Общая";
                 options.forEach(function (item) {
                     item.classList.remove("is-active");
                 });

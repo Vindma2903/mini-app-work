@@ -1,0 +1,54 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}Лидерборд{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day-admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="leaderboard-admin-page">
+    <header class="leaderboard-admin-page__head">
+        <a href="{% url 'auth:statistics' %}" class="leaderboard-admin-page__back">← Назад</a>
+        <a href="{% url 'auth:statistics' %}" class="leaderboard-admin-page__close" aria-label="Закрыть">×</a>
+    </header>
+
+    <h1 class="leaderboard-admin-page__title">Тренировки дня</h1>
+
+    <div class="leaderboard-admin-page__cards">
+        {% for card in leaderboard_admin_cards %}
+        <article class="leaderboard-admin-card">
+            <div class="leaderboard-admin-card__head">
+                <span class="leaderboard-admin-card__icon" aria-hidden="true">⛓</span>
+                <h2>{{ card.title }}</h2>
+            </div>
+            <div class="leaderboard-admin-card__blocks">
+                {% for block in card.blocks %}
+                <section class="leaderboard-admin-block">
+                    <h3>{{ block.title }}</h3>
+                    <ul>
+                        {% for item in block.items %}
+                        <li>
+                            <span>{{ item.title }}</span>
+                            {% if item.meta %}
+                            <small>{{ item.meta }}</small>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </section>
+                {% endfor %}
+            </div>
+        </article>
+        {% empty %}
+        <article class="leaderboard-admin-card">
+            <div class="leaderboard-admin-card__head">
+                <span class="leaderboard-admin-card__icon" aria-hidden="true">⛓</span>
+                <h2>Нет тренировок на выбранную дату</h2>
+            </div>
+        </article>
+        {% endfor %}
+    </div>
+</main>
+{% endblock %}

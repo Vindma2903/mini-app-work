@@ -1,7 +1,7 @@
-п»ї{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Р‘РёР±Р»РёРѕС‚РµРєР°{% endblock %}
+{% block title %}Библиотека{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
@@ -11,40 +11,40 @@
 {% block content %}
 <main class="calendar-desktop admin-library-page">
     <aside class="calendar-sidebar">
-        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Р›РѕРіРѕС‚РёРї">
+        <img class="calendar-sidebar__logo" src="{% static 'auth/img/calendar-sidebar-logo.svg' %}" alt="Логотип">
         <nav class="calendar-sidebar__nav">
-            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>РЎС‚Р°С‚РёСЃС‚РёРєР°</span></a>
-            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>РљР°Р»РµРЅРґР°СЂСЊ</span></a>
-            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>РћС†РµРЅРєР° Рё РѕС‚Р·С‹РІС‹</span></a>
-            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Р‘РёР±Р»РёРѕС‚РµРєР°</span></a>
-            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>РќР°СЃС‚СЂРѕР№РєРё</span></a>
+            <a href="{% url 'auth:statistics' %}" class="calendar-sidebar__link calendar-sidebar__link--wide"><img src="{% static 'auth/img/calendar-sidebar-stats.svg' %}" alt=""><span>Статистика</span></a>
+            <a href="{% url 'auth:calendar' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-calendar.svg' %}" alt=""><span>Календарь</span></a>
+            <a href="{% url 'auth:reviews_overview' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-star.svg' %}" alt=""><span>Оценка и отзывы</span></a>
+            <a href="{% url 'auth:admin_library' %}" class="calendar-sidebar__link calendar-sidebar__link--active"><img src="{% static 'auth/img/calendar-sidebar-library.svg' %}" alt=""><span>Библиотека</span></a>
+            <a href="{% url 'auth:admin_profile' %}" class="calendar-sidebar__link"><img src="{% static 'auth/img/calendar-sidebar-settings.svg' %}" alt=""><span>Настройки</span></a>
         </nav>
         <div class="calendar-sidebar__bottom">
-            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Р’С‹Р№С‚Рё</span></a>
+            <a href="{% url 'auth:logout' %}" class="calendar-sidebar__link calendar-sidebar__link--logout"><img src="{% static 'auth/img/calendar-sidebar-logout.svg' %}" alt=""><span>Выйти</span></a>
         </div>
     </aside>
 
     <section class="calendar-content admin-library-content">
         <header class="admin-library-header">
             <div>
-                <h1>Р‘РёР±Р»РёРѕС‚РµРєР°</h1>
-                <p>РРЅС„РѕСЂРјР°С†РёСЏ РѕР± СѓРїСЂР°Р¶РЅРµРЅРёСЏС…</p>
+                <h1>Библиотека</h1>
+                <p>Информация об упражнениях</p>
             </div>
             <div class="calendar-content__user">
-                <div><strong>РљСЃРµРЅРёСЏ РРІР°РЅРѕРІР°</strong><span>Admin</span></div>
-                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="РћС‚РєСЂС‹С‚СЊ РїСЂРѕС„РёР»СЊ Р°РґРјРёРЅР°">AM</a>
+                <div><strong>{{ admin_header_name }}</strong><span>{{ admin_header_role }}</span></div>
+                <a href="{% url 'auth:admin_profile' %}" class="calendar-content__avatar" aria-label="Открыть профиль админа">{{ admin_header_initials }}</a>
             </div>
         </header>
 
         <section class="admin-library-card">
             <div class="admin-library-toolbar">
-                <nav class="admin-library-tabs" aria-label="РўРёРїС‹ Р±РёР±Р»РёРѕС‚РµРєРё">
-                    <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">РЈРїСЂР°Р¶РЅРµРЅРёСЏ</a>
-                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">РўСЂРµРЅРёСЂРѕРІРєРё</a>
+                <nav class="admin-library-tabs" aria-label="Типы библиотеки">
+                    <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">Упражнения</a>
+                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">Тренировки</a>
                     <a href="#" class="admin-library-tabs__item" data-tab="barbell">Barbell PRs</a>
                     <a href="#" class="admin-library-tabs__item" data-tab="benchmarks">Benchmarks</a>
                 </nav>
-                <button type="button" class="admin-library-add">+ Р”РѕР±Р°РІРёС‚СЊ</button>
+                <button type="button" class="admin-library-add">+ Добавить</button>
             </div>
 
             <div class="admin-library-benchmark-filters" id="admin-library-benchmark-filters" hidden>
@@ -57,12 +57,12 @@
                 <table class="admin-library-table">
                     <thead>
                         <tr>
-                            <th>РќР°Р·РІР°РЅРёРµ<br>Р СѓСЃСЃРєРёР№</th>
-                            <th>РќР°Р·РІР°РЅРёРµ<br>РђРЅРіР»РёР№СЃРєРёР№</th>
-                            <th>РћРїРёСЃР°РЅРёРµ<br>Р СѓСЃСЃРєРёР№</th>
-                            <th>РћРїРёСЃР°РЅРёРµ<br>РђРЅРіР»РёР№СЃРєРёР№</th>
-                            <th>Р’РёРґРµРѕ</th>
-                            <th>Р”РµР№СЃС‚РІРёСЏ</th>
+                            <th>Название<br>Русский</th>
+                            <th>Название<br>Английский</th>
+                            <th>Описание<br>Русский</th>
+                            <th>Описание<br>Английский</th>
+                            <th>Видео</th>
+                            <th>Действия</th>
                         </tr>
                     </thead>
                     <tbody id="admin-library-table-body">
@@ -75,8 +75,8 @@
                             <td><a href="#" class="admin-library-video">{{ row.video }}</a></td>
                             <td>
                                 <span class="admin-library-actions">
-                                    <a href="#" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">вњЋ</a>
-                                    <a href="#" aria-label="РЈРґР°Р»РёС‚СЊ">рџ—‘</a>
+                                    <a href="#" aria-label="Редактировать">?</a>
+                                    <a href="#" aria-label="Удалить">??</a>
                                 </span>
                             </td>
                         </tr>
@@ -87,58 +87,97 @@
         </section>
     </section>
 </main>
+
+<div class="admin-library-modal" id="admin-library-add-modal" hidden>
+    <div class="admin-library-modal__overlay" data-library-modal-close></div>
+    <section class="admin-library-modal__card" role="dialog" aria-modal="true" aria-label="Добавление упражнения">
+        <header class="admin-library-modal__head">
+            <h3>Добавление упражнения</h3>
+            <button type="button" class="admin-library-modal__close" data-library-modal-close aria-label="Закрыть">?</button>
+        </header>
+
+        <div class="admin-library-modal__body">
+            <label class="admin-library-modal__field">
+                <span>Раздел</span>
+                <select id="admin-library-form-section" class="admin-library-modal__input">
+                    <option value="exercises">Упражнения</option>
+                    <option value="trainings">Тренировки</option>
+                    <option value="barbell">Barbell PRs</option>
+                    <option value="benchmarks">Benchmarks</option>
+                </select>
+            </label>
+
+            <label class="admin-library-modal__field" id="admin-library-form-category-wrap" hidden>
+                <span>Категория</span>
+                <select id="admin-library-form-category" class="admin-library-modal__input">
+                    <option value="girls">Girls</option>
+                    <option value="heroes">Heroes</option>
+                    <option value="gymnastics">Gymnastics</option>
+                </select>
+            </label>
+
+            <label class="admin-library-modal__field">
+                <span>Название на русском</span>
+                <input type="text" class="admin-library-modal__input" id="admin-library-form-name-ru" placeholder="Введите название на русском">
+            </label>
+
+            <label class="admin-library-modal__field">
+                <span>Название на английском</span>
+                <input type="text" class="admin-library-modal__input" id="admin-library-form-name-en" placeholder="Enter name in English">
+            </label>
+
+            <label class="admin-library-modal__field">
+                <span>Описание</span>
+                <textarea class="admin-library-modal__textarea" id="admin-library-form-desc-ru" placeholder="Введите описание упражнения"></textarea>
+            </label>
+
+            <label class="admin-library-modal__field">
+                <span>Описание (англ.)</span>
+                <textarea class="admin-library-modal__textarea" id="admin-library-form-desc-en" placeholder="Enter description in English"></textarea>
+            </label>
+
+            <section class="admin-library-modal__field">
+                <span>Видео (необязательно)</span>
+                <button type="button" class="admin-library-modal__upload" id="admin-library-upload-trigger">
+                    <span class="admin-library-modal__upload-plus">+</span>
+                    <b>Нажмите для загрузки видео</b>
+                    <small>MP4, AVI, MOV, WMV (макс. 500 МБ)</small>
+                </button>
+                <input type="file" id="admin-library-upload-input" accept=".mp4,.avi,.mov,.wmv,video/mp4,video/avi,video/quicktime,video/x-ms-wmv" hidden>
+            </section>
+        </div>
+
+        <footer class="admin-library-modal__actions">
+            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--ghost" data-library-modal-close>Отмена</button>
+            <button type="button" class="admin-library-modal__btn admin-library-modal__btn--primary" id="admin-library-form-submit">Добавить</button>
+        </footer>
+    </section>
+</div>
+
+{{ library_rows_json|json_script:"admin-library-rows-data" }}
+
 <script>
     (function () {
         const tabs = document.querySelectorAll(".admin-library-tabs__item[data-tab]");
         const tbody = document.getElementById("admin-library-table-body");
+        const addButton = document.querySelector(".admin-library-add");
+        const addModal = document.getElementById("admin-library-add-modal");
+        const uploadTrigger = document.getElementById("admin-library-upload-trigger");
+        const uploadInput = document.getElementById("admin-library-upload-input");
+        const sectionInput = document.getElementById("admin-library-form-section");
+        const categoryWrap = document.getElementById("admin-library-form-category-wrap");
+        const categoryInput = document.getElementById("admin-library-form-category");
+        const nameRuInput = document.getElementById("admin-library-form-name-ru");
+        const nameEnInput = document.getElementById("admin-library-form-name-en");
+        const descRuInput = document.getElementById("admin-library-form-desc-ru");
+        const descEnInput = document.getElementById("admin-library-form-desc-en");
+        const submitButton = document.getElementById("admin-library-form-submit");
+        const rowsPayloadEl = document.getElementById("admin-library-rows-data");
         const benchmarkFiltersWrap = document.getElementById("admin-library-benchmark-filters");
         const benchmarkFilterButtons = benchmarkFiltersWrap?.querySelectorAll("[data-benchmark-filter]") || [];
         if (!tabs.length || !tbody) return;
-
-        const commonRows = [
-            {
-                nameRu: "РђРјР°РЅРґР°",
-                nameEn: "Amanda",
-                descRu: "9-7-5 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ:\nР’С‹С…РѕРґС‹ РЅР° РєРѕР»СЊС†Р°С…\nРџСЂРёСЃРµРґР°РЅРёСЏ СЃРѕ С€С‚Р°РЅРіРѕР№ (61/43 РєРі)",
-                descEn: "9-7-5 reps for time:\nRing muscle-ups\nSquats with a barbell (61/43 kg)",
-                video: 5
-            },
-            {
-                nameRu: "РЎРёРЅРґРё",
-                nameEn: "Cindy",
-                descRu: "20 РјРёРЅСѓС‚ AMRAP:\n5 РїРѕРґС‚СЏРіРёРІР°РЅРёР№\n10 РѕС‚Р¶РёРјР°РЅРёР№\n15 РїСЂРёСЃРµРґР°РЅРёР№",
-                descEn: "20 minutes AMRAP:\n5 pull-ups\n10 push-ups\n15 squats",
-                video: 3
-            },
-            {
-                nameRu: "Р¤СЂР°РЅ",
-                nameEn: "Fran",
-                descRu: "21-15-9 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ:\nРўСЂР°СЃС‚РµСЂС‹ (43/29 РєРі)\nРџРѕРґС‚СЏРіРёРІР°РЅРёСЏ",
-                descEn: "21-15-9 reps for time:\nThrusters (43/29 kg)\nPull-ups",
-                video: 8
-            }
-        ];
-
-        const datasets = {
-            exercises: commonRows,
-            trainings: [
-                {
-                    nameRu: "РўСЂРµРЅРёСЂРѕРІРєР° СЃ РљСЃРµРЅРёРµР№",
-                    nameEn: "Training with Ksenia",
-                    descRu: "9-7-5 РїРѕРІС‚РѕСЂРµРЅРёР№ РЅР° РІСЂРµРјСЏ:\nР’С‹С…РѕРґС‹ РЅР° РєРѕР»СЊС†Р°С…\nРџСЂРёСЃРµРґР°РЅРёСЏ СЃРѕ С€С‚Р°РЅРіРѕР№ (61/43 РєРі)",
-                    descEn: "9-7-5 reps for time:\nRing muscle-ups\nSquats with a barbell (61/43 kg)",
-                    video: 5
-                },
-                commonRows[1],
-                commonRows[2]
-            ],
-            barbell: commonRows,
-            benchmarks: {
-                girls: commonRows,
-                heroes: commonRows,
-                gymnastics: commonRows
-            }
-        };
+        const parsedRows = JSON.parse(rowsPayloadEl?.textContent || "[]");
+        let rowsCache = Array.isArray(parsedRows) ? parsedRows : [];
 
         const initialActiveTab = document.querySelector(".admin-library-tabs__item.is-active")?.getAttribute("data-tab");
         let activeTab = initialActiveTab || "exercises";
@@ -158,29 +197,41 @@
         }
 
         function getRows() {
-            if (activeTab === "benchmarks") {
-                return datasets.benchmarks[currentBenchmarkFilter] || datasets.benchmarks.girls;
-            }
-            return datasets[activeTab] || datasets.exercises;
+            return rowsCache.filter((row) => {
+                if (String(row.section || "") !== activeTab) {
+                    return false;
+                }
+                if (activeTab === "benchmarks") {
+                    return String(row.category || "") === currentBenchmarkFilter;
+                }
+                return true;
+            });
         }
 
         function renderRows() {
             const rows = getRows();
             tbody.innerHTML = rows.map((row) => `
                 <tr>
-                    <td>${escapeHtml(row.nameRu)}</td>
-                    <td>${escapeHtml(row.nameEn)}</td>
-                    <td>${formatMultiline(row.descRu)}</td>
-                    <td>${formatMultiline(row.descEn)}</td>
-                    <td><a href="#" class="admin-library-video">${escapeHtml(row.video)}</a></td>
+                    <td>${escapeHtml(row.name_ru || "")}</td>
+                    <td>${escapeHtml(row.name_en || "")}</td>
+                    <td>${formatMultiline(row.desc_ru || "")}</td>
+                    <td>${formatMultiline(row.desc_en || "")}</td>
+                    <td><a href="#" class="admin-library-video">${escapeHtml(row.video || "")}</a></td>
                     <td>
                         <span class="admin-library-actions">
-                            <a href="#" aria-label="Р РµРґР°РєС‚РёСЂРѕРІР°С‚СЊ">вњЋ</a>
-                            <a href="#" aria-label="РЈРґР°Р»РёС‚СЊ">рџ—‘</a>
+                            <a href="#" aria-label="Редактировать">?</a>
+                            <a href="#" aria-label="Удалить">??</a>
                         </span>
                     </td>
                 </tr>
             `).join("");
+            if (!rows.length) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6">Пока нет записей</td>
+                    </tr>
+                `;
+            }
         }
 
         function toggleBenchmarkFilters() {
@@ -188,31 +239,172 @@
             benchmarkFiltersWrap.hidden = activeTab !== "benchmarks";
         }
 
+        function setAddModalOpen(open) {
+            if (!addModal) return;
+            addModal.hidden = !open;
+            document.body.style.overflow = open ? "hidden" : "";
+            if (open) {
+                toggleCategoryField();
+            }
+        }
+
+        function toggleCategoryField() {
+            if (!sectionInput || !categoryWrap) return;
+            const shouldShowCategory = String(sectionInput.value || "").toLowerCase() === "benchmarks";
+            categoryWrap.hidden = !shouldShowCategory;
+            categoryWrap.style.display = shouldShowCategory ? "grid" : "none";
+            if (!shouldShowCategory && categoryInput) {
+                categoryInput.value = "girls";
+            }
+        }
+
+        async function fetchRowsFromServer() {
+            const params = new URLSearchParams();
+            params.set("section", activeTab);
+            if (activeTab === "benchmarks") {
+                params.set("category", currentBenchmarkFilter);
+            }
+            const response = await fetch(`{% url 'auth:admin_library_list' %}?${params.toString()}`);
+            const payload = await response.json();
+            if (!response.ok || !payload?.ok || !Array.isArray(payload.rows)) {
+                throw new Error("load_failed");
+            }
+            rowsCache = payload.rows;
+        }
+
+        function getCsrfToken() {
+            const pair = document.cookie.split(";").map((item) => item.trim()).find((item) => item.startsWith("csrftoken="));
+            if (pair) {
+                return decodeURIComponent(pair.split("=")[1] || "");
+            }
+            return "{{ csrf_token }}";
+        }
+
+        async function submitCreateItem() {
+            if (!sectionInput || !nameRuInput || !submitButton) return;
+            const formData = new FormData();
+            formData.append("section", sectionInput.value);
+            if (sectionInput.value === "benchmarks") {
+                formData.append("category", categoryInput?.value || "");
+            }
+            formData.append("name_ru", nameRuInput.value || "");
+            formData.append("name_en", nameEnInput?.value || "");
+            formData.append("desc_ru", descRuInput?.value || "");
+            formData.append("desc_en", descEnInput?.value || "");
+            if (uploadInput?.files?.[0]) {
+                formData.append("video", uploadInput.files[0]);
+            }
+
+            submitButton.disabled = true;
+            const initialText = submitButton.textContent;
+            submitButton.textContent = "Сохраняем...";
+            try {
+                const response = await fetch("{% url 'auth:admin_library_create' %}", {
+                    method: "POST",
+                    body: formData,
+                    headers: {
+                        "X-CSRFToken": getCsrfToken()
+                    }
+                });
+                const payload = await response.json();
+                if (!response.ok || !payload?.ok || !payload?.item) {
+                    const videoError = payload?.field_errors?.video || "";
+                    if (videoError === "invalid_video_format") {
+                        throw new Error("Разрешены только форматы MP4, AVI, MOV, WMV.");
+                    }
+                    if (videoError === "video_too_large") {
+                        throw new Error("Видео слишком большое. Максимальный размер файла: 500 МБ.");
+                    }
+                    throw new Error("Не удалось сохранить запись. Проверьте обязательные поля.");
+                }
+                await fetchRowsFromServer();
+                setAddModalOpen(false);
+                renderRows();
+            } catch (error) {
+                alert(error?.message || "Не удалось сохранить запись. Проверьте обязательные поля.");
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = initialText || "Добавить";
+            }
+        }
+
         tabs.forEach((tab) => {
-            tab.addEventListener("click", (event) => {
+            tab.addEventListener("click", async (event) => {
                 event.preventDefault();
                 const nextTab = tab.getAttribute("data-tab") || "exercises";
                 activeTab = nextTab;
                 tabs.forEach((item) => item.classList.remove("is-active"));
                 tab.classList.add("is-active");
                 toggleBenchmarkFilters();
+                try {
+                    await fetchRowsFromServer();
+                } catch (error) {
+                    rowsCache = [];
+                }
                 renderRows();
             });
         });
 
         benchmarkFilterButtons.forEach((button) => {
-            button.addEventListener("click", () => {
+            button.addEventListener("click", async () => {
                 currentBenchmarkFilter = button.getAttribute("data-benchmark-filter") || "girls";
                 benchmarkFilterButtons.forEach((item) => item.classList.remove("is-active"));
                 button.classList.add("is-active");
                 if (activeTab === "benchmarks") {
+                    try {
+                        await fetchRowsFromServer();
+                    } catch (error) {
+                        rowsCache = [];
+                    }
                     renderRows();
                 }
             });
         });
 
+        if (addButton && addModal) {
+            addButton.addEventListener("click", () => setAddModalOpen(true));
+
+            addModal.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (target.closest("[data-library-modal-close]")) {
+                    setAddModalOpen(false);
+                }
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape" && !addModal.hidden) {
+                    setAddModalOpen(false);
+                }
+            });
+        }
+
+        if (uploadTrigger && uploadInput) {
+            uploadTrigger.addEventListener("click", () => uploadInput.click());
+            uploadInput.addEventListener("change", () => {
+                const fileName = uploadInput.files?.[0]?.name || "";
+                if (!fileName) return;
+                const title = uploadTrigger.querySelector("b");
+                if (title) {
+                    title.textContent = fileName;
+                }
+            });
+        }
+
+        if (sectionInput) {
+            sectionInput.addEventListener("change", toggleCategoryField);
+            toggleCategoryField();
+        }
+
+        if (submitButton) {
+            submitButton.addEventListener("click", submitCreateItem);
+        }
+
         toggleBenchmarkFilters();
-        renderRows();
+        fetchRowsFromServer().then(renderRows).catch(() => {
+            rowsCache = [];
+            renderRows();
+        });
     })();
 </script>
 {% endblock %}

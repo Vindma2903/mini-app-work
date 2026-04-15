@@ -13,7 +13,7 @@ def user_has_admin_panel_access(user):
     profile = getattr(user, 'profile', None)
     if profile is None:
         profile = UserProfile.objects.filter(user=user).only('role').first()
-    return bool(profile and profile.role == UserProfile.ROLE_TRAINER)
+    return bool(profile and profile.role in {UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN})
 
 class LoginForm(forms.Form):
     email = forms.EmailField()

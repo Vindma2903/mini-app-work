@@ -842,15 +842,29 @@ class RegisterPasswordView(FormView):
             return redirect('auth:register')
 
         email = signup_data['email']
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=form.cleaned_data['password'],
-            first_name=signup_data['first_name'],
-            last_name=signup_data['last_name'],
-            is_active=True,
-        )
-        EmailAddress.objects.add_email(self.request, user, email, confirm=True)
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=signup_data['first_name'],
+                    last_name=signup_data['last_name'],
+                    is_active=True,
+                )
+                EmailAddress.objects.add_email(self.request, user, email, confirm=True)
+        except Exception:
+            logger.warning(
+                'Register step2 email confirmation send failed email=%s ip=%s',
+                email,
+                get_client_ip(self.request),
+                exc_info=True,
+            )
+            messages.error(
+                self.request,
+                'Не удалось отправить письмо подтверждения. Аккаунт не создан, попробуйте позже.',
+            )
+            return self.render_to_response(self.get_context_data(form=form))
         self.request.session.pop(REGISTER_SESSION_KEY, None)
         logger.info(
             'Register step2 success user_created email=%s user_id=%s ip=%s',

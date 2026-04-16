@@ -2,19 +2,33 @@ import os
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
+from django.db import transaction
 
 
 def _ensure_verified_email(user: User, email: str) -> None:
     # Mark email as confirmed for allauth flows that require mandatory verification.
-    EmailAddress.objects.update_or_create(
-        user=user,
-        email=email,
-        defaults={
-            'verified': True,
-            'primary': True,
-        },
-    )
-    EmailAddress.objects.filter(user=user).exclude(email=email).update(primary=False)
+    # Keep at most one primary email per user to satisfy allauth unique_primary_email.
+    with transaction.atomic():
+        EmailAddress.objects.filter(user=user).update(primary=False)
+
+        target = (
+            EmailAddress.objects
+            .filter(user=user, email__iexact=email)
+            .order_by('id')
+            .first()
+        )
+        if target is None:
+            EmailAddress.objects.create(
+                user=user,
+                email=email,
+                verified=True,
+                primary=True,
+            )
+        else:
+            target.email = email
+            target.verified = True
+            target.primary = True
+            target.save(update_fields=['email', 'verified', 'primary'])
 
 
 def ensure_default_admin() -> tuple[User, bool]:

@@ -10,7 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -372,22 +372,31 @@ class RegisterPasswordView(FormView):
 
         email = signup_data['email']
         if User.objects.filter(username__iexact=email).exists():
-            form.add_error(None, 'Пользователь с таким email уже существует.')
+            form.add_error(None, '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0441 \u0442\u0430\u043a\u0438\u043c email \u0443\u0436\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442.')
             return self.form_invalid(form)
 
         try:
-            user = User.objects.create_user(
-                username=email,
-                email=email,
-                password=form.cleaned_data['password'],
-                first_name=signup_data['first_name'],
-                last_name=signup_data['last_name'],
-                is_active=True,
-            )
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=signup_data['first_name'],
+                    last_name=signup_data['last_name'],
+                    is_active=True,
+                )
+                EmailAddress.objects.add_email(self.request, user, email, confirm=True)
         except IntegrityError:
-            form.add_error(None, 'Пользователь с таким email уже существует.')
+            form.add_error(None, '\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c \u0441 \u0442\u0430\u043a\u0438\u043c email \u0443\u0436\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442.')
             return self.form_invalid(form)
-        EmailAddress.objects.add_email(self.request, user, email, confirm=True)
+        except Exception:
+            logger.exception(
+                'Register step2 failed sending_confirmation email=%s ip=%s',
+                email,
+                get_client_ip(self.request),
+            )
+            form.add_error(None, '\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043e\u0442\u043f\u0440\u0430\u0432\u0438\u0442\u044c \u043f\u0438\u0441\u044c\u043c\u043e \u043f\u043e\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043d\u0438\u044f. \u041f\u043e\u043f\u0440\u043e\u0431\u0443\u0439\u0442\u0435 \u043f\u043e\u0437\u0436\u0435.')
+            return self.form_invalid(form)
         self.request.session.pop(REGISTER_SESSION_KEY, None)
         logger.info(
             'Register step2 success user_created email=%s user_id=%s ip=%s',

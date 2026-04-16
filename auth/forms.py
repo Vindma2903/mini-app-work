@@ -5,6 +5,7 @@ from django.db.models import Q
 
 from allauth.account.models import EmailAddress
 
+
 class LoginForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)

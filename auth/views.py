@@ -413,7 +413,7 @@ class RegisterSuccessView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         messages.success(
             request,
-            'РњС‹ РѕС‚РїСЂР°РІРёР»Рё РїРёСЃСЊРјРѕ РЅР° email. РџРѕРґС‚РІРµСЂРґРёС‚Рµ СЂРµРіРёСЃС‚СЂР°С†РёСЋ РїРѕ СЃСЃС‹Р»РєРµ РёР· РїРёСЃСЊРјР°.',
+            'Мы отправили письмо на email. Подтвердите регистрацию по ссылке из письма.',
         )
         return super().dispatch(request, *args, **kwargs)
 

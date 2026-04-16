@@ -28,16 +28,20 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 .workout-kind-badge{display:inline-flex;padding:7px 18px;border-radius:10px;background:#155dfc;color:#09090b;font-size:30px;line-height:1.2;font-weight:700;margin:0 0 24px}
 .workout-view-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .workout-exercises-col h2,.workout-leader-col h2{margin:0 0 12px;font-size:38px;line-height:1.2;font-weight:700}
-.workout-ex-item{height:122px;border:1px solid #30303a;border-radius:16px;background:#18181b;display:grid;grid-template-columns:40px minmax(0,1fr) 56px;gap:14px;align-items:center;padding:0 14px;margin-bottom:12px}
+.workout-ex-item{height:122px;border:1px solid #30303a;border-radius:16px;background:#18181b;display:grid;grid-template-columns:40px minmax(0,1fr) 56px;gap:14px;align-items:start;padding:14px 14px 10px;margin-bottom:12px}
 .workout-ex-item__num{width:40px;height:40px;border-radius:12px;background:#155dfc;color:#09090b;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700}
+.workout-ex-item__num{align-self:start;margin-top:4px}
 .workout-ex-item > div{min-width:0}
 .workout-ex-item h3{margin:0 0 6px;color:#fff;font-size:36px;line-height:1.15;font-weight:600}
 .workout-ex-item p{margin:0;color:#155dfc;font-size:30px;line-height:1.2;font-weight:600}
-.workout-ex-item button{border:1px dashed #a1a1aa;background:transparent;color:#fff;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer}
+.workout-ex-item button{border:1px dashed #a1a1aa;background:transparent;color:#fff;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer;align-self:center}
+.workout-ex-item button img{width:24px;height:24px;display:block;margin:0 auto}
 .workout-leader-row{min-height:78px;border:1px solid #3f3f46;border-radius:16px;background:linear-gradient(90deg,#23242b 0%,#272932 100%);display:grid;grid-template-columns:minmax(0,1fr) 124px 78px;align-items:center;padding:10px 14px 10px 10px;margin-bottom:12px;column-gap:8px}
+.workout-leader-row--no-section{grid-template-columns:minmax(0,1fr) 196px}
+.workout-leader-row--no-section span{font-size:26px}
 .workout-leader-row b{min-width:0;font-size:28px;line-height:1.06;font-weight:700;display:flex;align-items:center;gap:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .workout-leader-row b i{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#454753;font-style:normal;font-size:28px;line-height:1;color:#d4d4d8}
-.workout-leader-row span{display:grid;justify-items:end;font-size:30px;line-height:1.02;font-weight:700;white-space:nowrap}
+.workout-leader-row span{display:grid;justify-items:start;font-size:30px;line-height:1.02;font-weight:700;white-space:nowrap}
 .workout-leader-row small{font-size:11px;line-height:1;color:#a1a1aa;margin-bottom:3px;font-weight:500}
 .workout-leader-row--gold{background:linear-gradient(90deg,#fbbf24 0%,#f59e0b 100%);color:#09090b}
 .workout-leader-row--silver{background:linear-gradient(90deg,#d4d4d8 0%,#a1a1aa 100%);color:#09090b}
@@ -140,10 +144,14 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
     .workout-exercises-col h2,.workout-leader-col h2{font-size:24px}
     .workout-ex-item{grid-template-columns:28px 1fr 36px;height:auto;padding:10px}
     .workout-ex-item__num{width:28px;height:28px;font-size:14px}
+    .workout-ex-item__num{margin-top:2px}
     .workout-ex-item h3{font-size:18px}
     .workout-ex-item p{font-size:14px}
     .workout-ex-item button{width:34px;height:34px;font-size:16px}
+    .workout-ex-item button img{width:18px;height:18px}
     .workout-leader-row{grid-template-columns:minmax(0,1fr) 90px 70px;min-height:60px;padding:10px 12px;border-radius:12px}
+    .workout-leader-row--no-section{grid-template-columns:minmax(0,1fr) 128px}
+    .workout-leader-row--no-section span{font-size:18px}
     .workout-leader-row b{font-size:20px;gap:8px}
     .workout-leader-row b i{width:28px;height:28px;font-size:20px;border-radius:8px}
     .workout-leader-row span{font-size:20px}

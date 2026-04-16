@@ -28,7 +28,9 @@
                             <h3>{{ exercise.title }}</h3>
                             <p>{{ exercise.meta }}</p>
                         </div>
-                        <button type="button" aria-label="Смотреть видео">▷</button>
+                        <button type="button" aria-label="Смотреть видео">
+                            <img src="{% static 'auth/img/play-circle.svg' %}" alt="" aria-hidden="true">
+                        </button>
                     </article>
                 {% endfor %}
             {% else %}
@@ -46,17 +48,15 @@
             <h2>Таблица лидеров</h2>
             {% if workout_leader_rows %}
                 {% for row in workout_leader_rows %}
-                    <article class="workout-leader-row{% if row.row_class %} {{ row.row_class }}{% endif %}">
+                    <article class="workout-leader-row workout-leader-row--no-section{% if row.row_class %} {{ row.row_class }}{% endif %}">
                         <b>{% if row.place_label %}<i>{{ row.place_label }}</i> {% endif %}{{ row.user_name }}</b>
                         <span><small>Результат</small>{{ row.result_label }}</span>
-                        <span><small>Раздел</small>{{ row.section_title }}</span>
                     </article>
                 {% endfor %}
             {% else %}
-                <article class="workout-leader-row">
+                <article class="workout-leader-row workout-leader-row--no-section">
                     <b>По выбранной дате нет лидеров</b>
                     <span><small>Результат</small>--</span>
-                    <span><small>Раздел</small>--</span>
                 </article>
             {% endif %}
         </section>

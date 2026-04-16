@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 from allauth.account.models import EmailAddress
 
@@ -154,7 +155,9 @@ class RegisterStepForm(forms.Form):
 
     def clean_email(self):
         email = self.cleaned_data['email'].strip().lower()
-        if User.objects.filter(email__iexact=email).exists():
+        if User.objects.filter(
+            Q(email__iexact=email) | Q(username__iexact=email)
+        ).exists():
             raise forms.ValidationError(self.error_messages['email_exists'])
         return email
 

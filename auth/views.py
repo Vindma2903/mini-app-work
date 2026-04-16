@@ -10,6 +10,7 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
+from django.db import IntegrityError
 from django.db.models import Count
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
@@ -370,14 +371,22 @@ class RegisterPasswordView(FormView):
             return redirect('auth:register')
 
         email = signup_data['email']
-        user = User.objects.create_user(
-            username=email,
-            email=email,
-            password=form.cleaned_data['password'],
-            first_name=signup_data['first_name'],
-            last_name=signup_data['last_name'],
-            is_active=True,
-        )
+        if User.objects.filter(username__iexact=email).exists():
+            form.add_error(None, 'Пользователь с таким email уже существует.')
+            return self.form_invalid(form)
+
+        try:
+            user = User.objects.create_user(
+                username=email,
+                email=email,
+                password=form.cleaned_data['password'],
+                first_name=signup_data['first_name'],
+                last_name=signup_data['last_name'],
+                is_active=True,
+            )
+        except IntegrityError:
+            form.add_error(None, 'Пользователь с таким email уже существует.')
+            return self.form_invalid(form)
         EmailAddress.objects.add_email(self.request, user, email, confirm=True)
         self.request.session.pop(REGISTER_SESSION_KEY, None)
         logger.info(

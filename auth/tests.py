@@ -1,4 +1,4 @@
-from allauth.account.models import EmailAddress
+﻿from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
@@ -6,6 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from .models import TrainingRate
+from .views import REGISTER_SESSION_KEY
 
 
 class JwtAuthFlowTests(TestCase):
@@ -91,7 +92,7 @@ class TrainingRateApiTests(TestCase):
                     'cardio': 5,
                     'metabolic': 3,
                 },
-                'comment': 'Хорошая тренировка',
+                'comment': 'РҐРѕСЂРѕС€Р°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°',
             },
             content_type='application/json',
             headers={'Authorization': f'Bearer {self.access}'},
@@ -104,4 +105,52 @@ class TrainingRateApiTests(TestCase):
         self.assertEqual(saved.strength, 4)
         self.assertEqual(saved.cardio, 5)
         self.assertEqual(saved.metabolic, 3)
-        self.assertEqual(saved.comment, 'Хорошая тренировка')
+        self.assertEqual(saved.comment, 'РҐРѕСЂРѕС€Р°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°')
+
+
+class RegisterFlowTests(TestCase):
+    def setUp(self):
+        self.email = 'existing-user@example.com'
+        self.password = 'StrongPass123!'
+        self.user = User.objects.create_user(
+            username=self.email,
+            email=self.email,
+            password=self.password,
+        )
+
+    def test_register_step1_blocks_existing_email(self):
+        response = self.client.post(
+            reverse('auth:register'),
+            data={
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'birth_date': '2000-01-01',
+                'email': self.email,
+                'phone': '+79990001122',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Пользователь с таким email уже существует.')
+        self.assertNotIn(REGISTER_SESSION_KEY, self.client.session)
+
+    def test_register_step2_handles_duplicate_without_server_error(self):
+        session = self.client.session
+        session[REGISTER_SESSION_KEY] = {
+            'first_name': 'Petr',
+            'last_name': 'Petrov',
+            'birth_date': '1999-09-09',
+            'email': self.email,
+            'phone': '+79990003344',
+        }
+        session.save()
+
+        response = self.client.post(
+            reverse('auth:register_password'),
+            data={
+                'password': 'AnotherPass123!',
+                'password_repeat': 'AnotherPass123!',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Пользователь с таким email уже существует.')
+        self.assertEqual(User.objects.filter(username=self.email).count(), 1)

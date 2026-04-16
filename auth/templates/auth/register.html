@@ -1,7 +1,7 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Регистрация{% endblock %}
+{% block title %}Р РµРіРёСЃС‚СЂР°С†РёСЏ{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/register.css' %}">
@@ -11,11 +11,11 @@
 <main class="register-screen">
     <a class="register-back" href="{% url 'auth:login' %}">
         <img class="register-back__icon" src="{% static 'auth/img/register-back-arrow.svg' %}" alt="" aria-hidden="true">
-        <span class="register-back__text">Назад</span>
+        <span class="register-back__text">РќР°Р·Р°Рґ</span>
     </a>
 
-    <section class="register-card" aria-label="Регистрация">
-        <h1 class="register-card__title">Регистрация</h1>
+    <section class="register-card" aria-label="Р РµРіРёСЃС‚СЂР°С†РёСЏ">
+        <h1 class="register-card__title">Р РµРіРёСЃС‚СЂР°С†РёСЏ</h1>
 
         <form class="register-form" method="post" action="{% url 'auth:register' %}">
             {% csrf_token %}
@@ -23,32 +23,36 @@
                 <p class="register-form__error">{{ form.non_field_errors.0 }}</p>
             {% endif %}
             <label class="register-form__field">
-                <span class="register-form__label">Имя</span>
+                <span class="register-form__label">РРјСЏ</span>
                 <input class="register-form__input" type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
-                <span class="register-form__label">Фамилия</span>
+                <span class="register-form__label">Р¤Р°РјРёР»РёСЏ</span>
                 <input class="register-form__input" type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
-                <span class="register-form__label">Дата рождения</span>
+                <span class="register-form__label">Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span>
                 <input class="register-form__input" type="date" name="birth_date" value="{{ form.birth_date.value|default:'' }}" required>
             </label>
 
             <label class="register-form__field">
-                <span class="register-form__label">Почта</span>
+                <span class="register-form__label">РџРѕС‡С‚Р°</span>
                 <input class="register-form__input" type="email" name="email" value="{{ form.email.value|default:'' }}" required>
             </label>
+            {% if form.email.errors %}
+                <p class="register-form__error">{{ form.email.errors.0 }}</p>
+            {% endif %}
 
             <label class="register-form__field">
-                <span class="register-form__label">Номер телефона</span>
+                <span class="register-form__label">РќРѕРјРµСЂ С‚РµР»РµС„РѕРЅР°</span>
                 <input class="register-form__input" type="tel" name="phone" value="{{ form.phone.value|default:'' }}" required>
             </label>
 
-            <button class="register-form__submit" type="submit">Далее</button>
+            <button class="register-form__submit" type="submit">Р”Р°Р»РµРµ</button>
         </form>
     </section>
 </main>
 {% endblock %}
+

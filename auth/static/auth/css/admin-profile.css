@@ -2,6 +2,26 @@
     background: #f1f5f9;
 }
 
+html,
+body {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+}
+
+.admin-profile-page.calendar-desktop {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+}
+
+.admin-profile-page .calendar-content.admin-profile-content {
+    position: relative;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+    padding-bottom: 24px;
+}
+
 .admin-profile-content {
     padding: 24px;
 }

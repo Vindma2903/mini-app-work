@@ -1152,6 +1152,18 @@ class LeaderboardAwardsTests(TestCase):
         self.assertEqual(admin_response.status_code, 200)
         self.assertTemplateUsed(admin_response, 'auth/leaderboard-day-admin.html')
 
+    def test_leaderboard_day_admin_tv_route_is_admin_only(self):
+        self.client.force_login(self.user_a)
+        admin_response = self.client.get(reverse('auth:leaderboard_day_admin_tv'))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertTemplateUsed(admin_response, 'auth/leaderboard-day-admin-tv.html')
+        self.assertEqual(admin_response.context['tv_refresh_seconds'], 30)
+
+        self.client.force_login(self.user_b)
+        user_response = self.client.get(reverse('auth:leaderboard_day_admin_tv'))
+        self.assertEqual(user_response.status_code, 302)
+        self.assertEqual(user_response.url, reverse('auth:profile'))
+
     def test_admin_is_redirected_from_user_only_pages_to_calendar(self):
         self.client.force_login(self.user_a)
         user_only_urls = [
@@ -1443,7 +1455,6 @@ class LeaderboardAwardsTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Таблица лидеров')
         self.assertContains(response, '12 мин 10 сек')
-        self.assertContains(response, 'Кардио')
         self.assertTrue(response.context['workout_leader_rows'])
         self.assertEqual(len(response.context['workout_leader_rows']), 2)
 

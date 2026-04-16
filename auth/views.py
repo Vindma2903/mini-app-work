@@ -3243,6 +3243,32 @@ class LeaderboardDayAdminView(AdminProtectedMixin, LeaderboardDayView):
     allow_admin_panel_access = True
 
 
+class LeaderboardDayAdminTvView(AdminProtectedMixin, LeaderboardDayView):
+    template_name = 'auth/leaderboard-day-admin-tv.html'
+    allow_admin_panel_access = True
+
+    @staticmethod
+    def _parse_refresh_seconds(raw_value):
+        value = str(raw_value or '').strip()
+        if not value:
+            return 30
+        try:
+            parsed = int(value)
+        except (TypeError, ValueError):
+            return 30
+        if parsed < 10:
+            return 10
+        if parsed > 300:
+            return 300
+        return parsed
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['tv_mode'] = True
+        context['tv_refresh_seconds'] = self._parse_refresh_seconds(self.request.GET.get('refresh'))
+        return context
+
+
 class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-workout-detail-admin.html'
 
@@ -3428,6 +3454,16 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 )
         context['workout_leader_rows'] = workout_leader_rows
         return context
+
+
+class LeaderboardWorkoutDetailAdminTvView(LeaderboardWorkoutDetailAdminView):
+    template_name = 'auth/leaderboard-workout-detail-admin-tv.html'
+    allow_admin_panel_access = True
+
+
+class LeaderboardWorkoutExerciseAdminTvView(LeaderboardWorkoutExerciseAdminView):
+    template_name = 'auth/leaderboard-workout-exercise-admin-tv.html'
+    allow_admin_panel_access = True
 
 
 class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):

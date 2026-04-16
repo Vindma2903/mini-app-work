@@ -1,0 +1,48 @@
+{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}{{ workout_title }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-desktop-1">
+{% endblock %}
+
+{% block content %}
+<main class="exercise-screen exercise-screen--tv">
+    <header class="exercise-header">
+        <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
+        <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
+        <h1>{{ workout_title }}</h1>
+    </header>
+
+    <section class="exercise-grid">
+        <a href="{% url 'auth:leaderboard_day_workout_exercise_tv' %}?training_id={{ workout_training_id }}&date={{ workout_selected_date_iso }}" class="exercise-card exercise-card--wide exercise-card--link">
+            <div class="exercise-card__icon">
+                <img src="{% static 'auth/img/admin/kettlebell.svg' %}" alt="" aria-hidden="true">
+            </div>
+            <h2>{{ workout_direction_label }}</h2>
+        </a>
+
+        {% if workout_cards %}
+            {% for card in workout_cards %}
+                <a href="{% url 'auth:leaderboard_day_workout_exercise_tv' %}?training_id={{ workout_training_id }}&date={{ workout_selected_date_iso }}" class="exercise-card exercise-card--link">
+                    <h3>{{ card.title }}</h3>
+                    <ul>
+                        <li>
+                            <b>{{ card.title }}</b>
+                            <span>{{ card.meta }}</span>
+                        </li>
+                    </ul>
+                </a>
+            {% endfor %}
+        {% else %}
+            <article class="exercise-card">
+                <h3>Нет упражнений</h3>
+                <ul>
+                    <li><b>Упражнения</b><span>--</span></li>
+                </ul>
+            </article>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

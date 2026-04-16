@@ -37,10 +37,10 @@
                     </span>
                 </label>
 
-                <button class="admin-auth-form__submit" type="submit">Sign In</button>
+                <button class="admin-auth-form__submit" type="submit">Войти</button>
             </form>
 
-            <a class="admin-auth-form__forgot" href="{% url 'auth:admin_password_reset_start' %}">Не получается войти? Забыли пароль</a>
+            <a class="admin-auth-form__forgot" href="{% url 'auth:admin_password_reset_start' %}">Не получается войти? <span class="admin-auth-form__forgot-accent">Забыли пароль</span></a>
         </div>
     </section>
 </main>

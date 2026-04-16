@@ -1,4 +1,4 @@
-﻿import secrets
+import secrets
 import logging
 import json
 import re
@@ -188,8 +188,8 @@ def serialize_admin_training(training):
             'block_label': block_label,
             'exercise_name': item.exercise_name,
             'exercise_kind': (
-                'benchmarks'
-                if str(item.exercise_name or '').strip().lower() == EXERCISE_KIND_LABELS['benchmarks'].lower()
+                item.exercise_kind
+                if str(item.exercise_kind or '').strip().lower() in EXERCISE_KIND_LABELS
                 else 'exercise'
             ),
             'sets': item.sets,
@@ -2301,6 +2301,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         'cardio': 'cardio',
         'metabolic': 'metabolic',
     }
+    PERIOD_OPTIONS = {'all', 'today', 'week', 'month'}
 
     @staticmethod
     def _stars(value):
@@ -2311,29 +2312,126 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     def _rating_label(value):
         return f'{float(value):.1f}'.replace('.', ',')
 
+    @staticmethod
+    def _format_exercise_row(exercise):
+        name = str(getattr(exercise, 'exercise_name', '') or '').strip()
+        sets = getattr(exercise, 'sets', None)
+        reps = getattr(exercise, 'reps', None)
+        if name and sets and reps:
+            return f'{name} x {sets} подхода по {reps}'
+        return name
+
+    @staticmethod
+    def _resolve_block_label(exercise):
+        if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+            custom_name = str(exercise.block_custom_name or '').strip()
+            if custom_name:
+                return custom_name
+        return TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
+
+    @staticmethod
+    def _pick_training_for_rate(rate, candidates):
+        if not candidates:
+            return None
+        if len(candidates) == 1:
+            return candidates[0]
+        rate_anchor = getattr(rate, 'updated_at', None) or getattr(rate, 'created_at', None)
+        if not rate_anchor:
+            return candidates[0]
+        return min(
+            candidates,
+            key=lambda training: abs(
+                (
+                    (getattr(training, 'updated_at', None) or getattr(training, 'created_at', None) or rate_anchor)
+                    - rate_anchor
+                ).total_seconds()
+            ),
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         load_type = (self.request.GET.get('load_type') or 'all').strip().lower()
-        order_by = (self.request.GET.get('order_by') or 'date').strip().lower()
+        order_by = (self.request.GET.get('order_by') or 'rating_desc').strip().lower()
+        period = (self.request.GET.get('period') or 'all').strip().lower()
+        search_query = str(self.request.GET.get('q') or '').strip()
+        search_query_folded = search_query.casefold()
         if load_type not in self.LOAD_TYPE_TO_FIELD:
             load_type = 'all'
-        if order_by not in {'date', 'rating'}:
-            order_by = 'date'
+        # Backward-compatible parsing for old values ("rating"/"date")
+        if order_by in {'rating_asc', 'asc'}:
+            order_by = 'rating_asc'
+        elif order_by in {'rating_desc', 'desc', 'rating', 'date'}:
+            order_by = 'rating_desc'
+        else:
+            order_by = 'rating_desc'
+        if period not in self.PERIOD_OPTIONS:
+            period = 'all'
 
         rating_field = self.LOAD_TYPE_TO_FIELD[load_type]
         rates = TrainingRate.objects.select_related('user')
-        if order_by == 'rating':
-            rates = rates.order_by(f'-{rating_field}', '-training_date', '-updated_at')
+        today = timezone.localdate()
+        if period == 'today':
+            rates = rates.filter(training_date=today)
+        elif period == 'week':
+            rates = rates.filter(training_date__range=(today - timedelta(days=6), today))
+        elif period == 'month':
+            rates = rates.filter(training_date__range=(today - timedelta(days=29), today))
+        if order_by == 'rating_asc':
+            rates = rates.order_by(rating_field, '-training_date', '-updated_at')
         else:
-            rates = rates.order_by('-training_date', '-updated_at')
+            rates = rates.order_by(f'-{rating_field}', '-training_date', '-updated_at')
+
+        rates_list = list(rates)
+        rate_dates = sorted({rate.training_date for rate in rates_list if rate.training_date})
+        trainings_by_date = {}
+        if rate_dates:
+            trainings = (
+                AdminTraining.objects
+                .filter(training_date__in=rate_dates)
+                .prefetch_related('exercises')
+                .order_by('-training_date', '-updated_at', '-id')
+            )
+            for training in trainings:
+                trainings_by_date.setdefault(training.training_date, []).append(training)
 
         review_cards = []
-        for index, rate in enumerate(rates):
+        training_view_payload = {}
+        for index, rate in enumerate(rates_list):
             full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+            training = self._pick_training_for_rate(
+                rate,
+                trainings_by_date.get(rate.training_date, []),
+            )
+            training_key = f'rate-{rate.id}'
+            training_title = TRAINING_DIRECTION_LABELS.get(training.direction, 'HIIT Training') if training else 'HIIT Training'
+            if search_query_folded and search_query_folded not in training_title.casefold():
+                continue
+            if training:
+                exercises = []
+                for exercise in training.exercises.all():
+                    exercise_text = self._format_exercise_row(exercise)
+                    if not exercise_text:
+                        continue
+                    exercises.append(
+                        {
+                            'block': self._resolve_block_label(exercise),
+                            'text': exercise_text,
+                        }
+                    )
+                training_view_payload[training_key] = {
+                    'training_id': training.id,
+                    'title': TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка'),
+                    'date_label': training.training_date.strftime('%d.%m.%Y'),
+                    'direction': TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка'),
+                    'visibility': 'Только для тренера' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
+                    'comment': str(training.comment or '').strip(),
+                    'color': training.color or 'blue',
+                    'exercises': exercises,
+                }
             review_cards.append(
                 {
                     'color': self.COLOR_CYCLE[index % len(self.COLOR_CYCLE)],
-                    'training_title': 'HIIT Training',
+                    'training_title': training_title,
                     'date_label': rate.training_date.strftime('%d.%m.%Y'),
                     'author_name': full_name,
                     'comment': rate.comment.strip() or 'Без комментария',
@@ -2345,12 +2443,16 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                     'strength_value': self._rating_label(rate.strength),
                     'cardio_value': self._rating_label(rate.cardio),
                     'metabolic_value': self._rating_label(rate.metabolic),
+                    'training_key': training_key,
                 }
             )
 
         context['selected_load_type'] = load_type
         context['selected_order_by'] = order_by
+        context['selected_period'] = period
+        context['search_query'] = search_query
         context['review_cards'] = review_cards
+        context['reviews_training_view_json'] = training_view_payload
         return context
 
 
@@ -2415,25 +2517,27 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
                 errors[f'exercises.{index}.block_custom_name'] = 'block_custom_name_required'
                 continue
 
-            if block_type == AdminTrainingExercise.BLOCK_CUSTOM:
-                exercise_name = str(raw_item.get('exercise_name') or '').strip()
-            else:
-                exercise_name = EXERCISE_KIND_LABELS.get(exercise_kind, EXERCISE_KIND_LABELS['exercise'])
+            exercise_name = str(raw_item.get('exercise_name') or '').strip()
             sets = self._parse_positive_int(raw_item.get('sets'))
             reps = self._parse_positive_int(raw_item.get('reps'))
 
-            # Ignore empty placeholder rows from UI.
-            if sets is None and reps is None:
-                continue
             if not exercise_name:
                 errors[f'exercises.{index}.exercise_name'] = 'exercise_name_required'
                 continue
-            if (sets is None) != (reps is None):
-                errors[f'exercises.{index}.sets_reps'] = 'sets_and_reps_must_be_together'
-                continue
+            if exercise_kind == AdminTrainingExercise.EXERCISE_KIND_EXERCISE:
+                if (sets is None) != (reps is None):
+                    errors[f'exercises.{index}.sets_reps'] = 'sets_and_reps_must_be_together'
+                    continue
+                if sets is None or reps is None:
+                    errors[f'exercises.{index}.sets_reps'] = 'sets_and_reps_must_be_together'
+                    continue
+            else:
+                sets = None
+                reps = None
 
             parsed_exercises.append(
                 {
+                    'exercise_kind': exercise_kind,
                     'block_type': block_type,
                     'block_custom_name': block_custom_name,
                     'exercise_name': exercise_name,
@@ -2493,6 +2597,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             if source_type == AdminTraining.SOURCE_READY and ready_plan_title:
                 exercises = [
                     {
+                        'exercise_kind': AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
                         'block_type': AdminTrainingExercise.BLOCK_STRENGTH,
                         'block_custom_name': '',
                         'exercise_name': ready_plan_title,
@@ -2529,6 +2634,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             [
                 AdminTrainingExercise(
                     training=training,
+                    exercise_kind=item['exercise_kind'],
                     block_type=item['block_type'],
                     block_custom_name=item['block_custom_name'],
                     exercise_name=item['exercise_name'],
@@ -2979,7 +3085,8 @@ class LogoutView(View):
                     get_client_ip(request),
                 )
 
-        response = redirect('auth:login')
+        redirect_name = 'auth:admin_login' if get_user_role(request.user) == UserProfile.ROLE_ADMIN else 'auth:login'
+        response = redirect(redirect_name)
         clear_jwt_cookies(response)
         return response
 
@@ -3087,49 +3194,191 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateV
         context['leaderboard_sections'] = leaderboard['sections']
         context['leaderboard_training_groups'] = leaderboard_training_groups
         context['leaderboard_week_days'] = build_week_days(selected_date)
+        context['leaderboard_selected_date_iso'] = selected_date.isoformat()
         context['leaderboard_training_direction_label'] = TRAINING_DIRECTION_LABELS.get(direction_value, 'FBB')
 
         # Dedicated presentation payload for admin leaderboard page:
-        # list of training cards with exercises grouped by block.
+        # list of cards with direction header and real exercises of the day.
         admin_cards = []
         for training in trainings:
             ordered_exercises = sorted(training.exercises.all(), key=lambda item: (item.order, item.id))
-            grouped_blocks = {}
+            exercise_cards = []
             for exercise in ordered_exercises:
-                block_label = (
-                    exercise.block_custom_name.strip()
-                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Силовая')
-                )
                 secondary = ''
                 if exercise.sets is not None and exercise.reps is not None:
-                    secondary = f'{exercise.sets} подходов / {exercise.reps} повторений'
+                    sets_label = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
+                    reps_label = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
+                    secondary = f'{sets_label} / {reps_label}'
                 elif exercise.sets is not None:
-                    secondary = f'{exercise.sets} подходов'
+                    secondary = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
                 elif exercise.reps is not None:
-                    secondary = f'{exercise.reps} повторений'
-                grouped_blocks.setdefault(block_label, []).append(
+                    secondary = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
+                exercise_cards.append(
                     {
                         'title': (exercise.exercise_name or '').strip() or 'Упражнение',
                         'meta': secondary,
                     }
                 )
-
-            blocks = [
-                {
-                    'title': block_name,
-                    'items': items,
-                }
-                for block_name, items in grouped_blocks.items()
-            ]
+            direction_label = TRAINING_DIRECTION_LABELS.get(
+                training.direction,
+                (training.direction or 'FBB'),
+            )
             admin_cards.append(
                 {
-                    'title': get_admin_training_title(training.direction, training.source_type, training.ready_plan_title),
-                    'blocks': blocks,
+                    'training_id': training.id,
+                    'direction_label': direction_label,
+                    'exercise_cards': exercise_cards,
                 }
             )
 
         context['leaderboard_admin_cards'] = admin_cards
+        return context
+
+
+class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/leaderboard-workout-detail-admin.html'
+
+    @staticmethod
+    def _format_exercise_meta(exercise):
+        sets = exercise.sets
+        reps = exercise.reps
+        if sets is not None and reps is not None:
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return f'{sets_label} / {reps_label}'
+        if sets is not None:
+            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+        if reps is not None:
+            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+        return '--'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        raw_date = str(self.request.GET.get('date') or '').strip()
+        if raw_date:
+            try:
+                selected_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = timezone.localdate()
+        else:
+            selected_date = timezone.localdate()
+
+        raw_training_id = str(self.request.GET.get('training_id') or '').strip()
+        training_id = None
+        if raw_training_id.isdigit():
+            training_id = int(raw_training_id)
+
+        trainings = list(
+            AdminTraining.objects
+            .filter(training_date=selected_date)
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        selected_training = None
+        if training_id is not None:
+            selected_training = next((item for item in trainings if item.id == training_id), None)
+        if selected_training is None and trainings:
+            selected_training = trainings[0]
+
+        if selected_training is None:
+            context['workout_title'] = 'Тренировка'
+            context['workout_direction_label'] = '--'
+            context['workout_cards'] = []
+            context['workout_selected_date_iso'] = selected_date.isoformat()
+            context['workout_training_id'] = ''
+            return context
+
+        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
+        context['workout_title'] = get_admin_training_title(
+            selected_training.direction,
+            selected_training.source_type,
+            selected_training.ready_plan_title,
+        )
+        context['workout_direction_label'] = TRAINING_DIRECTION_LABELS.get(
+            selected_training.direction,
+            (selected_training.direction or 'FBB'),
+        )
+        context['workout_cards'] = [
+            {
+                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                'meta': self._format_exercise_meta(exercise),
+            }
+            for exercise in ordered_exercises
+        ]
+        context['workout_selected_date_iso'] = selected_date.isoformat()
+        context['workout_training_id'] = selected_training.id
+        return context
+
+
+class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
+    template_name = 'auth/leaderboard-workout-exercise-admin.html'
+
+    @staticmethod
+    def _format_exercise_meta(exercise):
+        sets = exercise.sets
+        reps = exercise.reps
+        if sets is not None and reps is not None:
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return f'{sets_label} / {reps_label}'
+        if sets is not None:
+            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+        if reps is not None:
+            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+        return '--'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        raw_date = str(self.request.GET.get('date') or '').strip()
+        if raw_date:
+            try:
+                selected_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = timezone.localdate()
+        else:
+            selected_date = timezone.localdate()
+
+        raw_training_id = str(self.request.GET.get('training_id') or '').strip()
+        training_id = None
+        if raw_training_id.isdigit():
+            training_id = int(raw_training_id)
+
+        trainings = list(
+            AdminTraining.objects
+            .filter(training_date=selected_date)
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        selected_training = None
+        if training_id is not None:
+            selected_training = next((item for item in trainings if item.id == training_id), None)
+        if selected_training is None and trainings:
+            selected_training = trainings[0]
+
+        if selected_training is None:
+            context['workout_title'] = 'Тренировка'
+            context['workout_kind_badge'] = '--'
+            context['workout_exercises'] = []
+            return context
+
+        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
+        context['workout_title'] = get_admin_training_title(
+            selected_training.direction,
+            selected_training.source_type,
+            selected_training.ready_plan_title,
+        )
+        context['workout_kind_badge'] = TRAINING_DIRECTION_LABELS.get(
+            selected_training.direction,
+            (selected_training.direction or 'FBB'),
+        )
+        context['workout_exercises'] = [
+            {
+                'index': idx + 1,
+                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                'meta': self._format_exercise_meta(exercise),
+            }
+            for idx, exercise in enumerate(ordered_exercises)
+        ]
         return context
 
 
@@ -3462,11 +3711,12 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
 
     @classmethod
     def _build_percent_rows(cls, base_rep):
+        safe_base_rep = cls._to_positive_int(base_rep) or 10
         rows = []
         for percent_row in cls.PERCENT_MATRIX:
             row_cells = []
             for percent_value in percent_row:
-                computed = cls._round_percent_value(base_rep, percent_value)
+                computed = cls._round_percent_value(safe_base_rep, percent_value)
                 row_cells.append((str(computed), f'{percent_value}%'))
             rows.append(row_cells)
         return rows
@@ -3523,7 +3773,11 @@ class AchievementExerciseView(UserProtectedMixin, TemplateView):
         default_reps = self._get_default_reps(slug)
         profile = UserExerciseRepProfile.objects.filter(user=self.request.user, exercise_slug=slug).first()
         if profile:
-            reps = [profile.rep_1, profile.rep_2, profile.rep_3, profile.rep_4]
+            raw_reps = [profile.rep_1, profile.rep_2, profile.rep_3, profile.rep_4]
+            reps = []
+            for index, value in enumerate(raw_reps):
+                normalized = self._to_positive_int(value)
+                reps.append(normalized if normalized is not None else default_reps[index])
         else:
             reps = default_reps
 

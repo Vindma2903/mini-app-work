@@ -83,17 +83,17 @@
                                         <th>Имя</th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="trainings" aria-label="Сортировать по количеству тренировок">
-                                                Кол-во тренировок <span class="statistics-table__sort-icon">¦</span>
+                                                Кол-во тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="received" aria-label="Сортировать по полученным реакциям">
-                                                Получено реакций <span class="statistics-table__sort-icon">¦</span>
+                                                Получено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="sent" aria-label="Сортировать по поставленным реакциям">
-                                                Поставлено реакций <span class="statistics-table__sort-icon">¦</span>
+                                                Поставлено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                     </tr>
@@ -156,12 +156,12 @@
                                         <th>Имя</th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-achievement-sort="visited" aria-label="Сортировать по посещенным тренировкам">
-                                                Посещено тренировок <span class="statistics-table__sort-icon">¦</span>
+                                                Посещено тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-achievement-sort="goal" aria-label="Сортировать по цели посещений">
-                                                Цель по посещениям <span class="statistics-table__sort-icon">¦</span>
+                                                Цель по посещениям <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                     </tr>
@@ -267,7 +267,9 @@
     <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Просмотр тренировки">
         <header class="calendar-create-modal__head">
             <h3>Просмотр тренировки</h3>
-            <button type="button" class="calendar-create-modal__close" data-close-training-view aria-label="Закрыть">?</button>
+            <button type="button" class="calendar-create-modal__close" data-close-training-view aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="calendar-create-modal__body">
             <label class="calendar-create-modal__field">
@@ -310,7 +312,9 @@
     <section class="statistics-date-modal__card" role="dialog" aria-modal="true" aria-label="Выберите дату">
         <header class="statistics-date-modal__head">
             <h3>Выберите дату</h3>
-            <button type="button" class="statistics-date-modal__close" data-close-statistics-date aria-label="Закрыть">?</button>
+            <button type="button" class="statistics-date-modal__close" data-close-statistics-date aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="statistics-date-modal__calendar">
             <div class="statistics-date-modal__month">
@@ -331,7 +335,9 @@
     <section class="statistics-reviews-modal__card" role="dialog" aria-modal="true" aria-label="Отзывы о тренировке">
         <header class="statistics-reviews-modal__head">
             <h3 id="statistics-reviews-title">Отзывы о тренировке</h3>
-            <button type="button" class="statistics-reviews-modal__close" data-close-reviews aria-label="Закрыть">?</button>
+            <button type="button" class="statistics-reviews-modal__close" data-close-reviews aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="statistics-reviews-modal__grid" id="statistics-reviews-grid"></div>
     </section>
@@ -345,7 +351,9 @@
     <section class="statistics-results-modal__card" role="dialog" aria-modal="true" aria-label="Результаты упражнения">
         <header class="statistics-results-modal__head">
             <h3 id="statistics-results-title">Результаты упражнения</h3>
-            <button type="button" class="statistics-results-modal__close" data-close-results aria-label="Закрыть">?</button>
+            <button type="button" class="statistics-results-modal__close" data-close-results aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="statistics-results-modal__table-wrap">
             <table class="statistics-results-modal__table">
@@ -598,7 +606,7 @@
                     button.classList.toggle("is-active", isActive);
                     const icon = button.querySelector(".statistics-table__sort-icon");
                     if (!icon) return;
-                    icon.textContent = isActive ? (activeDirection === "desc" ? "v" : "^") : "¦";
+                    icon.setAttribute("data-direction", isActive ? activeDirection : "none");
                 });
             }
 
@@ -664,7 +672,7 @@
                     button.classList.toggle("is-active", isActive);
                     const icon = button.querySelector(".statistics-table__sort-icon");
                     if (!icon) return;
-                    icon.textContent = isActive ? (activeDirection === "desc" ? "v" : "^") : "¦";
+                    icon.setAttribute("data-direction", isActive ? activeDirection : "none");
                 });
             }
 
@@ -887,5 +895,6 @@
     })();
 </script>
 {% endblock %}
+
 
 

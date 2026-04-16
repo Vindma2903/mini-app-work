@@ -223,6 +223,13 @@ class AdminTraining(models.Model):
 
 
 class AdminTrainingExercise(models.Model):
+    EXERCISE_KIND_EXERCISE = 'exercise'
+    EXERCISE_KIND_BENCHMARKS = 'benchmarks'
+    EXERCISE_KIND_CHOICES = (
+        (EXERCISE_KIND_EXERCISE, 'Exercise'),
+        (EXERCISE_KIND_BENCHMARKS, 'Benchmarks'),
+    )
+
     BLOCK_STRENGTH = 'strength'
     BLOCK_CARDIO = 'cardio'
     BLOCK_GYMNASTICS = 'gymnastics'
@@ -250,6 +257,7 @@ class AdminTrainingExercise(models.Model):
     )
     block_type = models.CharField(max_length=16, choices=BLOCK_CHOICES, default=BLOCK_STRENGTH)
     block_custom_name = models.CharField(max_length=255, blank=True, default='')
+    exercise_kind = models.CharField(max_length=16, choices=EXERCISE_KIND_CHOICES, default=EXERCISE_KIND_EXERCISE)
     exercise_name = models.CharField(max_length=255)
     sets = models.PositiveSmallIntegerField(null=True, blank=True)
     reps = models.PositiveSmallIntegerField(null=True, blank=True)

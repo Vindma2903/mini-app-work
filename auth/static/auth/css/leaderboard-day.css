@@ -1,305 +1,127 @@
-﻿:root {
-    --bg: #f5f5f5;
-    --card: #ffffff;
-    --title: #192126;
-    --muted: #8c9093;
-    --blue: #1f64e5;
-    --line: #d6d6d6;
-    --radius: 12px;
-    --font-main: "Montserrat", Arial, sans-serif;
+:root{--bg:#09090b;--panel:#18181b;--tile:#27272a;--blue:#155dfc;--white:#fff;--muted:#71717b;--content-max:1400px}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--white);overflow-x:hidden}
+.exercise-screen{width:100%;max-width:var(--content-max);margin:0 auto;padding:24px clamp(20px,3vw,40px) 40px}
+.exercise-header{height:160px;position:relative;display:flex;align-items:flex-end;padding:0 0 24px}
+.exercise-header__back{position:absolute;left:0;top:24px;min-width:32px;height:32px;border:0;text-decoration:none;color:#fff;font-size:20px;line-height:32px;font-weight:500;padding-left:44px;display:inline-block}
+.exercise-header__back::before{content:"";position:absolute;left:4px;top:9px;width:10px;height:13px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg)}
+.exercise-header__back::after{content:"";position:absolute;left:4px;top:16px;width:24px;border-top:2px solid #fff}
+.exercise-header__close{position:absolute;right:0;top:24px;color:#fff;text-decoration:none;font-size:42px;line-height:32px;font-weight:300}
+.exercise-header h1{margin:0;font-size:clamp(40px,4.6vw,64px);line-height:1.12;font-weight:700;max-width:16ch}
+.exercise-grid{margin:24px 0 32px;background:var(--panel);border:4px solid var(--tile);border-radius:24px;padding:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
+.exercise-card{height:400px;border:4px solid transparent;border-radius:16px;background:var(--tile);padding:32px}
+.exercise-card--wide{grid-column:1 / -1;height:96px;background:transparent;border:0;padding:0;display:flex;align-items:center;gap:24px}
+.exercise-card__icon{width:96px;height:96px;border-radius:16px;background:var(--blue);display:flex;align-items:center;justify-content:center}
+.exercise-card__icon img{display:block;max-width:70%;max-height:70%}
+.exercise-card h2{margin:0;font-size:clamp(28px,3vw,44px);line-height:1.14;font-weight:700;max-width:22ch}
+.exercise-card h2 a{color:inherit;text-decoration:none}
+.exercise-card--link{text-decoration:none;color:inherit;display:block;cursor:pointer}
+.exercise-card--link:hover{border-color:#3f3f46}
+.exercise-card h3{margin:0 0 18px;display:inline-block;max-width:100%;background:var(--blue);border-radius:14px;padding:7px 18px;font-size:clamp(14px,1.15vw,18px);line-height:1.3;font-weight:700;text-align:left;white-space:normal;overflow-wrap:anywhere}
+.exercise-card ul{margin:0;padding:0;list-style:none;display:grid;gap:14px}
+.exercise-card li{display:grid;grid-template-columns:8px 1fr;grid-template-areas:"dot title" "dot meta";column-gap:12px;row-gap:2px;align-items:start}
+.exercise-card li::before{content:"•";grid-area:dot;color:var(--blue);font-size:18px;line-height:18px;font-weight:500;padding-top:2px}
+.exercise-card li b{grid-area:title;display:block;color:#fff;font-size:15px;line-height:20px;font-weight:500;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.exercise-card li span{grid-area:meta;display:block;color:var(--muted);font-size:13px;line-height:18px;font-weight:500;max-width:100%;overflow-wrap:anywhere;word-break:break-word}
+.exercise-header--compact{height:176px;padding-bottom:16px}
+.workout-kind-badge{display:inline-flex;padding:7px 18px;border-radius:10px;background:#155dfc;color:#09090b;font-size:30px;line-height:1.2;font-weight:700;margin:0 0 24px}
+.workout-view-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.workout-exercises-col h2,.workout-leader-col h2{margin:0 0 12px;font-size:38px;line-height:1.2;font-weight:700}
+.workout-ex-item{height:122px;border:1px solid #30303a;border-radius:16px;background:#18181b;display:grid;grid-template-columns:40px 1fr 56px;gap:14px;align-items:center;padding:0 14px;margin-bottom:12px}
+.workout-ex-item__num{width:40px;height:40px;border-radius:12px;background:#155dfc;color:#09090b;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:700}
+.workout-ex-item h3{margin:0 0 6px;color:#fff;font-size:36px;line-height:1.15;font-weight:600}
+.workout-ex-item p{margin:0;color:#155dfc;font-size:30px;line-height:1.2;font-weight:600}
+.workout-ex-item button{border:1px dashed #a1a1aa;background:transparent;color:#fff;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer}
+.workout-leader-row{height:66px;border:1px solid #3f3f46;border-radius:12px;background:#27272a;display:grid;grid-template-columns:1fr 96px 96px;align-items:center;padding:0 12px;margin-bottom:10px}
+.workout-leader-row b{font-size:28px;line-height:1.1;font-weight:600;display:flex;align-items:center;gap:10px}
+.workout-leader-row b i{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:#52525b;font-style:normal;font-size:22px}
+.workout-leader-row span{display:grid;justify-items:end;font-size:32px;line-height:1.05;font-weight:700}
+.workout-leader-row small{font-size:12px;line-height:1;color:#a1a1aa;margin-bottom:2px}
+.workout-leader-row--gold{background:linear-gradient(90deg,#fbbf24 0%,#f59e0b 100%);color:#09090b}
+.workout-leader-row--silver{background:linear-gradient(90deg,#d4d4d8 0%,#a1a1aa 100%);color:#09090b}
+.workout-leader-row--bronze{background:linear-gradient(90deg,#f59e0b 0%,#d97706 100%);color:#09090b}
+.workout-leader-row--gold small,.workout-leader-row--silver small,.workout-leader-row--bronze small{color:#3f3f46}
+
+@media (min-width:1920px){
+    :root{--content-max:1560px}
+    .exercise-screen{padding:36px clamp(28px,3vw,48px) 64px}
+    .exercise-grid{padding:36px;gap:28px}
+    .exercise-card{padding:34px}
 }
 
-* { box-sizing: border-box; }
-
-body {
-    margin: 0;
-    font-family: var(--font-main);
-    background: var(--bg);
-    color: var(--title);
+@media (min-width:2560px){
+    :root{--content-max:1600px}
+    body::before{
+        content:"";
+        position:fixed;
+        inset:0;
+        pointer-events:none;
+        background:
+            radial-gradient(circle at 12% 30%, rgba(21,93,252,.16), transparent 28%),
+            radial-gradient(circle at 88% 70%, rgba(21,93,252,.12), transparent 24%);
+        z-index:0;
+    }
+    .exercise-screen{position:relative;z-index:1;padding:44px clamp(40px,3vw,56px) 72px}
+    .exercise-grid{gap:32px;padding:40px}
+    .exercise-card{height:420px}
+    .exercise-card--wide{height:110px}
+    .exercise-card__icon{width:110px;height:110px}
 }
 
-.leaderboard-screen {
-    width: 390px;
-    margin: 0 auto;
-    min-height: 100dvh;
-    padding: 8px 12px 96px;
+@media (min-width:3440px){
+    :root{--content-max:1600px}
+    .exercise-screen{padding:52px clamp(56px,4vw,80px) 84px}
+    .exercise-grid{margin:30px 0 40px;gap:36px;padding:44px}
+    .exercise-card{padding:36px;height:440px}
+    .exercise-card--wide{height:120px}
+    .exercise-card li{gap:14px}
+    .exercise-card li span{max-width:34ch}
 }
 
-.leaderboard-screen__label {
-    margin: 0 0 8px;
-    font-size: 16px;
-    line-height: 20px;
-    font-weight: 500;
-    color: #c2c2c2;
+@media (min-width:3840px){
+    :root{--content-max:1600px}
+    .exercise-screen{padding:60px 80px 96px}
+    .exercise-grid{gap:40px;padding:48px}
+    .exercise-card{height:456px}
+    .exercise-card h3{margin-bottom:32px}
 }
 
-.shared-profile-header {
-    margin-bottom: 16px;
+@media (max-width:1439px){
+    .exercise-screen{max-width:1200px}
+    .exercise-header{height:132px;padding-bottom:16px}
+    .exercise-header h1{font-size:52px;line-height:60px}
+    .exercise-grid{padding:24px;gap:16px}
+    .exercise-card{height:340px;padding:24px}
+    .exercise-card h3{margin-bottom:18px;font-size:19px;line-height:26px}
+    .exercise-card li b{font-size:17px;line-height:23px}
+    .exercise-card li span{font-size:15px;line-height:21px}
 }
 
-.leaderboard-date__head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
+@media (max-width:1199px){
+    .exercise-screen{padding:16px 16px 28px}
+    .exercise-header{height:auto;min-height:88px;padding-bottom:12px}
+    .exercise-header h1{font-size:36px;line-height:44px}
+    .exercise-grid{padding:16px;grid-template-columns:1fr;gap:12px}
+    .exercise-card,.exercise-card--wide{height:auto}
+    .exercise-card--wide{grid-column:1 / -1;gap:12px}
+    .exercise-card__icon{width:56px;height:56px;border-radius:12px}
+    .exercise-card h2{font-size:24px;line-height:30px}
+    .exercise-card h3{font-size:18px;line-height:24px;padding:6px 14px}
+    .exercise-card li::before{font-size:16px;line-height:20px}
+    .exercise-card li b{font-size:14px;line-height:20px}
+    .exercise-card li span{font-size:13px;line-height:18px}
+    .workout-kind-badge{font-size:16px}
+    .workout-view-grid{grid-template-columns:1fr}
+    .workout-exercises-col h2,.workout-leader-col h2{font-size:24px}
+    .workout-ex-item{grid-template-columns:28px 1fr 36px;height:auto;padding:10px}
+    .workout-ex-item__num{width:28px;height:28px;font-size:14px}
+    .workout-ex-item h3{font-size:18px}
+    .workout-ex-item p{font-size:14px}
+    .workout-ex-item button{width:34px;height:34px;font-size:16px}
+    .workout-leader-row{grid-template-columns:1fr 70px 70px;height:auto;padding:8px 10px}
+    .workout-leader-row b{font-size:14px}
+    .workout-leader-row b i{width:22px;height:22px;font-size:13px}
+    .workout-leader-row span{font-size:15px}
 }
 
-.leaderboard-date__head h2 {
-    margin: 0;
-    font-size: 16px;
-    line-height: 20px;
-    font-weight: 500;
-}
-
-.leaderboard-date__all {
-    color: var(--blue);
-    text-decoration: none;
-    font-size: 12px;
-    line-height: 15px;
-    font-weight: 400;
-}
-
-.leaderboard-date__days {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-}
-
-.leaderboard-date__day {
-    height: 46px;
-    border-radius: 12px;
-    border: 1px solid #e0e0e0;
-    background: var(--card);
-    display: grid;
-    justify-items: center;
-    align-content: center;
-    gap: 3px;
-    padding: 0;
-    cursor: pointer;
-}
-
-.leaderboard-date__day span {
-    font-size: 9px;
-    line-height: 11px;
-    color: #434343;
-}
-
-.leaderboard-date__day b {
-    font-size: 14px;
-    line-height: 16px;
-    font-weight: 500;
-    color: #434343;
-}
-
-.leaderboard-date__day--active {
-    background: var(--blue);
-    border-color: transparent;
-}
-
-.leaderboard-date__day--active span,
-.leaderboard-date__day--active b {
-    color: var(--card);
-}
-
-.leaderboard-date__dot {
-    display: block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--blue);
-    margin: 8px auto 12px;
-}
-
-.leaderboard-title {
-    margin: 0 0 14px;
-    font-size: 24px;
-    line-height: 29px;
-    font-weight: 500;
-}
-
-.leaderboard-plan {
-    margin-bottom: 10px;
-}
-
-.leaderboard-plan__item,
-.leaderboard-group__toggle {
-    border: 0;
-    padding: 0;
-    background: transparent;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-}
-
-.leaderboard-plan__item {
-    color: var(--blue);
-    font-size: 28px;
-    line-height: 34px;
-    font-weight: 500;
-    width: 100%;
-    justify-content: space-between;
-    text-align: left;
-}
-
-.leaderboard-group__toggle {
-    color: #222;
-    font-size: 22px;
-    line-height: 26px;
-    font-weight: 500;
-}
-
-.leaderboard-plan__item img,
-.leaderboard-group__toggle img {
-    width: 12px;
-    height: 7px;
-    transform: rotate(0deg);
-}
-
-.leaderboard-plan__item[aria-expanded="true"] img,
-.leaderboard-group__toggle[aria-expanded="true"] img {
-    transform: rotate(180deg);
-}
-
-.leaderboard-groups {
-    display: grid;
-    gap: 12px;
-    margin-top: 8px;
-    padding-left: 2px;
-}
-
-.leaderboard-groups[hidden],
-.leaderboard-list[hidden] {
-    display: none;
-}
-
-.leaderboard-plan__exercises {
-    background: #fff;
-    border-radius: 10px;
-    padding: 10px 12px;
-    display: grid;
-    gap: 6px;
-}
-
-.leaderboard-plan__exercise-line {
-    margin: 0;
-    font-size: 13px;
-    line-height: 16px;
-    color: #5f6570;
-}
-
-.leaderboard-group {
-    display: grid;
-    gap: 8px;
-}
-
-.leaderboard-list {
-    display: grid;
-    gap: 10px;
-}
-
-.leaderboard-item {
-    min-height: 54px;
-    border-radius: 12px;
-    background: var(--card);
-    display: grid;
-    grid-template-columns: 1.6fr 0.95fr 0.5fr 0.45fr;
-    align-items: center;
-    padding: 0 12px;
-}
-
-.leaderboard-item__cell {
-    font-size: 12px;
-    line-height: 15px;
-    color: #5f6570;
-    white-space: nowrap;
-}
-
-.leaderboard-item__cell + .leaderboard-item__cell {
-    border-left: 1px solid var(--line);
-    padding-left: 10px;
-    margin-left: 10px;
-}
-
-.leaderboard-item__cell--time {
-    color: #9fa3a9;
-}
-
-.leaderboard-item__cell--award {
-    text-align: center;
-    font-size: 14px;
-}
-
-.leaderboard-item__cell--award img {
-    width: 18px;
-    height: 18px;
-    vertical-align: middle;
-}
-
-.leaderboard-item__cell--icon {
-    display: flex;
-    justify-content: center;
-}
-
-.leaderboard-item__cell--icon span {
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    background: #f0f0f0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.leaderboard-item__cell--icon img {
-    width: 12px;
-    height: 12px;
-}
-
-.leaderboard-list__ellipsis {
-    text-align: center;
-    color: #4b4b4b;
-    font-size: 16px;
-    line-height: 20px;
-}
-
-.bottom-nav {
-    position: fixed;
-    bottom: 24px;
-    width: 366px;
-    height: 64px;
-    border-radius: 12px;
-    background: #fffdfd;
-    box-shadow: 0 0 12px rgba(52, 52, 52, 0.2);
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    align-items: center;
-    text-align: center;
-}
-
-.bottom-nav__item {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    color: #1f64e5;
-}
-
-.bottom-nav__item img {
-    width: 24px;
-    height: 24px;
-    display: block;
-}
-
-.bottom-nav__item span {
-    font-size: 8px;
-    font-weight: 600;
-    line-height: 10px;
-}
-
-.bottom-nav__item--active {
-    color: #0f4bcc;
-}
+img,svg,video,canvas{max-width:100%;height:auto}

@@ -10,7 +10,7 @@ from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from .models import AdminTraining, AdminTrainingExercise, CommunityReaction, TrainingRate, TrainingResult, UserExerciseRepProfile
+from .models import AdminLibraryItem, AdminTraining, AdminTrainingExercise, CommunityReaction, TrainingRate, TrainingResult, UserExerciseRepProfile, UserProfile
 
 
 class JwtAuthFlowTests(TestCase):
@@ -292,6 +292,37 @@ class AchievementExerciseRepProfileTests(TestCase):
         self.assertEqual(exercise['percent_rows'][3], [('5', '45%'), ('4', '40%'), ('4', '35%'), ('3', '30%')])
 
 
+class AchievementsViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='achievements-user@example.com',
+            email='achievements-user@example.com',
+            password='StrongPass123!',
+        )
+
+    def test_achievements_uses_saved_first_rep_for_library_item(self):
+        item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BARBELL,
+            name_ru='Back Squat',
+        )
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug=f'library-item-{item.id}',
+            rep_1=123,
+            rep_2=110,
+            rep_3=100,
+            rep_4=90,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:achievements'))
+        self.assertEqual(response.status_code, 200)
+
+        rows = response.context['barbell_exercises']
+        row = next(entry for entry in rows if entry['slug'] == f'library-item-{item.id}')
+        self.assertEqual(row['value'], 123)
+
+
 class ReviewsOverviewViewTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create_user(
@@ -377,6 +408,35 @@ class ReviewsOverviewViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         cards = response.context['review_cards']
         self.assertEqual(cards[0]['author_name'], 'РћР»СЏ РРІР°РЅРѕРІР°')
+
+    def test_reviews_page_filters_by_selected_period(self):
+        today = timezone.localdate()
+        TrainingRate.objects.create(
+            user=self.user_a,
+            training_date=today,
+            overall=5,
+            strength=5,
+            cardio=5,
+            metabolic=5,
+            comment='Today',
+        )
+        TrainingRate.objects.create(
+            user=self.user_b,
+            training_date=today - timedelta(days=10),
+            overall=3,
+            strength=3,
+            cardio=3,
+            metabolic=3,
+            comment='Old',
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('auth:reviews_overview'), {'period': 'week'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['selected_period'], 'week')
+        cards = response.context['review_cards']
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]['author_name'], 'Р’РёРєР° РџРµС‚СЂРѕРІР°')
 
 class ProfileActivityVisitsTests(TestCase):
     def setUp(self):
@@ -1063,6 +1123,9 @@ class LeaderboardAwardsTests(TestCase):
             last_name='Р“',
         )
         self.today = timezone.localdate()
+        profile_a, _ = UserProfile.objects.get_or_create(user=self.user_a)
+        profile_a.role = UserProfile.ROLE_ADMIN
+        profile_a.save(update_fields=['role'])
 
     def _create_result(self, user, section, minutes, seconds, mode=TrainingResult.MODE_RX):
         return TrainingResult.objects.create(
@@ -1187,4 +1250,165 @@ class LeaderboardAwardsTests(TestCase):
         groups = response.context['leaderboard_training_groups']
         self.assertEqual(len(groups), 2)
         self.assertEqual({group['title'] for group in groups}, {'FBB', 'Кроссфит с Денисом Залозним'})
+
+    def test_admin_cards_include_direction_and_exercise_title(self):
+        training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_WORKOUT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='card',
+            color=AdminTraining.COLOR_BLUE,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Гребля',
+            sets=3,
+            reps=20,
+            result_type=AdminTrainingExercise.RESULT_REPS,
+            order=0,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'auth/leaderboard-day-admin.html')
+
+        cards = response.context['leaderboard_admin_cards']
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]['direction_label'], 'Воркаут дня')
+        self.assertEqual(cards[0]['exercise_cards'][0]['title'], 'Гребля')
+
+    def test_admin_cards_keep_exercise_order_by_order_and_id(self):
+        training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_FBB,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='order',
+            color=AdminTraining.COLOR_GREEN,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            exercise_name='Второе упражнение',
+            order=2,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Первое упражнение',
+            order=1,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(response.status_code, 200)
+
+        cards = response.context['leaderboard_admin_cards']
+        titles = [item['title'] for item in cards[0]['exercise_cards']]
+        self.assertEqual(titles, ['Первое упражнение', 'Второе упражнение'])
+
+    def test_admin_cards_allow_training_without_exercises(self):
+        AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_GYMNASTICS,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='empty',
+            color=AdminTraining.COLOR_ORANGE,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'auth/leaderboard-day-admin.html')
+        self.assertContains(response, 'Нет упражнений')
+
+        cards = response.context['leaderboard_admin_cards']
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]['exercise_cards'], [])
+
+    def test_workout_exercise_page_uses_real_training_data(self):
+        training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_WORKOUT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='detail',
+            color=AdminTraining.COLOR_BLUE,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Бег на дорожке',
+            sets=3,
+            reps=11,
+            order=0,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(
+            reverse('auth:leaderboard_day_workout_exercise'),
+            {'training_id': training.id, 'date': self.today.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'auth/leaderboard-workout-exercise-admin.html')
+        self.assertContains(response, 'Бег на дорожке')
+        self.assertContains(response, '3 подхода / 11 повторений')
+        self.assertTrue(response.context['workout_kind_badge'])
+
+    def test_workout_detail_page_uses_selected_training_data(self):
+        selected_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_GYMNASTICS,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='selected',
+            color=AdminTraining.COLOR_BLUE,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=selected_training,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            exercise_name='Присед',
+            sets=4,
+            reps=8,
+            order=0,
+        )
+
+        other_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_WORKOUT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='other',
+            color=AdminTraining.COLOR_GREEN,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=other_training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Гребля',
+            sets=3,
+            reps=12,
+            order=0,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(
+            reverse('auth:leaderboard_day_workout'),
+            {'training_id': selected_training.id, 'date': self.today.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'auth/leaderboard-workout-detail-admin.html')
+        self.assertContains(response, 'Гимнастика')
+        self.assertContains(response, 'Присед')
+        self.assertContains(response, '4 подхода / 8 повторений')
+        self.assertNotContains(response, 'Гребля')
 

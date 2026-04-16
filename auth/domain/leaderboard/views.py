@@ -5,6 +5,8 @@ from auth.views import (
     AchievementExerciseUpdateView,
     AchievementsView,
     LeaderboardDayView,
+    LeaderboardWorkoutExerciseAdminView,
+    LeaderboardWorkoutDetailAdminView,
     ProfileAwardWorkoutView,
     ProfileAwardsTestsView,
 )
@@ -14,6 +16,8 @@ __all__ = [
     "AchievementExerciseUpdateView",
     "AchievementsView",
     "LeaderboardDayView",
+    "LeaderboardWorkoutExerciseAdminView",
+    "LeaderboardWorkoutDetailAdminView",
     "ProfileAwardWorkoutView",
     "ProfileAwardsTestsView",
 ]

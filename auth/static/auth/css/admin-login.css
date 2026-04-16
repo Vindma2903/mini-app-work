@@ -185,6 +185,10 @@ body {
     margin-top: 32px;
 }
 
+.admin-auth-form__forgot-accent {
+    color: #3056d3;
+}
+
 .admin-auth-form__back {
     margin-top: 8px;
 }

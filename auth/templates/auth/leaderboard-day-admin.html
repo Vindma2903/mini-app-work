@@ -1,54 +1,64 @@
 {% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}Лидерборд{% endblock %}
+{% block title %}Тренировки дня{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day-admin.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-desktop-1">
 {% endblock %}
 
 {% block content %}
-<main class="leaderboard-admin-page">
-    <header class="leaderboard-admin-page__head">
-        <a href="{% url 'auth:statistics' %}" class="leaderboard-admin-page__back">← Назад</a>
-        <a href="{% url 'auth:statistics' %}" class="leaderboard-admin-page__close" aria-label="Закрыть">×</a>
+<main class="exercise-screen">
+    <header class="exercise-header">
+        <a href="{% url 'auth:statistics' %}" class="exercise-header__back" aria-label="Назад">Назад</a>
+        <h1>Тренировки дня</h1>
     </header>
 
-    <h1 class="leaderboard-admin-page__title">Тренировки дня</h1>
+    {% if leaderboard_admin_cards %}
+        {% for training in leaderboard_admin_cards %}
+            <section class="exercise-grid">
+                <article class="exercise-card exercise-card--wide">
+                    <div class="exercise-card__icon">
+                        <img src="{% static 'auth/img/admin/kettlebell.svg' %}" alt="" aria-hidden="true">
+                    </div>
+                    <h2>
+                        <a href="{% url 'auth:leaderboard_day_workout' %}?training_id={{ training.training_id }}&date={{ leaderboard_selected_date_iso }}">
+                            {{ training.direction_label }}
+                        </a>
+                    </h2>
+                </article>
 
-    <div class="leaderboard-admin-page__cards">
-        {% for card in leaderboard_admin_cards %}
-        <article class="leaderboard-admin-card">
-            <div class="leaderboard-admin-card__head">
-                <span class="leaderboard-admin-card__icon" aria-hidden="true">⛓</span>
-                <h2>{{ card.title }}</h2>
-            </div>
-            <div class="leaderboard-admin-card__blocks">
-                {% for block in card.blocks %}
-                <section class="leaderboard-admin-block">
-                    <h3>{{ block.title }}</h3>
-                    <ul>
-                        {% for item in block.items %}
-                        <li>
-                            <span>{{ item.title }}</span>
-                            {% if item.meta %}
-                            <small>{{ item.meta }}</small>
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </section>
-                {% endfor %}
-            </div>
-        </article>
-        {% empty %}
-        <article class="leaderboard-admin-card">
-            <div class="leaderboard-admin-card__head">
-                <span class="leaderboard-admin-card__icon" aria-hidden="true">⛓</span>
-                <h2>Нет тренировок на выбранную дату</h2>
-            </div>
-        </article>
+                {% if training.exercise_cards %}
+                    {% for exercise in training.exercise_cards %}
+                        <a href="{% url 'auth:leaderboard_day_workout' %}?training_id={{ training.training_id }}&date={{ leaderboard_selected_date_iso }}" class="exercise-card exercise-card--link">
+                            <h3>{{ exercise.title }}</h3>
+                            <ul>
+                                <li>
+                                    <b>{{ exercise.title }}</b>
+                                    <span>{% if exercise.meta %}{{ exercise.meta }}{% else %}--{% endif %}</span>
+                                </li>
+                            </ul>
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <article class="exercise-card">
+                        <h3>Нет упражнений</h3>
+                        <ul>
+                            <li><b>Объем</b><span>--</span></li>
+                        </ul>
+                    </article>
+                {% endif %}
+            </section>
         {% endfor %}
-    </div>
+    {% else %}
+        <section class="exercise-grid">
+            <article class="exercise-card exercise-card--wide">
+                <div class="exercise-card__icon">
+                    <img src="{% static 'auth/img/admin/kettlebell.svg' %}" alt="" aria-hidden="true">
+                </div>
+                <h2>Тренировки не назначены</h2>
+            </article>
+        </section>
+    {% endif %}
 </main>
 {% endblock %}

@@ -60,8 +60,10 @@
     <div class="calendar-range-modal__overlay" data-close-range></div>
     <section class="calendar-range-modal__card" role="dialog" aria-modal="true" aria-label="Выбор диапазона дат">
         <header class="calendar-range-modal__head">
-            <h3>Выберите диапазон</h3>
-            <button type="button" class="calendar-range-modal__close" data-close-range>?</button>
+            <h3>Выберите дату</h3>
+            <button type="button" class="calendar-range-modal__close" data-close-range aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="calendar-range-modal__month">
             <button type="button" id="calendar-prev-month">‹</button>
@@ -80,7 +82,9 @@
     <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление тренировки">
         <header class="calendar-create-modal__head">
             <h3>Добавление тренировки</h3>
-            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Закрыть">?</button>
+            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
 
         <div class="calendar-create-modal__body">
@@ -153,10 +157,6 @@
                         <span>&nbsp;</span>
                         <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
                     </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--measurement" id="calendar-block-measurement-wrap" hidden>
-                        <span>Измерение</span>
-                        <input id="calendar-block-measurement-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-                    </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise" id="calendar-exercise-kind-wrap">
                         <span>Упражнение</span>
                         <div class="calendar-create-modal__dropdown" id="calendar-exercise-kind-dropdown">
@@ -170,6 +170,10 @@
                             </div>
                             <input type="hidden" name="training_exercise_kind" id="calendar-exercise-kind-input" value="exercise">
                         </div>
+                    </label>
+                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise-name" id="calendar-exercise-name-wrap">
+                        <span>Название</span>
+                        <input id="calendar-exercise-name-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
                     </label>
                     <label class="calendar-create-modal__cell calendar-create-modal__cell--benchmark" id="calendar-benchmark-name-wrap" hidden>
                         <span>Тип комплекса</span>
@@ -344,7 +348,9 @@
 <div class="calendar-results-modal" id="calendar-results-modal" hidden>
     <div class="calendar-results-modal__overlay" data-close-results></div>
     <section class="calendar-results-modal__card" role="dialog" aria-modal="true" aria-label="Результаты тренировки">
-        <button type="button" class="calendar-results-modal__close" data-close-results aria-label="Закрыть">?</button>
+        <button type="button" class="calendar-results-modal__close" data-close-results aria-label="Закрыть">
+            <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+        </button>
         <div class="calendar-results-modal__table-wrap">
             <table class="calendar-results-modal__table">
                 <thead id="calendar-results-head"></thead>
@@ -436,6 +442,8 @@
         const exerciseKindValue = document.getElementById("calendar-exercise-kind-value");
         const exerciseKindInput = document.getElementById("calendar-exercise-kind-input");
         const exerciseKindOptions = exerciseKindMenu?.querySelectorAll("[data-exercise-kind-option]") || [];
+        const exerciseNameWrap = document.getElementById("calendar-exercise-name-wrap");
+        const exerciseNameInput = document.getElementById("calendar-exercise-name-input");
         const benchmarkNameWrap = document.getElementById("calendar-benchmark-name-wrap");
         const benchmarkNameInput = document.getElementById("calendar-benchmark-name-input");
         const createSetsInput = document.getElementById("calendar-create-sets-input");
@@ -448,8 +456,6 @@
         const blockOptions = blockMenu?.querySelectorAll("[data-block-option]") || [];
         const blockCustomWrap = document.getElementById("calendar-block-custom-wrap");
         const blockCustomInput = document.getElementById("calendar-block-custom-input");
-        const blockMeasurementWrap = document.getElementById("calendar-block-measurement-wrap");
-        const blockMeasurementInput = document.getElementById("calendar-block-measurement-input");
         const blockCell = createModal?.querySelector(".calendar-create-modal__cell--block");
         const exerciseKindWrap = document.getElementById("calendar-exercise-kind-wrap");
         const countCell = createModal?.querySelector(".calendar-create-modal__cell--count");
@@ -478,8 +484,8 @@
         const updateTrainingUrlTemplate = "{% url 'auth:calendar_admin_training_update' training_id=0 %}";
         const deleteTrainingUrlTemplate = "{% url 'auth:calendar_admin_training_delete' training_id=0 %}";
         const trainingResultsUrlTemplate = "{% url 'auth:calendar_admin_training_results' training_id=0 %}";
-        const createExerciseEditIcon = "{% static 'auth/img/calendar-edit-mini.svg' %}";
-        const createExerciseDeleteIcon = "{% static 'auth/img/calendar-trash-mini.svg' %}";
+        const createExerciseEditIcon = "{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}";
+        const createExerciseDeleteIcon = "{% static 'auth/img/admin/Trash_Full.svg' %}";
         const byDateTrainingUrl = "{% url 'auth:calendar_admin_training_by_date' %}";
         const calendarTrainingsScript = document.getElementById("calendar-trainings-json");
         const parsedTrainingsPayload = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
@@ -630,15 +636,7 @@
                     if (exerciseKind === "benchmarks") {
                         return (card.querySelector("#calendar-benchmark-name-input")?.value || "").trim();
                     }
-                    const blockTypeRaw = card.querySelector("#calendar-block-input")?.value || "default";
-                    const normalizedBlockType = blockTypeRaw === "default" ? "strength" : blockTypeRaw;
-                    if (normalizedBlockType === "custom") {
-                        const normalizedMeasurement = normalizeMeasurementValue(
-                            card.querySelector("#calendar-block-measurement-input")?.value || ""
-                        );
-                        return normalizedMeasurement ? `${normalizedMeasurement} кг` : "";
-                    }
-                    return getExerciseKindLabel(card.querySelector("#calendar-exercise-kind-input")?.value || "exercise");
+                    return (card.querySelector("#calendar-exercise-name-input")?.value || "").trim();
                 })(),
                 sets: (card.querySelector("#calendar-create-sets-input")?.value || "").trim(),
                 reps: (card.querySelector("#calendar-create-reps-input")?.value || "").trim(),
@@ -654,7 +652,7 @@
             if (blockValue) blockValue.textContent = "Блок";
             setActiveOption(blockOptions, "data-block-option", "default");
             if (blockCustomInput) blockCustomInput.value = "";
-            if (blockMeasurementInput) blockMeasurementInput.value = "";
+            if (exerciseNameInput) exerciseNameInput.value = "";
 
             if (exerciseKindInput) exerciseKindInput.value = "exercise";
             if (exerciseKindValue) exerciseKindValue.textContent = "Упражнение";
@@ -685,10 +683,8 @@
             if (benchmarkNameInput) {
                 benchmarkNameInput.value = normalized.exercise_kind === "benchmarks" ? normalized.exercise_name || "" : "";
             }
-
-            const measurementFromName = normalizeMeasurementValue(normalized.exercise_name || "");
-            if (blockMeasurementInput) {
-                blockMeasurementInput.value = (blockInput?.value || "") === "custom" ? measurementFromName : "";
+            if (exerciseNameInput) {
+                exerciseNameInput.value = normalized.exercise_kind === "exercise" ? (normalized.exercise_name || "") : "";
             }
 
             if (createSetsInput) createSetsInput.value = normalized.sets || "";
@@ -943,10 +939,10 @@
                 const blockInputNode = firstCard.querySelector("#calendar-block-input");
                 const blockValueNode = firstCard.querySelector("#calendar-block-value");
                 const blockCustomNode = firstCard.querySelector("#calendar-block-custom-input");
-                const blockMeasurementWrapNode = firstCard.querySelector("#calendar-block-measurement-wrap");
-                const blockMeasurementNode = firstCard.querySelector("#calendar-block-measurement-input");
                 const blockCustomWrapNode = firstCard.querySelector("#calendar-block-custom-wrap");
                 const exerciseKindWrapNode = firstCard.querySelector("#calendar-exercise-kind-wrap");
+                const exerciseNameWrapNode = firstCard.querySelector("#calendar-exercise-name-wrap");
+                const exerciseNameInputNode = firstCard.querySelector("#calendar-exercise-name-input");
                 const benchmarkWrapNode = firstCard.querySelector("#calendar-benchmark-name-wrap");
                 const benchmarkInputNode = firstCard.querySelector("#calendar-benchmark-name-input");
                 const resultTypeInputNode = firstCard.querySelector("#calendar-result-type-input");
@@ -959,19 +955,19 @@
                 if (blockInputNode) blockInputNode.value = "default";
                 if (blockValueNode) blockValueNode.textContent = "Блок";
                 if (blockCustomNode) blockCustomNode.value = "";
-                if (blockMeasurementNode) blockMeasurementNode.value = "";
                 if (blockCustomWrapNode) {
                     blockCustomWrapNode.hidden = true;
                     blockCustomWrapNode.style.display = "none";
-                }
-                if (blockMeasurementWrapNode) {
-                    blockMeasurementWrapNode.hidden = true;
-                    blockMeasurementWrapNode.style.display = "none";
                 }
                 if (exerciseKindWrapNode) {
                     exerciseKindWrapNode.hidden = false;
                     exerciseKindWrapNode.style.display = "";
                 }
+                if (exerciseNameWrapNode) {
+                    exerciseNameWrapNode.hidden = false;
+                    exerciseNameWrapNode.style.display = "";
+                }
+                if (exerciseNameInputNode) exerciseNameInputNode.value = "";
                 if (benchmarkWrapNode) {
                     benchmarkWrapNode.hidden = true;
                     benchmarkWrapNode.style.display = "none";
@@ -1395,7 +1391,7 @@
             const target = event.target;
             if (!(target instanceof HTMLImageElement)) return;
             const src = target.getAttribute("src") || "";
-            if (!src.includes("calendar-edit-mini.svg")) return;
+            if (!src.includes("Edit_Pencil_Line_01.svg")) return;
 
             const card = target.closest(".calendar-day");
             if (!(card instanceof HTMLElement)) return;
@@ -1416,7 +1412,7 @@
             const target = event.target;
             if (!(target instanceof HTMLImageElement)) return;
             const src = target.getAttribute("src") || "";
-            if (!src.includes("calendar-trash-mini.svg")) return;
+            if (!src.includes("Trash_Full.svg")) return;
 
             const card = target.closest(".calendar-day");
             if (!(card instanceof HTMLElement)) return;
@@ -1473,10 +1469,10 @@
             if (clonedExerciseKindValue) clonedExerciseKindValue.textContent = "Упражнение";
             const clonedCustomWrap = clone.querySelector("#calendar-block-custom-wrap");
             if (clonedCustomWrap) clonedCustomWrap.hidden = true;
-            const clonedMeasurementWrap = clone.querySelector("#calendar-block-measurement-wrap");
-            if (clonedMeasurementWrap) clonedMeasurementWrap.hidden = true;
             const clonedExerciseWrap = clone.querySelector("#calendar-exercise-kind-wrap");
             if (clonedExerciseWrap) clonedExerciseWrap.hidden = false;
+            const clonedExerciseNameWrap = clone.querySelector("#calendar-exercise-name-wrap");
+            if (clonedExerciseNameWrap) clonedExerciseNameWrap.hidden = false;
             const clonedMenus = clone.querySelectorAll(".calendar-create-modal__dropdown-menu");
             clonedMenus.forEach((menu) => {
                 menu.hidden = true;
@@ -1699,13 +1695,13 @@
                 blockCustomWrap.hidden = !showCustomFields;
                 blockCustomWrap.style.display = showCustomFields ? "" : "none";
             }
-            if (blockMeasurementWrap) {
-                blockMeasurementWrap.hidden = !showCustomFields;
-                blockMeasurementWrap.style.display = showCustomFields ? "" : "none";
-            }
             if (exerciseKindWrap) {
                 exerciseKindWrap.hidden = false;
                 exerciseKindWrap.style.display = "";
+            }
+            if (exerciseNameWrap) {
+                exerciseNameWrap.hidden = isBenchmarks;
+                exerciseNameWrap.style.display = isBenchmarks ? "none" : "";
             }
             if (countCell) {
                 countCell.hidden = isBenchmarks;
@@ -1722,8 +1718,8 @@
             if (!showCustomFields && blockCustomInput) {
                 blockCustomInput.value = "";
             }
-            if (!showCustomFields && blockMeasurementInput) {
-                blockMeasurementInput.value = "";
+            if (isBenchmarks && exerciseNameInput) {
+                exerciseNameInput.value = "";
             }
         }
 
@@ -2015,9 +2011,9 @@
             const localBlockCell = card.querySelector(".calendar-create-modal__cell--block");
             const localCustomWrap = card.querySelector("#calendar-block-custom-wrap");
             const localCustomInput = card.querySelector("#calendar-block-custom-input");
-            const localMeasurementWrap = card.querySelector("#calendar-block-measurement-wrap");
-            const localMeasurementInput = card.querySelector("#calendar-block-measurement-input");
             const localExerciseWrap = card.querySelector("#calendar-exercise-kind-wrap");
+            const localExerciseNameWrap = card.querySelector("#calendar-exercise-name-wrap");
+            const localExerciseNameInput = card.querySelector("#calendar-exercise-name-input");
             const localBenchmarkWrap = card.querySelector("#calendar-benchmark-name-wrap");
             const localCountCell = card.querySelector(".calendar-create-modal__cell--count");
             const localResultCell = card.querySelector(".calendar-create-modal__cell--result");
@@ -2037,7 +2033,6 @@
 
             enforceIntegerOnlyInput(localSetsInput);
             enforceIntegerOnlyInput(localRepsInput);
-            enforceIntegerOnlyInput(localMeasurementInput);
 
             if (isPrimaryCard) {
                 card.dataset.exerciseCardReady = "true";
@@ -2056,13 +2051,13 @@
                     localCustomWrap.hidden = !showCustomFields;
                     localCustomWrap.style.display = showCustomFields ? "" : "none";
                 }
-                if (localMeasurementWrap) {
-                    localMeasurementWrap.hidden = !showCustomFields;
-                    localMeasurementWrap.style.display = showCustomFields ? "" : "none";
-                }
                 if (localExerciseWrap) {
                     localExerciseWrap.hidden = false;
                     localExerciseWrap.style.display = "";
+                }
+                if (localExerciseNameWrap) {
+                    localExerciseNameWrap.hidden = isBenchmarks;
+                    localExerciseNameWrap.style.display = isBenchmarks ? "none" : "";
                 }
                 if (localCountCell) {
                     localCountCell.hidden = isBenchmarks;
@@ -2076,8 +2071,8 @@
                     localBenchmarkWrap.hidden = !isBenchmarks;
                     localBenchmarkWrap.style.display = isBenchmarks ? "" : "none";
                 }
-                if (!showCustomFields && localMeasurementInput) {
-                    localMeasurementInput.value = "";
+                if (isBenchmarks && localExerciseNameInput) {
+                    localExerciseNameInput.value = "";
                 }
             };
 
@@ -2413,6 +2408,10 @@
             const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
             const isFull = (training.sections || []).length > 2;
+            const normalizedComment = String(training.comment || "").trim();
+            const commentHtml = normalizedComment
+                ? `<p class="calendar-event__comment-row"><img src="{% static 'auth/img/admin/comment.svg' %}" alt="" aria-hidden="true"><span class="calendar-event__comment">Комментарий</span></p><p>${escapeHtml(normalizedComment)}</p>`
+                : "";
             const sectionsHtml = (training.sections || []).map((section) => {
                 if (isFull) {
                     return `
@@ -2440,18 +2439,14 @@
                             <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
                             <div class="calendar-event__copy-wrap">
                                 <button type="button" class="calendar-event__copy-btn" data-copy-training aria-label="Скопировать тренировку для Telegram" title="Скопировать для Telegram">
-                                    <svg viewBox="0 0 20 20" aria-hidden="true">
-                                        <rect x="7" y="3" width="10" height="10" rx="2"></rect>
-                                        <rect x="3" y="7" width="10" height="10" rx="2"></rect>
-                                    </svg>
+                                    <img src="{% static 'auth/img/admin/Copy.svg' %}" alt="" aria-hidden="true">
                                 </button>
                                 <span class="calendar-event__copy-status" data-copy-status hidden aria-live="polite">Скопировано</span>
                             </div>
                         </div>
-                        <p class="calendar-event__comment-row"><span class="calendar-event__comment">Комментарий</span></p>
-                        <p>${escapeHtml(training.comment || "Без комментария")}</p>
+                        ${commentHtml}
                         ${sectionsHtml}
-                        <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/calendar-edit-mini.svg' %}" alt=""><img src="{% static 'auth/img/calendar-trash-mini.svg' %}" alt=""></span></div>
+                        <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""><img src="{% static 'auth/img/admin/Trash_Full.svg' %}" alt=""></span></div>
                     </div>
                 </article>
             `;
@@ -2621,6 +2616,28 @@
                 });
             }
         }
+
+        function openEditTrainingFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            const trainingId = Number(params.get("edit_training_id") || 0);
+            if (!trainingId) return;
+            const trainingExists = trainingsStore.some((item) => Number(item.id) === trainingId);
+            if (!trainingExists) return;
+
+            resetCreateFormToDefaults();
+            editingTrainingId = trainingId;
+            activeCreateSourceType = "manual";
+            populateCreateFormFromTraining(trainingId);
+            setCreateModalMode(true);
+            openCreateModal(false);
+
+            params.delete("edit_training_id");
+            const nextQuery = params.toString();
+            const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ""}${window.location.hash || ""}`;
+            window.history.replaceState({}, "", nextUrl);
+        }
+
+        openEditTrainingFromQuery();
 
         createSaveBtn?.addEventListener("click", async () => {
             try {

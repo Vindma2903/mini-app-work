@@ -46,7 +46,7 @@
         {% endfor %}
     </section>
 
-    <button type="button" class="exercise-btn exercise-btn--primary">Сохранить</button>
+    <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-save-db">Сохранить</button>
 
     {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
 </main>
@@ -58,24 +58,24 @@
         <h3 class="exercise-edit-modal__title">Введите значения подходов</h3>
         <div class="exercise-edit-modal__grid">
             <label class="exercise-edit-modal__field">
-                <span>1 подход (100%)</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" placeholder="Введите значение 100% для 1 подхода" />
+                <span>1 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>2 подход (100%)</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" placeholder="Введите значение 100% для 2 подхода" />
+                <span>2 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>3 подход (100%)</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" placeholder="Введите значение 100% для 3 подхода" />
+                <span>3 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" />
             </label>
             <label class="exercise-edit-modal__field">
-                <span>4 подход (100%)</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" placeholder="Введите значение 100% для 4 подхода" />
+                <span>4 подход</span>
+                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" />
             </label>
         </div>
         <p class="exercise-edit-modal__error" id="exercise-edit-error" hidden></p>
-        <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-edit-save">Сохранить</button>
+        <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-edit-save">Посчитать</button>
     </section>
 </div>
 
@@ -86,7 +86,8 @@
         const updateUrl = "{{ exercise_update_url }}";
         const openButton = document.getElementById("exercise-open-edit-modal");
         const modal = document.getElementById("exercise-edit-modal");
-        const saveButton = document.getElementById("exercise-edit-save");
+        const calculateButton = document.getElementById("exercise-edit-save");
+        const persistButton = document.getElementById("exercise-save-db");
         const errorNode = document.getElementById("exercise-edit-error");
         const inputs = {
             rep_1: document.getElementById("exercise-edit-rep-1"),
@@ -173,6 +174,15 @@
             inputs.rep_4.value = String(state.reps.rep_4 ?? "");
         }
 
+        function syncMaxRepValues() {
+            const repValues = [state.reps.rep_1, state.reps.rep_2, state.reps.rep_3, state.reps.rep_4];
+            maxValueNodes.forEach((node, index) => {
+                if (repValues[index] !== undefined && repValues[index] !== null) {
+                    node.textContent = String(repValues[index]);
+                }
+            });
+        }
+
         function applySavedData(data) {
             const reps = data?.reps || {};
             state.reps = {
@@ -182,13 +192,7 @@
                 rep_4: reps.rep_4,
             };
             state.percents = data?.relative_percents || state.percents;
-
-            const repValues = [state.reps.rep_1, state.reps.rep_2, state.reps.rep_3, state.reps.rep_4];
-            maxValueNodes.forEach((node, index) => {
-                if (repValues[index] !== undefined && repValues[index] !== null) {
-                    node.textContent = String(repValues[index]);
-                }
-            });
+            syncMaxRepValues();
 
             const rows = data?.percent_rows || [];
             percentRows.forEach((rowNode, rowIndex) => {
@@ -204,21 +208,54 @@
             renderPercentTableForActiveRep();
         }
 
-        async function saveReps() {
-            const payload = {
+        function collectPayloadFromInputs() {
+            return {
                 rep_1: normalizePositiveInt(inputs.rep_1.value),
                 rep_2: normalizePositiveInt(inputs.rep_2.value),
                 rep_3: normalizePositiveInt(inputs.rep_3.value),
                 rep_4: normalizePositiveInt(inputs.rep_4.value),
             };
+        }
+
+        function collectPayloadFromState() {
+            return {
+                rep_1: normalizePositiveInt(state.reps.rep_1),
+                rep_2: normalizePositiveInt(state.reps.rep_2),
+                rep_3: normalizePositiveInt(state.reps.rep_3),
+                rep_4: normalizePositiveInt(state.reps.rep_4),
+            };
+        }
+
+        function calculateRepsLocally() {
+            const payload = collectPayloadFromInputs();
             if (Object.values(payload).some((value) => value === null)) {
-                errorNode.textContent = "Введите 4 положительных числа.";
+                errorNode.textContent = "Enter 4 positive numbers.";
                 errorNode.hidden = false;
                 return;
             }
 
             errorNode.hidden = true;
-            saveButton.disabled = true;
+            state.reps = {
+                rep_1: payload.rep_1,
+                rep_2: payload.rep_2,
+                rep_3: payload.rep_3,
+                rep_4: payload.rep_4,
+            };
+            syncMaxRepValues();
+            renderPercentTableForActiveRep();
+            setModalVisible(false);
+        }
+
+        async function persistRepsToDb() {
+            const payload = collectPayloadFromState();
+            if (Object.values(payload).some((value) => value === null)) {
+                window.alert("Неверные значения. Нажмите 'Посчитать', затем 'Сохранить'.");
+                return;
+            }
+
+            const initialButtonText = persistButton.textContent;
+            persistButton.disabled = true;
+            persistButton.textContent = "Сохранение...";
             try {
                 const response = await fetch(updateUrl, {
                     method: "POST",
@@ -231,24 +268,31 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.ok) {
-                    errorNode.textContent = "Не удалось сохранить. Проверьте значения.";
-                    errorNode.hidden = false;
+                    window.alert("Не удалось сохранить. Проверьте значения и попробуйте еще раз.");
                     return;
                 }
                 applySavedData(data);
-                setModalVisible(false);
+                persistButton.textContent = "Сохранено";
+                window.setTimeout(() => {
+                    persistButton.textContent = initialButtonText;
+                }, 1200);
+            } catch (error) {
+                window.alert("Ошибка сети при сохранении. Попробуйте снова.");
             } finally {
-                saveButton.disabled = false;
+                persistButton.disabled = false;
+                if (persistButton.textContent !== "Сохранено") {
+                    persistButton.textContent = initialButtonText;
+                }
             }
         }
-
         openButton?.addEventListener("click", () => {
             errorNode.hidden = true;
             fillInputsFromState();
             setModalVisible(true);
         });
 
-        saveButton?.addEventListener("click", saveReps);
+        calculateButton?.addEventListener("click", calculateRepsLocally);
+        persistButton?.addEventListener("click", persistRepsToDb);
 
         modal?.querySelectorAll("[data-close-edit-modal]").forEach((node) => {
             node.addEventListener("click", () => setModalVisible(false));
@@ -267,3 +311,4 @@
     })();
 </script>
 {% endblock %}
+

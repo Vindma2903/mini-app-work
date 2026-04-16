@@ -81,9 +81,7 @@
 
     {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
-{% endblock %}
 
-{% block scripts %}
 <script>
     (function () {
         const dayButtons = Array.from(document.querySelectorAll(".leaderboard-date__day[data-iso-date]"));

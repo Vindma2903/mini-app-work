@@ -68,6 +68,9 @@
 }
 
 .result-saved-modal__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 294px;
     height: 39px;
     border-radius: 10px;
@@ -75,6 +78,8 @@
     line-height: 15px;
     font-weight: 500;
     cursor: pointer;
+    text-decoration: none;
+    box-sizing: border-box;
 }
 
 .result-saved-modal__btn--primary {

@@ -1137,6 +1137,41 @@ class LeaderboardAwardsTests(TestCase):
             mode=mode,
         )
 
+    def test_leaderboard_day_routes_are_split_for_user_and_admin(self):
+        self.client.force_login(self.user_b)
+        user_response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(user_response.status_code, 200)
+        self.assertTemplateUsed(user_response, 'auth/leaderboard-day.html')
+
+        self.client.force_login(self.user_a)
+        redirected_response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(redirected_response.status_code, 302)
+        self.assertEqual(redirected_response.url, reverse('auth:calendar'))
+
+        admin_response = self.client.get(reverse('auth:leaderboard_day_admin'))
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertTemplateUsed(admin_response, 'auth/leaderboard-day-admin.html')
+
+    def test_admin_is_redirected_from_user_only_pages_to_calendar(self):
+        self.client.force_login(self.user_a)
+        user_only_urls = [
+            reverse('auth:profile'),
+            reverse('auth:settings'),
+            reverse('auth:support'),
+            reverse('auth:support_sent'),
+            reverse('auth:profile_awards_tests'),
+            reverse('auth:profile_award_workout'),
+            reverse('auth:community'),
+            reverse('auth:training_plan_today'),
+            reverse('auth:achievements'),
+            reverse('auth:achievement_exercise', kwargs={'exercise_slug': 'back-pause-squat'}),
+        ]
+
+        for url in user_only_urls:
+            response = self.client.get(url)
+            self.assertEqual(response.status_code, 302)
+            self.assertEqual(response.url, reverse('auth:calendar'))
+
     def test_leaderboard_places_and_tie_break_by_updated_at(self):
         self._create_result(self.user_a, TrainingResult.SECTION_STRENGTH, 25, 10)
         self._create_result(self.user_b, TrainingResult.SECTION_STRENGTH, 26, 10)
@@ -1148,7 +1183,7 @@ class LeaderboardAwardsTests(TestCase):
         TrainingResult.objects.filter(id=tie_older.id).update(updated_at=timezone.now() - timedelta(minutes=2))
         TrainingResult.objects.filter(id=tie_newer.id).update(updated_at=timezone.now() - timedelta(minutes=1))
 
-        self.client.force_login(self.user_a)
+        self.client.force_login(self.user_b)
         response = self.client.get(reverse('auth:leaderboard_day'))
         self.assertEqual(response.status_code, 200)
 
@@ -1171,13 +1206,13 @@ class LeaderboardAwardsTests(TestCase):
         self._create_result(self.user_c, TrainingResult.SECTION_METABOLIC, 40, 0)
         self._create_result(self.user_a, TrainingResult.SECTION_METABOLIC, 39, 0)
 
-        self.client.force_login(self.user_a)
+        self.client.force_login(self.user_b)
         response = self.client.get(reverse('auth:profile'))
         self.assertEqual(response.status_code, 200)
         summary = response.context['profile_awards_summary']
-        self.assertEqual(summary['first'], 1)
+        self.assertEqual(summary['first'], 2)
         self.assertEqual(summary['second'], 1)
-        self.assertEqual(summary['third'], 1)
+        self.assertEqual(summary['third'], 0)
 
     def test_leaderboard_uses_selected_date_from_query(self):
         today = self.today
@@ -1200,7 +1235,7 @@ class LeaderboardAwardsTests(TestCase):
             mode=TrainingResult.MODE_RX,
         )
 
-        self.client.force_login(self.user_a)
+        self.client.force_login(self.user_b)
         response = self.client.get(reverse('auth:leaderboard_day'), {'date': other_day.isoformat()})
         self.assertEqual(response.status_code, 200)
         strength = next(item for item in response.context['leaderboard_sections'] if item['key'] == TrainingResult.SECTION_STRENGTH)
@@ -1243,7 +1278,7 @@ class LeaderboardAwardsTests(TestCase):
             order=0,
         )
 
-        self.client.force_login(self.user_a)
+        self.client.force_login(self.user_b)
         response = self.client.get(reverse('auth:leaderboard_day'), {'date': self.today.isoformat()})
         self.assertEqual(response.status_code, 200)
 
@@ -1272,7 +1307,7 @@ class LeaderboardAwardsTests(TestCase):
         )
 
         self.client.force_login(self.user_a)
-        response = self.client.get(reverse('auth:leaderboard_day'))
+        response = self.client.get(reverse('auth:leaderboard_day_admin'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'auth/leaderboard-day-admin.html')
 
@@ -1305,7 +1340,7 @@ class LeaderboardAwardsTests(TestCase):
         )
 
         self.client.force_login(self.user_a)
-        response = self.client.get(reverse('auth:leaderboard_day'))
+        response = self.client.get(reverse('auth:leaderboard_day_admin'))
         self.assertEqual(response.status_code, 200)
 
         cards = response.context['leaderboard_admin_cards']
@@ -1324,7 +1359,7 @@ class LeaderboardAwardsTests(TestCase):
         )
 
         self.client.force_login(self.user_a)
-        response = self.client.get(reverse('auth:leaderboard_day'))
+        response = self.client.get(reverse('auth:leaderboard_day_admin'))
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, 'auth/leaderboard-day-admin.html')
         self.assertContains(response, 'Нет упражнений')
@@ -1362,6 +1397,55 @@ class LeaderboardAwardsTests(TestCase):
         self.assertContains(response, 'Бег на дорожке')
         self.assertContains(response, '3 подхода / 11 повторений')
         self.assertTrue(response.context['workout_kind_badge'])
+
+    def test_workout_exercise_page_renders_real_leader_rows(self):
+        training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction=AdminTraining.DIRECTION_WORKOUT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='leaders',
+            color=AdminTraining.COLOR_BLUE,
+            source_type=AdminTraining.SOURCE_MANUAL,
+            created_by=self.user_a,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Бег',
+            sets=3,
+            reps=10,
+            order=0,
+        )
+        TrainingResult.objects.create(
+            user=self.user_b,
+            training_date=self.today,
+            section=TrainingResult.SECTION_CARDIO,
+            minutes=12,
+            seconds=10,
+            mode=TrainingResult.MODE_RX,
+            result_type=TrainingResult.RESULT_TIME,
+        )
+        TrainingResult.objects.create(
+            user=self.user_c,
+            training_date=self.today,
+            section=TrainingResult.SECTION_CARDIO,
+            minutes=11,
+            seconds=20,
+            mode=TrainingResult.MODE_RX,
+            result_type=TrainingResult.RESULT_TIME,
+        )
+
+        self.client.force_login(self.user_a)
+        response = self.client.get(
+            reverse('auth:leaderboard_day_workout_exercise'),
+            {'training_id': training.id, 'date': self.today.isoformat()},
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Таблица лидеров')
+        self.assertContains(response, '12 мин 10 сек')
+        self.assertContains(response, 'Кардио')
+        self.assertTrue(response.context['workout_leader_rows'])
+        self.assertEqual(len(response.context['workout_leader_rows']), 2)
 
     def test_workout_detail_page_uses_selected_training_data(self):
         selected_training = AdminTraining.objects.create(

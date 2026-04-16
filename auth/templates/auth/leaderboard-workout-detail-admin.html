@@ -10,8 +10,8 @@
 {% block content %}
 <main class="exercise-screen">
     <header class="exercise-header">
-        <a href="{% url 'auth:leaderboard_day' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
-        <a href="{% url 'auth:leaderboard_day' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
+        <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
+        <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
         <h1>{{ workout_title }}</h1>
     </header>
 

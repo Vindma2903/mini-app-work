@@ -1,4 +1,4 @@
-﻿{% load static %}
+{% load static %}
 <div class="result-saved-modal" id="result-saved-modal" hidden>
     <div class="result-saved-modal__overlay" data-close-result-saved-modal></div>
     <section class="result-saved-modal__card" role="dialog" aria-modal="true" aria-labelledby="result-saved-title">
@@ -15,8 +15,8 @@
         <button type="button" class="result-saved-modal__btn result-saved-modal__btn--primary" data-open-training-rate-modal>
             Оценить тренировку
         </button>
-        <button type="button" class="result-saved-modal__btn result-saved-modal__btn--secondary" data-open-leaderboard>
+        <a class="result-saved-modal__btn result-saved-modal__btn--secondary" data-open-leaderboard href="{% url 'auth:leaderboard_day' %}">
             Посмотреть лидерборд
-        </button>
+        </a>
     </section>
 </div>

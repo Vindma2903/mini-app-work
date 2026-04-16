@@ -4,6 +4,8 @@ from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
 from django.db.models import Q
 
+from .models import UserProfile
+
 
 def _ensure_verified_email(user: User, email: str) -> None:
     # Mark email as confirmed for allauth flows without violating unique_verified_email.
@@ -53,13 +55,18 @@ def ensure_default_admin() -> tuple[User, bool]:
     email = os.getenv('DEFAULT_ADMIN_EMAIL', 'admin@example.com').strip() or 'admin@example.com'
     password = os.getenv('DEFAULT_ADMIN_PASSWORD', 'admin12345').strip() or 'admin12345'
 
-    return _create_user_if_missing(
+    admin, created = _create_user_if_missing(
         username=username,
         email=email,
         password=password,
         is_staff=True,
         is_superuser=True,
     )
+    profile, _ = UserProfile.objects.get_or_create(user=admin)
+    if profile.role != UserProfile.ROLE_ADMIN:
+        profile.role = UserProfile.ROLE_ADMIN
+        profile.save(update_fields=['role'])
+    return admin, created
 
 
 def ensure_default_user() -> tuple[User, bool]:
@@ -72,13 +79,18 @@ def ensure_default_user() -> tuple[User, bool]:
     if username == admin_username:
         username = 'default_user'
 
-    return _create_user_if_missing(
+    user, created = _create_user_if_missing(
         username=username,
         email=email,
         password=password,
         is_staff=False,
         is_superuser=False,
     )
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    if profile.role != UserProfile.ROLE_USER:
+        profile.role = UserProfile.ROLE_USER
+        profile.save(update_fields=['role'])
+    return user, created
 
 def ensure_default_user2() -> tuple[User, bool]:
     username = os.getenv('DEFAULT_USER2_USERNAME', 'user2').strip() or 'user2'
@@ -92,13 +104,18 @@ def ensure_default_user2() -> tuple[User, bool]:
     if username in taken_usernames:
         username = 'default_user2'
 
-    return _create_user_if_missing(
+    user2, created = _create_user_if_missing(
         username=username,
         email=email,
         password=password,
         is_staff=False,
         is_superuser=False,
     )
+    profile, _ = UserProfile.objects.get_or_create(user=user2)
+    if profile.role != UserProfile.ROLE_USER:
+        profile.role = UserProfile.ROLE_USER
+        profile.save(update_fields=['role'])
+    return user2, created
 
 
 def ensure_default_users() -> dict[str, tuple[User, bool]]:

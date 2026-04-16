@@ -496,10 +496,10 @@ def build_telegram_deep_link(token):
 def get_user_role(user):
     if user.is_staff or user.is_superuser:
         return UserProfile.ROLE_ADMIN
-    profile = getattr(user, 'profile', None)
-    if profile is None and getattr(user, 'pk', None):
+    profile = None
+    if getattr(user, 'pk', None):
         profile = UserProfile.objects.filter(user=user).only('role').first()
-    if profile and profile.role in {UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN}:
+    if profile and profile.role in {UserProfile.ROLE_USER, UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN}:
         return profile.role
     return UserProfile.ROLE_USER
 
@@ -883,11 +883,19 @@ class RegisterSuccessView(TemplateView):
 
 class UserProtectedMixin:
     login_url = reverse_lazy('auth:login')
+    allow_admin_panel_access = True
+    admin_fallback_url = reverse_lazy('auth:calendar')
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return redirect(self.login_url)
+        if not self.allow_admin_panel_access and user_has_admin_panel_access(request.user):
+            return redirect(self.admin_fallback_url)
         return super().dispatch(request, *args, **kwargs)
+
+
+class UserOnlyProtectedMixin(UserProtectedMixin):
+    allow_admin_panel_access = False
 
 
 class SharedProfileHeaderMixin:
@@ -916,7 +924,7 @@ class AdminProtectedMixin:
         return super().dispatch(request, *args, **kwargs)
 
 
-class ProfileView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
+class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/profile.html'
 
     @staticmethod
@@ -1045,7 +1053,7 @@ class ProfileView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
         return context
 
 
-class SettingsView(UserProtectedMixin, TemplateView):
+class SettingsView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/settings.html'
 
     def get_context_data(self, **kwargs):
@@ -1061,7 +1069,7 @@ class SettingsView(UserProtectedMixin, TemplateView):
         return context
 
 
-class SupportView(UserProtectedMixin, TemplateView):
+class SupportView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/support.html'
 
     def get_context_data(self, **kwargs):
@@ -1071,7 +1079,7 @@ class SupportView(UserProtectedMixin, TemplateView):
         return context
 
 
-class SupportMessageSentView(UserProtectedMixin, TemplateView):
+class SupportMessageSentView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/support-sent.html'
 
     def get_context_data(self, **kwargs):
@@ -1081,7 +1089,7 @@ class SupportMessageSentView(UserProtectedMixin, TemplateView):
         return context
 
 
-class SupportSubmitView(UserProtectedMixin, View):
+class SupportSubmitView(UserOnlyProtectedMixin, View):
     http_method_names = ['post']
 
     def post(self, request, *args, **kwargs):
@@ -1355,7 +1363,7 @@ class TelegramWebhookView(View):
         return JsonResponse({'ok': True})
 
 
-class ProfileAwardsTestsView(UserProtectedMixin, TemplateView):
+class ProfileAwardsTestsView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/profile-awards-tests.html'
 
     def get_context_data(self, **kwargs):
@@ -1372,7 +1380,7 @@ class ProfileAwardsTestsView(UserProtectedMixin, TemplateView):
         return context
 
 
-class ProfileAwardWorkoutView(UserProtectedMixin, TemplateView):
+class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/profile-award-workout.html'
 
     def get_context_data(self, **kwargs):
@@ -3091,13 +3099,8 @@ class LogoutView(View):
         return response
 
 
-class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
+class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-day.html'
-
-    def get_template_names(self):
-        if user_has_admin_panel_access(self.request.user):
-            return ['auth/leaderboard-day-admin.html']
-        return [self.template_name]
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3235,6 +3238,11 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateV
         return context
 
 
+class LeaderboardDayAdminView(AdminProtectedMixin, LeaderboardDayView):
+    template_name = 'auth/leaderboard-day-admin.html'
+    allow_admin_panel_access = True
+
+
 class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/leaderboard-workout-detail-admin.html'
 
@@ -3359,6 +3367,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             context['workout_title'] = 'Тренировка'
             context['workout_kind_badge'] = '--'
             context['workout_exercises'] = []
+            context['workout_leader_rows'] = []
             return context
 
         ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
@@ -3379,10 +3388,49 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             }
             for idx, exercise in enumerate(ordered_exercises)
         ]
+        block_to_section = {
+            AdminTrainingExercise.BLOCK_STRENGTH: TrainingResult.SECTION_STRENGTH,
+            AdminTrainingExercise.BLOCK_CARDIO: TrainingResult.SECTION_CARDIO,
+            AdminTrainingExercise.BLOCK_GYMNASTICS: TrainingResult.SECTION_METABOLIC,
+            AdminTrainingExercise.BLOCK_CUSTOM: TrainingResult.SECTION_METABOLIC,
+        }
+        section_titles = dict(LEADERBOARD_SECTION_META)
+        selected_section_keys = []
+        for exercise in ordered_exercises:
+            section_key = block_to_section.get(exercise.block_type)
+            if not section_key or section_key in selected_section_keys:
+                continue
+            selected_section_keys.append(section_key)
+
+        leaderboard = build_daily_leaderboard_payload(selected_date)
+        sections_by_key = {section['key']: section for section in leaderboard['sections']}
+        workout_leader_rows = []
+        for section_key in selected_section_keys:
+            section = sections_by_key.get(section_key) or {}
+            for entry in section.get('entries', []):
+                medal = entry.get('medal')
+                workout_leader_rows.append(
+                    {
+                        'user_name': entry.get('user_name') or 'Участник',
+                        'result_label': entry.get('result_label') or '--',
+                        'section_title': section_titles.get(section_key, 'Раздел'),
+                        'place_label': entry.get('place_label') or '--',
+                        'row_class': (
+                            'workout-leader-row--gold'
+                            if medal == 'gold'
+                            else 'workout-leader-row--silver'
+                            if medal == 'silver'
+                            else 'workout-leader-row--bronze'
+                            if medal == 'bronze'
+                            else ''
+                        ),
+                    }
+                )
+        context['workout_leader_rows'] = workout_leader_rows
         return context
 
 
-class CommunityView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
+class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/community.html'
 
     @staticmethod
@@ -3533,7 +3581,7 @@ class ToggleCommunityReactionView(View):
         })
 
 
-class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
+class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
 
     def get(self, request, *args, **kwargs):
@@ -3613,7 +3661,7 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserProtectedMixin, Templa
         return context
 
 
-class AchievementsView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateView):
+class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/achievements.html'
 
     @staticmethod
@@ -3679,7 +3727,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserProtectedMixin, TemplateVie
         return context
 
 
-class AchievementExerciseView(UserProtectedMixin, TemplateView):
+class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/achievement-exercise.html'
 
     EXERCISE_DATA = {

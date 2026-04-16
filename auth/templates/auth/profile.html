@@ -143,6 +143,17 @@
             return match ? Number(match[0]) : 0;
         }
 
+        function formatTrainingCount(value) {
+            const normalized = Math.max(0, Number(value) || 0);
+            const remainderTen = normalized % 10;
+            const remainderHundred = normalized % 100;
+            if (remainderTen === 1 && remainderHundred !== 11) return `${normalized} тренировка`;
+            if (remainderTen >= 2 && remainderTen <= 4 && (remainderHundred < 12 || remainderHundred > 14)) {
+                return `${normalized} тренировки`;
+            }
+            return `${normalized} тренировок`;
+        }
+
         function syncActivityBars() {
             const visitsText = document.querySelector("[data-activity='visits']").textContent;
             const goalText = document.querySelector("[data-activity='goal']").textContent;
@@ -240,9 +251,12 @@
                     return;
                 }
 
-                activityValues.week.goal = `${payload.weekly_goal} тренировок`;
-                const activeActivityPeriod = document.querySelector("[data-tabs='activity'] .tabs__item--active")?.dataset.period || "week";
-                renderActivity(activeActivityPeriod);
+                activityValues.week.goal = formatTrainingCount(payload.weekly_goal);
+                const activityTabs = document.querySelector("[data-tabs='activity']");
+                if (activityTabs) {
+                    activateTab(activityTabs, "week");
+                }
+                renderActivity("week");
                 goalModal.hidden = true;
             } catch (_error) {
                 alert("Не удалось сохранить цель. Попробуйте еще раз.");

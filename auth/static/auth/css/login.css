@@ -132,6 +132,12 @@ body {
     font-family: var(--font-family-main);
 }
 
+.auth-telegram-widget {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 14px;
+}
+
 .auth-card__register {
     display: block;
     width: 108px;

@@ -61,6 +61,7 @@ body {
 }
 
 .plan-today-days__item {
+    position: relative;
     width: 47px;
     height: 50px;
     border: 0;
@@ -98,13 +99,16 @@ body {
     color: #fff;
 }
 
-.plan-today-date__dot {
+.plan-today-days__item--today::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: -10px;
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #fffdfd;
-    display: block;
-    margin: 8px auto 0;
+    background: var(--pt-blue);
 }
 
 .plan-card {

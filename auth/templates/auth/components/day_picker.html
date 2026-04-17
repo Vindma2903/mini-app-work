@@ -2,7 +2,7 @@
 <div class="{{ wrap }}">
     {% if day_items %}
         {% for day in day_items %}
-        <button class="{{ item }}{% if day.is_active %} {{ item }}--active{% endif %}" type="button" data-iso-date="{{ day.iso_date }}">
+        <button class="{{ item }}{% if day.is_active %} {{ item }}--active{% endif %}{% if day.is_today %} {{ item }}--today{% endif %}" type="button" data-iso-date="{{ day.iso_date }}">
             <span>{{ day.weekday }}</span><b>{{ day.day }}</b>
         </button>
         {% endfor %}

@@ -10,6 +10,9 @@ from .views import (
     RegisterPasswordView,
     RegisterSuccessView,
     RegisterView,
+    StartTelegramQuickLoginView,
+    TelegramWidgetLoginView,
+    TelegramQuickLoginStatusView,
 )
 
 urlpatterns = [
@@ -22,5 +25,7 @@ urlpatterns = [
     path("register/", RegisterView.as_view(), name="register"),
     path("register/password/", RegisterPasswordView.as_view(), name="register_password"),
     path("register/success/", RegisterSuccessView.as_view(), name="register_success"),
+    path("auth/telegram/widget/login/", TelegramWidgetLoginView.as_view(), name="telegram_widget_login"),
+    path("auth/telegram/quick-login/start/", StartTelegramQuickLoginView.as_view(), name="telegram_quick_login_start"),
+    path("auth/telegram/quick-login/status/", TelegramQuickLoginStatusView.as_view(), name="telegram_quick_login_status"),
 ]
-

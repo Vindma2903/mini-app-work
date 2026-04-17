@@ -10,6 +10,9 @@ from auth.views import (
     RegisterPasswordView,
     RegisterSuccessView,
     RegisterView,
+    StartTelegramQuickLoginView,
+    TelegramWidgetLoginView,
+    TelegramQuickLoginStatusView,
 )
 
 __all__ = [
@@ -22,5 +25,7 @@ __all__ = [
     "RegisterPasswordView",
     "RegisterSuccessView",
     "RegisterView",
+    "StartTelegramQuickLoginView",
+    "TelegramWidgetLoginView",
+    "TelegramQuickLoginStatusView",
 ]
-

@@ -2,10 +2,13 @@ import secrets
 import logging
 import json
 import re
+import hmac
+import hashlib
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 
+from asgiref.sync import sync_to_async
 from allauth.account.models import EmailAddress
 from PIL import Image, ImageDraw, ImageFont
 from django.conf import settings
@@ -13,6 +16,7 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.models import User
 from django.contrib.auth.password_validation import validate_password
+from django.core.cache import cache
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.core import signing
@@ -58,6 +62,7 @@ ADMIN_PASSWORD_RESET_SESSION_KEY = 'admin_password_reset_request_id'
 ADMIN_PASSWORD_RESET_CODE_VERIFIED_KEY = 'admin_password_reset_code_verified'
 ADMIN_PASSWORD_RESET_LINK_SALT = 'admin_password_reset_link_v1'
 TELEGRAM_LINK_TTL_MINUTES = 10
+TELEGRAM_QUICK_LOGIN_TTL_SECONDS = 10 * 60
 logger = logging.getLogger(__name__)
 
 RU_WEEKDAY = {
@@ -146,6 +151,36 @@ def format_admin_training_volume(exercise):
     return f'{exercise.exercise_name} {sets}x{reps}'
 
 
+def normalize_mojibake_text(value):
+    if not isinstance(value, str):
+        return value
+    source = value.strip()
+    if not source:
+        return value
+    if not any(marker in source for marker in ('Р', 'С', 'Ð', 'Ñ')):
+        return value
+
+    def cyrillic_score(text):
+        return sum(1 for ch in text if ('А' <= ch <= 'я') or ch in {'Ё', 'ё'})
+
+    best = source
+    best_score = cyrillic_score(source)
+
+    for encoding in ('cp1251', 'latin1'):
+        try:
+            candidate = source.encode(encoding).decode('utf-8')
+        except (UnicodeEncodeError, UnicodeDecodeError):
+            continue
+        score = cyrillic_score(candidate)
+        if score > best_score:
+            best = candidate
+            best_score = score
+
+    if best is source:
+        return value
+    return value.replace(source, best, 1)
+
+
 def get_plan_result_type_map(trainings):
     result_map = {
         TrainingResult.SECTION_STRENGTH: TrainingResult.RESULT_TIME,
@@ -180,13 +215,21 @@ def serialize_admin_training(training):
     section_index = {}
 
     for item in training.exercises.all():
-        block_label = item.block_custom_name.strip() if item.block_type == AdminTrainingExercise.BLOCK_CUSTOM else TRAINING_BLOCK_LABELS.get(item.block_type, 'Силовая')
+        block_label = (
+            item.block_custom_name.strip()
+            if item.block_type == AdminTrainingExercise.BLOCK_CUSTOM
+            else TRAINING_BLOCK_LABELS.get(item.block_type, 'Блок')
+        )
+        block_label = normalize_mojibake_text(block_label)
+        exercise_name = normalize_mojibake_text(item.exercise_name or '')
+        volume = normalize_mojibake_text(format_admin_training_volume(item))
+
         exercise_payload = {
             'id': item.id,
             'block_type': item.block_type,
-            'block_custom_name': item.block_custom_name,
+            'block_custom_name': normalize_mojibake_text(item.block_custom_name or ''),
             'block_label': block_label,
-            'exercise_name': item.exercise_name,
+            'exercise_name': exercise_name,
             'exercise_kind': (
                 item.exercise_kind
                 if str(item.exercise_kind or '').strip().lower() in EXERCISE_KIND_LABELS
@@ -195,9 +238,11 @@ def serialize_admin_training(training):
             'sets': item.sets,
             'reps': item.reps,
             'result_type': item.result_type,
-            'result_type_label': TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Время'),
+            'result_type_label': normalize_mojibake_text(
+                TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Время')
+            ),
             'order': item.order,
-            'volume': format_admin_training_volume(item),
+            'volume': volume,
         }
         exercises_payload.append(exercise_payload)
 
@@ -207,30 +252,35 @@ def serialize_admin_training(training):
         grouped_sections[section_index[block_label]]['items'].append(exercise_payload['volume'])
 
     first_exercise = exercises_payload[0] if exercises_payload else None
-    training_title = get_admin_training_title(
-        training.direction,
-        training.source_type,
-        training.ready_plan_title,
+    training_title = normalize_mojibake_text(
+        get_admin_training_title(
+            training.direction,
+            training.source_type,
+            training.ready_plan_title,
+        )
     )
+
     return {
         'id': training.id,
         'date': date_value.isoformat(),
         'date_label': date_value.strftime('%d.%m.%Y'),
-        'day_name': RU_WEEKDAY.get(date_value.weekday(), ''),
+        'day_name': normalize_mojibake_text(RU_WEEKDAY.get(date_value.weekday(), '')),
         'day_number': date_value.day,
         'direction': training.direction,
-        'direction_label': TRAINING_DIRECTION_LABELS.get(training.direction, training.direction),
+        'direction_label': normalize_mojibake_text(
+            TRAINING_DIRECTION_LABELS.get(training.direction, training.direction)
+        ),
         'title': training_title,
         'visibility': training.visibility,
-        'comment': training.comment,
+        'comment': normalize_mojibake_text(training.comment or ''),
         'color': training.color,
         'source_type': training.source_type,
         'ready_workout_type': training.ready_workout_type,
         'ready_complex_type': training.ready_complex_type,
-        'ready_complex_name': training.ready_complex_name,
-        'ready_plan_title': training.ready_plan_title,
+        'ready_complex_name': normalize_mojibake_text(training.ready_complex_name or ''),
+        'ready_plan_title': normalize_mojibake_text(training.ready_plan_title or ''),
         'created_by_id': training.created_by_id,
-        'block_name': first_exercise['block_label'] if first_exercise else 'РЎРёР»РѕРІР°СЏ',
+        'block_name': first_exercise['block_label'] if first_exercise else 'Блок',
         'volume': first_exercise['volume'] if first_exercise else '',
         'sections': grouped_sections,
         'exercises': exercises_payload,
@@ -334,7 +384,6 @@ def format_training_duration_ru(minutes, seconds):
         return f'{minutes} мин'
     return f'{minutes} мин {seconds} сек'
 
-
 def format_count_with_word_ru(value, one, few, many):
     if value is None:
         return '--'
@@ -372,7 +421,6 @@ def format_training_result_value(result_type, primary_value, secondary_value):
         return f'{approaches} по {reps}'
 
     return format_training_duration_ru(primary_value, secondary_value)
-
 
 def score_training_result(result_type, primary_value, secondary_value):
     first = primary_value if primary_value is not None else 0
@@ -443,16 +491,17 @@ def build_daily_leaderboard_payload(training_date):
 
 
 def build_week_days(selected_date):
-    week_start = selected_date - timedelta(days=selected_date.weekday())
+    today = timezone.localdate()
     days = []
-    for offset in range(7):
-        current = week_start + timedelta(days=offset)
+    for offset in range(-3, 4):
+        current = today + timedelta(days=offset)
         days.append(
             {
                 'weekday': RU_WEEKDAY_SHORT[current.weekday()],
                 'day': current.day,
                 'iso_date': current.isoformat(),
                 'is_active': current == selected_date,
+                'is_today': current == today,
             }
         )
     return days
@@ -486,11 +535,52 @@ def resolve_request_user(request):
     return None, None
 
 
-def build_telegram_deep_link(token):
+def build_telegram_deep_link(token, prefix='link'):
     bot_username = (settings.TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
     if not bot_username:
         return ''
-    return f'https://t.me/{bot_username}?start=link_{token}'
+    safe_prefix = str(prefix or 'link').strip() or 'link'
+    return f'https://t.me/{bot_username}?start={safe_prefix}_{token}'
+
+
+def build_telegram_quick_login_cache_key(token):
+    return f'telegram_quick_login:{token}'
+
+
+def validate_telegram_login_payload(payload):
+    bot_token = str(getattr(settings, 'TELEGRAM_BOT_TOKEN', '') or '').strip()
+    received_hash = str(payload.get('hash') or '').strip()
+    auth_date_raw = str(payload.get('auth_date') or '').strip()
+    user_id_raw = str(payload.get('id') or '').strip()
+    if not bot_token or not received_hash or not auth_date_raw or not user_id_raw:
+        return False
+
+    try:
+        auth_date = int(auth_date_raw)
+    except (TypeError, ValueError):
+        return False
+
+    now_timestamp = int(timezone.now().timestamp())
+    if abs(now_timestamp - auth_date) > 24 * 60 * 60:
+        return False
+
+    data_check_lines = []
+    for key in sorted(payload.keys()):
+        if key == 'hash':
+            continue
+        value = payload.get(key)
+        if value in (None, ''):
+            continue
+        data_check_lines.append(f'{key}={value}')
+
+    data_check_string = '\n'.join(data_check_lines)
+    secret_key = hashlib.sha256(bot_token.encode('utf-8')).digest()
+    expected_hash = hmac.new(
+        secret_key,
+        data_check_string.encode('utf-8'),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(expected_hash, received_hash)
 
 
 def get_user_role(user):
@@ -554,6 +644,180 @@ class LoginView(FormView):
         )
         return super().form_invalid(form)
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        bot_username = (settings.TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
+        context['telegram_login_enabled'] = bool(bot_username)
+        context['telegram_login_bot_username'] = bot_username
+        context['telegram_login_auth_url'] = self.request.build_absolute_uri(
+            reverse('auth:telegram_widget_login')
+        )
+        return context
+
+
+class TelegramWidgetLoginView(View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        payload = {
+            key: str(value)
+            for key, value in request.GET.items()
+            if value not in (None, '')
+        }
+        if not validate_telegram_login_payload(payload):
+            messages.error(request, 'Не удалось подтвердить вход через Telegram.')
+            return redirect('auth:login')
+
+        user_id_raw = str(payload.get('id') or '').strip()
+        try:
+            telegram_user_id = int(user_id_raw)
+        except (TypeError, ValueError):
+            messages.error(request, 'Некорректные данные Telegram.')
+            return redirect('auth:login')
+
+        linked_profile = (
+            UserProfile.objects.select_related('user')
+            .filter(telegram_user_id=telegram_user_id)
+            .first()
+        )
+        if linked_profile is None:
+            request_user, _ = resolve_request_user(request)
+            candidate_profile = None
+
+            if request_user is not None and request_user.is_active:
+                candidate_profile, _ = UserProfile.objects.get_or_create(user=request_user)
+            else:
+                telegram_username = str(payload.get('username') or '').strip()
+                if telegram_username:
+                    candidates = list(
+                        UserProfile.objects.select_related('user')
+                        .filter(telegram_username=telegram_username, user__is_active=True)[:2]
+                    )
+                    if len(candidates) == 1:
+                        candidate_profile = candidates[0]
+
+            if candidate_profile is not None:
+                candidate_profile.telegram_user_id = telegram_user_id
+                candidate_profile.telegram_username = str(payload.get('username') or '')
+                candidate_profile.telegram_first_name = str(payload.get('first_name') or '')
+                candidate_profile.telegram_last_name = str(payload.get('last_name') or '')
+                candidate_profile.telegram_link_token = ''
+                candidate_profile.telegram_link_expires_at = None
+                candidate_profile.telegram_linked_at = timezone.now()
+                candidate_profile.save(
+                    update_fields=[
+                        'telegram_user_id',
+                        'telegram_username',
+                        'telegram_first_name',
+                        'telegram_last_name',
+                        'telegram_link_token',
+                        'telegram_link_expires_at',
+                        'telegram_linked_at',
+                        'updated_at',
+                    ]
+                )
+                linked_profile = (
+                    UserProfile.objects.select_related('user')
+                    .filter(pk=candidate_profile.pk)
+                    .first()
+                )
+                logger.info(
+                    'Telegram widget auto-link success user_id=%s email=%s tg_user_id=%s ip=%s',
+                    linked_profile.user_id if linked_profile else None,
+                    linked_profile.user.email if linked_profile else '',
+                    telegram_user_id,
+                    get_client_ip(request),
+                )
+
+        if linked_profile is None or not linked_profile.user.is_active:
+            messages.error(request, 'Telegram не привязан к аккаунту. Войдите по почте и паролю.')
+            return redirect('auth:login')
+
+        user = linked_profile.user
+        access_token, refresh_token = build_token_pair_for_user(user)
+        redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
+        response = redirect(redirect_url)
+        logger.info(
+            'Telegram widget login success user_id=%s email=%s tg_user_id=%s ip=%s',
+            user.id,
+            user.email,
+            telegram_user_id,
+            get_client_ip(request),
+        )
+        return set_jwt_cookies(response, access_token, refresh_token)
+
+
+class StartTelegramQuickLoginView(View):
+    http_method_names = ['post']
+
+    def post(self, request, *args, **kwargs):
+        deep_link_bot = (settings.TELEGRAM_BOT_USERNAME or '').strip()
+        if not deep_link_bot:
+            return JsonResponse({'ok': False, 'error': 'telegram_not_configured'}, status=400)
+
+        token = secrets.token_urlsafe(24)
+        cache_key = build_telegram_quick_login_cache_key(token)
+        cache.set(
+            cache_key,
+            {
+                'status': 'pending',
+            },
+            timeout=TELEGRAM_QUICK_LOGIN_TTL_SECONDS,
+        )
+        deep_link = build_telegram_deep_link(token, prefix='login')
+        return JsonResponse(
+            {
+                'ok': True,
+                'token': token,
+                'deep_link': deep_link,
+                'ttl_seconds': TELEGRAM_QUICK_LOGIN_TTL_SECONDS,
+            }
+        )
+
+
+class TelegramQuickLoginStatusView(View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        token = str(request.GET.get('token') or '').strip()
+        if not token:
+            return JsonResponse({'ok': False, 'error': 'token_required'}, status=400)
+
+        cache_key = build_telegram_quick_login_cache_key(token)
+        payload = cache.get(cache_key)
+        if not payload:
+            return JsonResponse({'ok': True, 'status': 'expired'})
+
+        status = str(payload.get('status') or 'pending')
+        if status == 'pending':
+            return JsonResponse({'ok': True, 'status': 'pending'})
+        if status == 'not_linked':
+            return JsonResponse({'ok': True, 'status': 'not_linked'})
+        if status != 'success':
+            return JsonResponse({'ok': True, 'status': 'pending'})
+
+        user_id = payload.get('user_id')
+        if not user_id:
+            cache.delete(cache_key)
+            return JsonResponse({'ok': True, 'status': 'expired'})
+
+        user = User.objects.filter(id=user_id, is_active=True).first()
+        if user is None:
+            cache.delete(cache_key)
+            return JsonResponse({'ok': True, 'status': 'not_linked'})
+
+        access_token, refresh_token = build_token_pair_for_user(user)
+        cache.delete(cache_key)
+        redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
+        response = JsonResponse(
+            {
+                'ok': True,
+                'status': 'success',
+                'redirect_url': redirect_url,
+            }
+        )
+        return set_jwt_cookies(response, access_token, refresh_token)
+
 
 class AdminLoginView(FormView):
     template_name = 'auth/admin-login.html'
@@ -595,20 +859,33 @@ class AdminPasswordResetStartView(FormView):
     template_name = 'auth/admin-password-reset-start.html'
     form_class = AdminPasswordResetStartForm
     success_url = reverse_lazy('auth:admin_password_reset_confirm')
+    http_method_names = ['get', 'post']
 
-    def form_valid(self, form):
+    async def get(self, request, *args, **kwargs):
+        return await sync_to_async(super().get, thread_sensitive=True)(request, *args, **kwargs)
+
+    async def post(self, request, *args, **kwargs):
+        form = await sync_to_async(self.get_form, thread_sensitive=True)()
+        if await sync_to_async(form.is_valid, thread_sensitive=True)():
+            return await self.form_valid(form)
+        return await sync_to_async(self.form_invalid, thread_sensitive=True)(form)
+
+    async def form_valid(self, form):
         user = form.admin_user
         code = f'{secrets.randbelow(1000000):06d}'
         expires_at = timezone.now() + timedelta(minutes=10)
 
-        reset_request = AdminPasswordResetRequest.objects.create(
+        reset_request = await sync_to_async(
+            AdminPasswordResetRequest.objects.create,
+            thread_sensitive=True,
+        )(
             user=user,
             code=code,
             expires_at=expires_at,
         )
         self.request.session[ADMIN_PASSWORD_RESET_SESSION_KEY] = reset_request.id
 
-        send_mail(
+        await sync_to_async(send_mail, thread_sensitive=False)(
             subject='Admin password reset code',
             message=(
                 'Your password reset confirmation code is: '
@@ -626,7 +903,7 @@ class AdminPasswordResetStartView(FormView):
             get_client_ip(self.request),
         )
         messages.success(self.request, 'Confirmation code has been sent to your email.')
-        return super().form_valid(form)
+        return await sync_to_async(super().form_valid, thread_sensitive=True)(form)
 
     def form_invalid(self, form):
         logger.warning(
@@ -862,7 +1139,7 @@ class RegisterPasswordView(FormView):
             )
             messages.error(
                 self.request,
-                'Не удалось отправить письмо подтверждения. Аккаунт не создан, попробуйте позже.',
+                'Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљРЎРЉ Р С—Р С‘РЎРѓРЎРЉР СР С• Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ. Р С’Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р Р…Р Вµ РЎРѓР С•Р В·Р Т‘Р В°Р Р…, Р С—Р С•Р С—РЎР‚Р С•Р В±РЎС“Р в„–РЎвЂљР Вµ Р С—Р С•Р В·Р В¶Р Вµ.',
             )
             return self.render_to_response(self.get_context_data(form=form))
         self.request.session.pop(REGISTER_SESSION_KEY, None)
@@ -890,7 +1167,7 @@ class RegisterSuccessView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         messages.success(
             request,
-            'Р СљРЎвЂ№ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘Р В»Р С‘ Р С—Р С‘РЎРѓРЎРЉР СР С• Р Р…Р В° email. Р СџР С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р Т‘Р С‘РЎвЂљР Вµ РЎР‚Р ВµР С–Р С‘РЎРѓРЎвЂљРЎР‚Р В°РЎвЂ Р С‘РЎР‹ Р С—Р С• РЎРѓРЎРѓРЎвЂ№Р В»Р С”Р Вµ Р С‘Р В· Р С—Р С‘РЎРѓРЎРЉР СР В°.',
+            'Р В Р’В Р РЋРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚Сћ Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В° email. Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„– Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚Сћ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В· Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°.',
         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -927,7 +1204,7 @@ class SharedProfileHeaderMixin:
 class AdminProtectedMixin:
     login_url = reverse_lazy('auth:admin_login')
     fallback_url = reverse_lazy('auth:profile')
-    permission_denied_message = 'РќРµРґРѕСЃС‚Р°С‚РѕС‡РЅРѕ РїСЂР°РІ РґР»СЏ РїСЂРѕСЃРјРѕС‚СЂР° СЌС‚РѕР№ СЃС‚СЂР°РЅРёС†С‹.'
+    permission_denied_message = 'Р В РЎСљР В Р’ВµР В РўвЂР В РЎвЂўР РЋР С“Р РЋРІР‚С™Р В Р’В°Р РЋРІР‚С™Р В РЎвЂўР РЋРІР‚РЋР В Р вЂ¦Р В РЎвЂў Р В РЎвЂ”Р РЋР вЂљР В Р’В°Р В Р вЂ  Р В РўвЂР В Р’В»Р РЋР РЏ Р В РЎвЂ”Р РЋР вЂљР В РЎвЂўР РЋР С“Р В РЎВР В РЎвЂўР РЋРІР‚С™Р РЋР вЂљР В Р’В° Р РЋР РЉР РЋРІР‚С™Р В РЎвЂўР В РІвЂћвЂ“ Р РЋР С“Р РЋРІР‚С™Р РЋР вЂљР В Р’В°Р В Р вЂ¦Р В РЎвЂР РЋРІР‚В Р РЋРІР‚в„–.'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -1089,7 +1366,7 @@ class SupportView(UserOnlyProtectedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
-        context['support_experience'] = '8 лет'
+        context['support_experience'] = '8 Р В»Р ВµРЎвЂљ'
         return context
 
 
@@ -1099,7 +1376,7 @@ class SupportMessageSentView(UserOnlyProtectedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
-        context['support_experience'] = '8 лет'
+        context['support_experience'] = '8 Р В»Р ВµРЎвЂљ'
         return context
 
 
@@ -1287,17 +1564,19 @@ class TelegramWebhookView(View):
     def _extract_start_token(text):
         content = str(text or '').strip()
         if not content:
-            return ''
+            return '', ''
         if not content.startswith('/start'):
-            return ''
+            return '', ''
 
         parts = content.split(maxsplit=1)
         if len(parts) < 2:
-            return ''
+            return '', ''
         payload = parts[1].strip()
         if payload.startswith('link_'):
-            return payload.replace('link_', '', 1).strip()
-        return ''
+            return 'link', payload.replace('link_', '', 1).strip()
+        if payload.startswith('login_'):
+            return 'login', payload.replace('login_', '', 1).strip()
+        return '', ''
 
     def post(self, request, *args, **kwargs):
         configured_secret = (settings.TELEGRAM_WEBHOOK_SECRET or '').strip()
@@ -1315,9 +1594,53 @@ class TelegramWebhookView(View):
         message = payload.get('message') or payload.get('edited_message') or {}
         from_user = message.get('from') or {}
         telegram_user_id = from_user.get('id')
-        token = self._extract_start_token(message.get('text'))
+        action, token = self._extract_start_token(message.get('text'))
 
-        if not telegram_user_id or not token:
+        if not telegram_user_id or not token or not action:
+            return JsonResponse({'ok': True})
+
+        if action == 'login':
+            cache_key = build_telegram_quick_login_cache_key(token)
+            payload_state = cache.get(cache_key)
+            if not payload_state:
+                return JsonResponse({'ok': True})
+
+            linked_profile = (
+                UserProfile.objects.select_related('user')
+                .filter(telegram_user_id=telegram_user_id)
+                .first()
+            )
+            if linked_profile is None:
+                cache.set(
+                    cache_key,
+                    {
+                        'status': 'not_linked',
+                    },
+                    timeout=TELEGRAM_QUICK_LOGIN_TTL_SECONDS,
+                )
+                logger.warning(
+                    'Telegram quick login failed not_linked tg_user_id=%s ip=%s',
+                    telegram_user_id,
+                    get_client_ip(request),
+                )
+                return JsonResponse({'ok': True})
+
+            cache.set(
+                cache_key,
+                {
+                    'status': 'success',
+                    'user_id': linked_profile.user_id,
+                    'telegram_username': linked_profile.telegram_username or '',
+                },
+                timeout=TELEGRAM_QUICK_LOGIN_TTL_SECONDS,
+            )
+            logger.info(
+                'Telegram quick login confirmed user_id=%s email=%s tg_user_id=%s ip=%s',
+                linked_profile.user_id,
+                linked_profile.user.email,
+                telegram_user_id,
+                get_client_ip(request),
+            )
             return JsonResponse({'ok': True})
 
         now = timezone.now()
@@ -1409,7 +1732,7 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             .values_list('direction', flat=True)
             .first()
         )
-        training_direction_label = TRAINING_DIRECTION_LABELS.get(direction_value, 'FBB')
+        training_direction_label = normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(direction_value, 'FBB'))
 
         result_sections = []
         award_rows = []
@@ -1420,9 +1743,9 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             if matched:
                 if matched['place'] in award_counts:
                     award_counts[matched['place']] += 1
-                place_label = f"Место: {matched['place']}"
-                result_value = matched['result_label']
-                result_mode = matched['mode']
+                place_label = f'Место: {matched["place"]}'
+                result_value = normalize_mojibake_text(matched['result_label'])
+                result_mode = normalize_mojibake_text(matched['mode'])
             else:
                 place_label = 'Место: —'
                 result_value = '--'
@@ -1431,7 +1754,7 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             result_sections.append(
                 {
                     'key': section_payload['key'],
-                    'title': section_payload['title'],
+                    'title': normalize_mojibake_text(section_payload['title']),
                     'value': result_value,
                     'mode': result_mode,
                     'place_label': place_label,
@@ -1440,9 +1763,9 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             award_rows.append(
                 {
                     'data_date': today.isoformat(),
-                    'title': f'{training_direction_label} / {section_payload["title"]}',
+                    'title': f'{training_direction_label} / {normalize_mojibake_text(section_payload["title"])}',
                     'date': today.strftime('%d.%m.%Y'),
-                    'result': f'{result_value} · {place_label}',
+                    'result': f'{result_value} • {place_label}',
                 }
             )
 
@@ -1663,7 +1986,10 @@ class AdminProfileUsersListView(AdminProtectedMixin, View):
 class AdminProfileUserCreateView(AdminProtectedMixin, View):
     http_method_names = ['post']
 
-    def post(self, request, *args, **kwargs):
+    async def post(self, request, *args, **kwargs):
+        return await sync_to_async(self._post_sync, thread_sensitive=True)(request, *args, **kwargs)
+
+    def _post_sync(self, request, *args, **kwargs):
         if not can_manage_admin_users(request.user):
             return JsonResponse({'ok': False, 'error': 'permission_denied'}, status=403)
 
@@ -1726,12 +2052,12 @@ class AdminProfileUserCreateView(AdminProtectedMixin, View):
             try:
                 reset_link = build_admin_password_reset_link(request, reset_request)
                 send_mail(
-                    subject='Приглашение в админ-панель',
+                    subject='Р СџРЎР‚Р С‘Р С–Р В»Р В°РЎв‚¬Р ВµР Р…Р С‘Р Вµ Р Р† Р В°Р Т‘Р СР С‘Р Р…-Р С—Р В°Р Р…Р ВµР В»РЎРЉ',
                     message=(
-                        'Вы были добавлены в систему.\n\n'
-                        'Для установки пароля откройте ссылку:\n'
+                        'Р вЂ™РЎвЂ№ Р В±РЎвЂ№Р В»Р С‘ Р Т‘Р С•Р В±Р В°Р Р†Р В»Р ВµР Р…РЎвЂ№ Р Р† РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎС“.\n\n'
+                        'Р вЂќР В»РЎРЏ РЎС“РЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р С”Р С‘ Р С—Р В°РЎР‚Р С•Р В»РЎРЏ Р С•РЎвЂљР С”РЎР‚Р С•Р в„–РЎвЂљР Вµ РЎРѓРЎРѓРЎвЂ№Р В»Р С”РЎС“:\n'
                         f'{reset_link}\n\n'
-                        'Ссылка действует 10 минут.'
+                        'Р РЋРЎРѓРЎвЂ№Р В»Р С”Р В° Р Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ 10 Р СР С‘Р Р…РЎС“РЎвЂљ.'
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[email],
@@ -1970,8 +2296,8 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 
     MONTHS_GENITIVE = (
-        'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
-        'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря',
+        'РЎРЏР Р…Р Р†Р В°РЎР‚РЎРЏ', 'РЎвЂћР ВµР Р†РЎР‚Р В°Р В»РЎРЏ', 'Р СР В°РЎР‚РЎвЂљР В°', 'Р В°Р С—РЎР‚Р ВµР В»РЎРЏ', 'Р СР В°РЎРЏ', 'Р С‘РЎР‹Р Р…РЎРЏ',
+        'Р С‘РЎР‹Р В»РЎРЏ', 'Р В°Р Р†Р С–РЎС“РЎРѓРЎвЂљР В°', 'РЎРѓР ВµР Р…РЎвЂљРЎРЏР В±РЎР‚РЎРЏ', 'Р С•Р С”РЎвЂљРЎРЏР В±РЎР‚РЎРЏ', 'Р Р…Р С•РЎРЏР В±РЎР‚РЎРЏ', 'Р Т‘Р ВµР С”Р В°Р В±РЎР‚РЎРЏ',
     )
 
     @staticmethod
@@ -1992,7 +2318,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             return f'{first} {last[0]}.'
         if first:
             return first
-        return (user.email or '').strip() or f'Пользователь {user.id}'
+        return (user.email or '').strip() or f'Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ {user.id}'
 
     @classmethod
     def _default_period(cls):
@@ -2021,7 +2347,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _stars(value):
         rating = max(1, min(5, int(value)))
-        return ('★' * rating) + ('☆' * (5 - rating))
+        return (chr(9733) * rating) + (chr(9734) * (5 - rating))
 
     @staticmethod
     def _rating_label(value):
@@ -2030,25 +2356,25 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _result_unit_label(result_type):
         if result_type == TrainingResult.RESULT_WEIGHT:
-            return 'кг'
+            return 'Р С”Р С–'
         if result_type == TrainingResult.RESULT_REPS:
-            return 'повт'
-        return 'мин'
+            return 'Р С—Р С•Р Р†РЎвЂљ'
+        return 'Р СР С‘Р Р…'
 
     @staticmethod
     def _result_value_label(result_type, minutes, seconds):
         if result_type == TrainingResult.RESULT_WEIGHT:
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else '—'
+            return str(seconds) if seconds is not None else 'РІР‚вЂќ'
         if result_type == TrainingResult.RESULT_REPS:
             if minutes is not None and seconds is not None:
                 return f'{minutes} x {seconds}'
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else '—'
+            return str(seconds) if seconds is not None else 'РІР‚вЂќ'
         if minutes is None and seconds is None:
-            return '—'
+            return 'РІР‚вЂќ'
         if minutes is None:
             return f'0:{int(seconds):02d}'
         if seconds is None:
@@ -2087,7 +2413,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             .filter(training__training_date__range=(period_start, period_end))
         )
         for entry in exercise_entries:
-            direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Тренировка')
+            direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°')
             key = (entry.exercise_name, direction_label)
             bucket = grouped_exercises.setdefault(
                 key,
@@ -2328,7 +2654,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _stars(value):
         rating = max(1, min(5, int(value)))
-        return ('★' * rating) + ('☆' * (5 - rating))
+        return (chr(9733) * rating) + (chr(9734) * (5 - rating))
 
     @staticmethod
     def _rating_label(value):
@@ -2336,7 +2662,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
 
     @staticmethod
     def _format_exercise_row(exercise):
-        name = str(getattr(exercise, 'exercise_name', '') or '').strip()
+        name = normalize_mojibake_text(str(getattr(exercise, 'exercise_name', '') or '').strip())
         sets = getattr(exercise, 'sets', None)
         reps = getattr(exercise, 'reps', None)
         if name and sets and reps:
@@ -2348,8 +2674,8 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM:
             custom_name = str(exercise.block_custom_name or '').strip()
             if custom_name:
-                return custom_name
-        return TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
+                return normalize_mojibake_text(custom_name)
+        return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок'))
 
     @staticmethod
     def _pick_training_for_rate(rate, candidates):
@@ -2379,7 +2705,6 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         search_query_folded = search_query.casefold()
         if load_type not in self.LOAD_TYPE_TO_FIELD:
             load_type = 'all'
-        # Backward-compatible parsing for old values ("rating"/"date")
         if order_by in {'rating_asc', 'asc'}:
             order_by = 'rating_asc'
         elif order_by in {'rating_desc', 'desc', 'rating', 'date'}:
@@ -2419,15 +2744,18 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         review_cards = []
         training_view_payload = {}
         for index, rate in enumerate(rates_list):
-            full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+            full_name = normalize_mojibake_text(f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email)
             training = self._pick_training_for_rate(
                 rate,
                 trainings_by_date.get(rate.training_date, []),
             )
             training_key = f'rate-{rate.id}'
-            training_title = TRAINING_DIRECTION_LABELS.get(training.direction, 'HIIT Training') if training else 'HIIT Training'
+            training_title = normalize_mojibake_text(
+                TRAINING_DIRECTION_LABELS.get(training.direction, 'HIIT Training')
+            ) if training else 'HIIT Training'
             if search_query_folded and search_query_folded not in training_title.casefold():
                 continue
+
             if training:
                 exercises = []
                 for exercise in training.exercises.all():
@@ -2437,26 +2765,28 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                     exercises.append(
                         {
                             'block': self._resolve_block_label(exercise),
-                            'text': exercise_text,
+                            'text': normalize_mojibake_text(exercise_text),
                         }
                     )
+
                 training_view_payload[training_key] = {
                     'training_id': training.id,
-                    'title': TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка'),
+                    'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка')),
                     'date_label': training.training_date.strftime('%d.%m.%Y'),
-                    'direction': TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка'),
-                    'visibility': 'Только для тренера' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
-                    'comment': str(training.comment or '').strip(),
+                    'direction': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка')),
+                    'visibility': 'Только для тренеров' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
+                    'comment': normalize_mojibake_text(str(training.comment or '').strip()),
                     'color': training.color or 'blue',
                     'exercises': exercises,
                 }
+
             review_cards.append(
                 {
                     'color': self.COLOR_CYCLE[index % len(self.COLOR_CYCLE)],
-                    'training_title': training_title,
+                    'training_title': normalize_mojibake_text(training_title),
                     'date_label': rate.training_date.strftime('%d.%m.%Y'),
                     'author_name': full_name,
-                    'comment': rate.comment.strip() or 'Без комментария',
+                    'comment': normalize_mojibake_text(rate.comment.strip()) or 'Без комментария',
                     'overall_stars': self._stars(rate.overall),
                     'strength_stars': self._stars(rate.strength),
                     'cardio_stars': self._stars(rate.cardio),
@@ -2476,7 +2806,6 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         context['review_cards'] = review_cards
         context['reviews_training_view_json'] = training_view_payload
         return context
-
 
 class AdminTrainingBaseView(AdminProtectedMixin, View):
     http_method_names = ['post', 'get']
@@ -3050,15 +3379,15 @@ class DownloadTrainingResultsImageView(View):
             fill='#f0f0f0',
         )
 
-        title = 'Р РµР·СѓР»СЊС‚Р°С‚С‹ С‚СЂРµРЅРёСЂРѕРІРєРё'
+        title = 'Р В Р’В Р В Р’ВµР В Р’В·Р РЋРЎвЂњР В Р’В»Р РЋР Р‰Р РЋРІР‚С™Р В Р’В°Р РЋРІР‚С™Р РЋРІР‚в„– Р РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р вЂ¦Р В РЎвЂР РЋР вЂљР В РЎвЂўР В Р вЂ Р В РЎвЂќР В РЎвЂ'
         title_box = draw.textbbox((0, 0), title, font=font_title)
         title_w = title_box[2] - title_box[0]
         draw.text((summary_x + (summary_w - title_w) / 2, summary_y + 72), title, font=font_title, fill='#242d35')
 
         row_specs = [
-            ('РљР°СЂРґРёРѕ', cardio_value),
-            ('РЎРёР»РѕРІР°СЏ', strength_value),
-            ('РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ', metabolic_value),
+            ('Р В РЎв„ўР В Р’В°Р РЋР вЂљР В РўвЂР В РЎвЂР В РЎвЂў', cardio_value),
+            ('Р В Р Р‹Р В РЎвЂР В Р’В»Р В РЎвЂўР В Р вЂ Р В Р’В°Р РЋР РЏ', strength_value),
+            ('Р В РЎС™Р В Р’ВµР РЋРІР‚С™Р В Р’В°Р В Р’В±Р В РЎвЂўР В Р’В»Р В РЎвЂР РЋРІР‚РЋР В Р’ВµР РЋР С“Р В РЎвЂќР В Р’В°Р РЋР РЏ', metabolic_value),
         ]
         row_x, row_w, row_h = summary_x + 50, summary_w - 100, 106
         first_row_y = summary_y + 160
@@ -3073,10 +3402,10 @@ class DownloadTrainingResultsImageView(View):
             draw.text((row_x + row_w - 36 - value_w, y + 34), value, font=font_value, fill='#252d35')
 
         month_names = {
-            1: 'СЏРЅРІР°СЂСЏ', 2: 'С„РµРІСЂР°Р»СЏ', 3: 'РјР°СЂС‚Р°', 4: 'Р°РїСЂРµР»СЏ', 5: 'РјР°СЏ', 6: 'РёСЋРЅСЏ',
-            7: 'РёСЋР»СЏ', 8: 'Р°РІРіСѓСЃС‚Р°', 9: 'СЃРµРЅС‚СЏР±СЂСЏ', 10: 'РѕРєС‚СЏР±СЂСЏ', 11: 'РЅРѕСЏР±СЂСЏ', 12: 'РґРµРєР°Р±СЂСЏ',
+            1: 'Р РЋР РЏР В Р вЂ¦Р В Р вЂ Р В Р’В°Р РЋР вЂљР РЋР РЏ', 2: 'Р РЋРІР‚С›Р В Р’ВµР В Р вЂ Р РЋР вЂљР В Р’В°Р В Р’В»Р РЋР РЏ', 3: 'Р В РЎВР В Р’В°Р РЋР вЂљР РЋРІР‚С™Р В Р’В°', 4: 'Р В Р’В°Р В РЎвЂ”Р РЋР вЂљР В Р’ВµР В Р’В»Р РЋР РЏ', 5: 'Р В РЎВР В Р’В°Р РЋР РЏ', 6: 'Р В РЎвЂР РЋР вЂ№Р В Р вЂ¦Р РЋР РЏ',
+            7: 'Р В РЎвЂР РЋР вЂ№Р В Р’В»Р РЋР РЏ', 8: 'Р В Р’В°Р В Р вЂ Р В РЎвЂ“Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р В Р’В°', 9: 'Р РЋР С“Р В Р’ВµР В Р вЂ¦Р РЋРІР‚С™Р РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 10: 'Р В РЎвЂўР В РЎвЂќР РЋРІР‚С™Р РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 11: 'Р В Р вЂ¦Р В РЎвЂўР РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 12: 'Р В РўвЂР В Р’ВµР В РЎвЂќР В Р’В°Р В Р’В±Р РЋР вЂљР РЋР РЏ',
         }
-        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} Рі."
+        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} Р В РЎвЂ“."
         date_box = draw.textbbox((0, 0), pretty_date, font=font_date)
         date_w = date_box[2] - date_box[0]
         draw.text((summary_x + (summary_w - date_w) / 2, summary_y + summary_h - 74), pretty_date, font=font_date, fill='#363f47')
@@ -3155,7 +3484,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
                 block_label = (
                     exercise.block_custom_name.strip()
                     if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Силовая')
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
                 )
                 volume_label = format_admin_training_volume(exercise)
                 exercise_lines.append({
@@ -3172,7 +3501,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
                 section_title = (
                     exercise.block_custom_name.strip()
                     if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else dict(LEADERBOARD_SECTION_META).get(section_key, 'Раздел')
+                    else dict(LEADERBOARD_SECTION_META).get(section_key, 'Р В Р В°Р В·Р Т‘Р ВµР В»')
                 )
                 section_identity = f'{section_key}:{section_title}'
                 if section_identity in seen_sections:
@@ -3223,16 +3552,16 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             for exercise in ordered_exercises:
                 secondary = ''
                 if exercise.sets is not None and exercise.reps is not None:
-                    sets_label = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
-                    reps_label = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
+                    sets_label = format_count_with_word_ru(exercise.sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+                    reps_label = format_count_with_word_ru(exercise.reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
                     secondary = f'{sets_label} / {reps_label}'
                 elif exercise.sets is not None:
-                    secondary = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
+                    secondary = format_count_with_word_ru(exercise.sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
                 elif exercise.reps is not None:
-                    secondary = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
+                    secondary = format_count_with_word_ru(exercise.reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
                 exercise_cards.append(
                     {
-                        'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                        'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
                         'meta': secondary,
                     }
                 )
@@ -3291,13 +3620,13 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
-            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            sets_label = format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+            reps_label = format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
             return f'{sets_label} / {reps_label}'
         if sets is not None:
-            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            return format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
         if reps is not None:
-            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
         return '--'
 
     def get_context_data(self, **kwargs):
@@ -3329,7 +3658,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'Тренировка'
+            context['workout_title'] = 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°'
             context['workout_direction_label'] = '--'
             context['workout_cards'] = []
             context['workout_selected_date_iso'] = selected_date.isoformat()
@@ -3348,7 +3677,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
         )
         context['workout_cards'] = [
             {
-                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
                 'meta': self._format_exercise_meta(exercise),
             }
             for exercise in ordered_exercises
@@ -3366,13 +3695,13 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
-            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            sets_label = format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+            reps_label = format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
             return f'{sets_label} / {reps_label}'
         if sets is not None:
-            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            return format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
         if reps is not None:
-            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
         return '--'
 
     def get_context_data(self, **kwargs):
@@ -3404,7 +3733,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'Тренировка'
+            context['workout_title'] = 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°'
             context['workout_kind_badge'] = '--'
             context['workout_exercises'] = []
             context['workout_leader_rows'] = []
@@ -3423,7 +3752,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         context['workout_exercises'] = [
             {
                 'index': idx + 1,
-                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
+                'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
                 'meta': self._format_exercise_meta(exercise),
             }
             for idx, exercise in enumerate(ordered_exercises)
@@ -3451,9 +3780,9 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 medal = entry.get('medal')
                 workout_leader_rows.append(
                     {
-                        'user_name': entry.get('user_name') or 'Участник',
+                        'user_name': entry.get('user_name') or 'Р Р€РЎвЂЎР В°РЎРѓРЎвЂљР Р…Р С‘Р С”',
                         'result_label': entry.get('result_label') or '--',
-                        'section_title': section_titles.get(section_key, 'Раздел'),
+                        'section_title': section_titles.get(section_key, 'Р В Р В°Р В·Р Т‘Р ВµР В»'),
                         'place_label': entry.get('place_label') or '--',
                         'row_class': (
                             'workout-leader-row--gold'
@@ -3537,7 +3866,9 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
         for item in day_results:
             user_id = item.user_id
             if user_id not in grouped:
-                user_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+                user_name = normalize_mojibake_text(
+                    f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+                )
                 grouped[user_id] = {
                     'target_user_id': user_id,
                     'user_name': user_name,
@@ -3545,9 +3876,9 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                 }
 
             grouped[user_id]['sections'][item.section] = {
-                'title': section_titles[item.section],
-                'value': self._format_training_value(item),
-                'mode': item.get_mode_display(),
+                'title': normalize_mojibake_text(section_titles[item.section]),
+                'value': normalize_mojibake_text(self._format_training_value(item)),
+                'mode': normalize_mojibake_text(item.get_mode_display()),
             }
 
         cards = []
@@ -3685,20 +4016,24 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                 section_title = (
                     exercise.block_custom_name.strip()
                     if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
-                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Силовая')
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
                 )
+                section_title = normalize_mojibake_text(section_title)
                 if section_title not in section_index:
                     section_index[section_title] = len(sections)
                     sections.append({'title': section_title, 'lines': []})
+                line_text = normalize_mojibake_text(format_admin_training_volume(exercise))
                 sections[section_index[section_title]]['lines'].append({
-                    'text': format_admin_training_volume(exercise),
+                    'text': line_text,
                     'show_video': True,
                     'video_url': '',
                 })
 
             plan_cards.append(
                 {
-                    'title': get_admin_training_title(training.direction, training.source_type, training.ready_plan_title),
+                    'title': normalize_mojibake_text(
+                        get_admin_training_title(training.direction, training.source_type, training.ready_plan_title)
+                    ),
                     'sections': sections,
                     'comment': training.comment,
                     'result_types': get_plan_result_type_map([training]),
@@ -3739,7 +4074,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
         context['barbell_exercises'] = [
             {
                 'slug': slug,
-                'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
                 'value': profiles[slug].rep_1 if slug in profiles else None,
             }
             for slug, item in slug_map.items()
@@ -3765,7 +4100,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
             slug = self._build_library_exercise_slug(item.id)
             return {
                 'slug': slug,
-                'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
                 'value': benchmark_profiles[slug].rep_1 if slug in benchmark_profiles else None,
             }
 
@@ -3859,7 +4194,7 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
                 )
                 if item is not None:
                     data = {
-                        'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
+                        'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
                         'max': [10, 10, 10, 10],
                     }
         if data is None:
@@ -3950,5 +4285,3 @@ class AchievementExerciseUpdateView(View):
                 ],
             }
         )
-
-

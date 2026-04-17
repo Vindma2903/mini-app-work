@@ -66,9 +66,9 @@
             </button>
         </header>
         <div class="calendar-range-modal__month">
-            <button type="button" id="calendar-prev-month">‹</button>
+            <button type="button" id="calendar-prev-month" aria-label="Предыдущий месяц">&lsaquo;</button>
             <strong id="calendar-month-label"></strong>
-            <button type="button" id="calendar-next-month">›</button>
+            <button type="button" id="calendar-next-month" aria-label="Следующий месяц">&rsaquo;</button>
         </div>
         <div class="calendar-range-modal__weekdays">
             <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
@@ -78,11 +78,11 @@
 </div>
 
 <div class="calendar-create-modal" id="calendar-create-modal" hidden>
-    <div class="calendar-create-modal__overlay" data-close-create></div>
+    <div class="calendar-create-modal__overlay" data-close-create="true"></div>
     <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление тренировки">
         <header class="calendar-create-modal__head">
             <h3>Добавление тренировки</h3>
-            <button type="button" class="calendar-create-modal__close" data-close-create aria-label="Закрыть">
+            <button type="button" class="calendar-create-modal__close" data-close-create="true" aria-label="Закрыть">
                 <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
             </button>
         </header>
@@ -238,6 +238,8 @@
                     </ul>
                 </article>
             </div>
+
+            <button type="button" class="calendar-create-modal__publish" id="calendar-publish-training">Опубликовать</button>
         </div>
     </section>
 </div>
@@ -247,7 +249,9 @@
     <section class="calendar-ready-modal__card" role="dialog" aria-modal="true" aria-label="Готовый комплекс">
         <header class="calendar-ready-modal__head">
             <h3>Готовый комплекс</h3>
-            <button type="button" class="calendar-ready-modal__close" data-close-ready aria-label="Закрыть">?</button>
+            <button type="button" class="calendar-ready-modal__close" data-close-ready aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="calendar-ready-modal__body">
             <label class="calendar-ready-modal__field">
@@ -331,12 +335,14 @@
     <section class="calendar-create-date-picker__card" role="dialog" aria-modal="false" aria-label="Выберите дату тренировки">
         <header class="calendar-create-date-picker__head">
             <h3>Выберите дату</h3>
-            <button type="button" class="calendar-create-date-picker__close" id="calendar-create-date-close" aria-label="Закрыть">?</button>
+            <button type="button" class="calendar-create-date-picker__close" id="calendar-create-date-close" aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+            </button>
         </header>
         <div class="calendar-create-date-picker__month">
-            <button type="button" id="calendar-create-prev-month">‹</button>
+            <button type="button" id="calendar-create-prev-month" aria-label="Предыдущий месяц">&lsaquo;</button>
             <strong id="calendar-create-month-label"></strong>
-            <button type="button" id="calendar-create-next-month">›</button>
+            <button type="button" id="calendar-create-next-month" aria-label="Следующий месяц">&rsaquo;</button>
         </div>
         <div class="calendar-create-date-picker__weekdays">
             <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
@@ -391,6 +397,7 @@
         const openCreateBtn = document.getElementById("calendar-open-create");
         const calendarListDesktop = document.querySelector(".calendar-list-desktop");
         const createSaveBtn = document.getElementById("calendar-create-save");
+        const createPublishBtn = document.getElementById("calendar-publish-training");
         const createDateValue = document.getElementById("calendar-create-date-value");
         const createDateTrigger = document.getElementById("calendar-create-date-trigger");
         const createDatePicker = document.getElementById("calendar-create-date-picker");
@@ -1025,8 +1032,8 @@
                 createSaveBtn.textContent = "Сохранить";
             }
             if (addExerciseBtn) {
-                addExerciseBtn.hidden = Boolean(isEditing);
-                addExerciseBtn.style.display = isEditing ? "none" : "";
+                addExerciseBtn.hidden = false;
+                addExerciseBtn.style.display = "";
             }
         }
 
@@ -2174,7 +2181,6 @@
                 localSaveButton.addEventListener("click", async () => {
                     try {
                         await saveTraining();
-                        closeCreateModal();
                     } catch (error) {
                         console.error(error);
                     }
@@ -2186,13 +2192,18 @@
 
         function syncExerciseSaveButtons() {
             const cards = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || []);
-            cards.forEach((card, index) => {
+            cards.forEach((card) => {
                 const saveButton = card.querySelector(".calendar-create-modal__save");
                 if (!(saveButton instanceof HTMLButtonElement)) return;
-                const isLastCard = index === cards.length - 1;
-                saveButton.hidden = !isLastCard;
-                saveButton.style.display = isLastCard ? "" : "none";
+                saveButton.hidden = false;
+                saveButton.style.display = "";
             });
+        }
+
+        function keepOnlyPrimaryExerciseCard() {
+            const cards = Array.from(createModal?.querySelectorAll(".calendar-create-modal__exercise-card") || []);
+            cards.slice(1).forEach((card) => card.remove());
+            syncExerciseSaveButtons();
         }
 
         function getCsrfToken() {
@@ -2522,6 +2533,11 @@
                         buffered.push(normalizeExerciseEntry(primaryDraft, buffered.length));
                     }
                 }
+                const additionalDrafts = cardExercises
+                    .slice(1)
+                    .filter((item) => isExerciseDraftFilled(item))
+                    .map((item, index) => normalizeExerciseEntry(item, buffered.length + index));
+                buffered.push(...additionalDrafts);
                 exercises = buffered.map((item, index) => toExerciseRequest(item, index));
             }
 
@@ -2561,7 +2577,12 @@
             trainingsStore = trainingsStore.filter((item) => item.id !== incoming.id);
             trainingsStore.push(incoming);
             renderCalendarList();
-            editingTrainingId = null;
+            editingTrainingId = Number(incoming.id || 0) || null;
+            if (editingTrainingId) {
+                populateCreateFormFromTraining(editingTrainingId);
+                keepOnlyPrimaryExerciseCard();
+                setCreateModalMode(true);
+            }
             activeCreateSourceType = "manual";
         }
 
@@ -2642,6 +2663,14 @@
         createSaveBtn?.addEventListener("click", async () => {
             try {
                 await saveTraining();
+            } catch (error) {
+                console.error(error);
+            }
+        });
+
+        createPublishBtn?.addEventListener("click", async () => {
+            try {
+                await saveTraining();
                 closeCreateModal();
             } catch (error) {
                 console.error(error);
@@ -2650,5 +2679,3 @@
     })();
 </script>
 {% endblock %}
-
-

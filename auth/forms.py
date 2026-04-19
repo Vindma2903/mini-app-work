@@ -15,6 +15,12 @@ def user_has_admin_panel_access(user):
         profile = UserProfile.objects.filter(user=user).only('role').first()
     return bool(profile and profile.role in {UserProfile.ROLE_TRAINER, UserProfile.ROLE_ADMIN})
 
+
+def _users_for_login_email(email: str):
+    """auth_user.email is not unique; return stable order for duplicate-email edge cases."""
+    return User.objects.filter(email__iexact=email).order_by('pk')
+
+
 class LoginForm(forms.Form):
     email = forms.EmailField()
     password = forms.CharField(widget=forms.PasswordInput)
@@ -37,20 +43,23 @@ class LoginForm(forms.Form):
         if not email or not password:
             return cleaned_data
 
-        try:
-            target_user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist as exc:
-            raise forms.ValidationError(self.error_messages['invalid_credentials']) from exc
-
-        user = authenticate(self.request, username=target_user.username, password=password)
-        if user is None:
+        candidates = list(_users_for_login_email(email))
+        if not candidates:
             raise forms.ValidationError(self.error_messages['invalid_credentials'])
 
-        if not EmailAddress.objects.filter(user=user, email__iexact=email, verified=True).exists():
-            raise forms.ValidationError(self.error_messages['email_not_verified'])
+        unverified_password_ok = False
+        for candidate in candidates:
+            user = authenticate(self.request, username=candidate.username, password=password)
+            if user is None:
+                continue
+            if EmailAddress.objects.filter(user=user, email__iexact=email, verified=True).exists():
+                self.user = user
+                return cleaned_data
+            unverified_password_ok = True
 
-        self.user = user
-        return cleaned_data
+        if unverified_password_ok:
+            raise forms.ValidationError(self.error_messages['email_not_verified'])
+        raise forms.ValidationError(self.error_messages['invalid_credentials'])
 
 
 class AdminLoginForm(forms.Form):
@@ -75,20 +84,24 @@ class AdminLoginForm(forms.Form):
         if not email or not password:
             return cleaned_data
 
-        try:
-            target_user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist as exc:
-            raise forms.ValidationError(self.error_messages['invalid_credentials']) from exc
-
-        user = authenticate(self.request, username=target_user.username, password=password)
-        if user is None:
+        candidates = list(_users_for_login_email(email))
+        if not candidates:
             raise forms.ValidationError(self.error_messages['invalid_credentials'])
 
-        if not user_has_admin_panel_access(user):
-            raise forms.ValidationError(self.error_messages['not_admin'])
+        authenticated_non_admin = False
+        for candidate in candidates:
+            user = authenticate(self.request, username=candidate.username, password=password)
+            if user is None:
+                continue
+            if not user_has_admin_panel_access(user):
+                authenticated_non_admin = True
+                continue
+            self.user = user
+            return cleaned_data
 
-        self.user = user
-        return cleaned_data
+        if authenticated_non_admin:
+            raise forms.ValidationError(self.error_messages['not_admin'])
+        raise forms.ValidationError(self.error_messages['invalid_credentials'])
 
 
 class AdminPasswordResetStartForm(forms.Form):
@@ -111,15 +124,12 @@ class AdminPasswordResetStartForm(forms.Form):
         if not email:
             return cleaned_data
 
-        try:
-            user = User.objects.get(email__iexact=email)
-        except User.DoesNotExist as exc:
-            raise forms.ValidationError(self.error_messages['email_not_found']) from exc
-
-        if not user_has_admin_panel_access(user):
+        admins = [u for u in _users_for_login_email(email) if user_has_admin_panel_access(u)]
+        if not admins:
             raise forms.ValidationError(self.error_messages['email_not_found'])
 
-        self.admin_user = user
+        admins.sort(key=lambda u: (not u.is_superuser, not u.is_staff, u.pk))
+        self.admin_user = admins[0]
         return cleaned_data
 
 

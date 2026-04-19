@@ -92,6 +92,16 @@ def ensure_default_user() -> tuple[User, bool]:
         profile.save(update_fields=['role'])
     return user, created
 
+def _user2_seed_enabled() -> bool:
+    """Opt-in second demo user; README documents only admin + default user."""
+    return (os.getenv('AUTO_SEED_DEFAULT_USER2', '0') or '').strip().lower() in {
+        '1',
+        'true',
+        'yes',
+        'on',
+    }
+
+
 def ensure_default_user2() -> tuple[User, bool]:
     username = os.getenv('DEFAULT_USER2_USERNAME', 'user2').strip() or 'user2'
     email = os.getenv('DEFAULT_USER2_EMAIL', 'user2@example.com').strip() or 'user2@example.com'
@@ -121,9 +131,10 @@ def ensure_default_user2() -> tuple[User, bool]:
 def ensure_default_users() -> dict[str, tuple[User, bool]]:
     admin_result = ensure_default_admin()
     user_result = ensure_default_user()
-    user2_result = ensure_default_user2()
-    return {
+    out: dict[str, tuple[User, bool]] = {
         'admin': admin_result,
         'user': user_result,
-        'user2': user2_result,
     }
+    if _user2_seed_enabled():
+        out['user2'] = ensure_default_user2()
+    return out

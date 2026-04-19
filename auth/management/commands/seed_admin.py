@@ -20,3 +20,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f'Default user {user_action}: username="{regular_user.username}", email="{regular_user.email}"'
         ))
+        if 'user2' in result:
+            user2_user, user2_created = result['user2']
+            user2_action = 'created' if user2_created else 'updated'
+            self.stdout.write(self.style.SUCCESS(
+                f'Default user2 {user2_action}: username="{user2_user.username}", email="{user2_user.email}"'
+            ))

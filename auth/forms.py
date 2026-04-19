@@ -1,4 +1,8 @@
+import hmac
+import re
+
 from django import forms
+from django.conf import settings
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 
@@ -158,9 +162,13 @@ class RegisterStepForm(forms.Form):
     birth_date = forms.DateField(input_formats=['%Y-%m-%d'])
     email = forms.EmailField()
     phone = forms.CharField(max_length=32)
+    access_key = forms.CharField(max_length=8, min_length=8)
 
     error_messages = {
-        'email_exists': 'Пользователь с таким email уже существует.',
+        'email_exists': 'A user with this email already exists.',
+        'access_key_not_configured': 'Registration access key is not configured. Please contact the club.',
+        'access_key_invalid': 'Invalid access key.',
+        'access_key_format': 'Access key must contain exactly 8 digits.',
     }
 
     def clean_email(self):
@@ -168,6 +176,18 @@ class RegisterStepForm(forms.Form):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(self.error_messages['email_exists'])
         return email
+
+    def clean_access_key(self):
+        access_key = str(self.cleaned_data.get('access_key', '')).strip()
+        if not re.fullmatch(r'\d{8}', access_key):
+            raise forms.ValidationError(self.error_messages['access_key_format'])
+
+        configured_key = str(getattr(settings, 'REGISTRATION_ACCESS_KEY', '')).strip()
+        if not configured_key:
+            raise forms.ValidationError(self.error_messages['access_key_not_configured'])
+        if not hmac.compare_digest(access_key, configured_key):
+            raise forms.ValidationError(self.error_messages['access_key_invalid'])
+        return access_key
 
 
 class RegisterPasswordForm(forms.Form):

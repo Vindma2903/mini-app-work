@@ -61,6 +61,7 @@ python manage.py runserver 127.0.0.1:8000 --noreload
 
 ### API registration
 - Регистрация: http://localhost:8000/api/auth/registration/
+- Для регистрации обязателен `access_key` (строка из 8 цифр), значение берётся из `REGISTRATION_ACCESS_KEY` в `.env`.
 - Подтверждение email: http://localhost:8000/api/auth/registration/verify-email/
 - Повторная отправка письма: http://localhost:8000/api/auth/registration/resend-email/
 - Подтверждение по ключу: http://localhost:8000/api/auth/registration/account-confirm-email/<key>/

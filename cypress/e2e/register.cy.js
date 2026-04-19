@@ -9,6 +9,7 @@ describe('Registration flow', () => {
     cy.get('input[name="birth_date"]').type('1995-01-01')
     cy.get('input[name="email"]').type(email)
     cy.get('input[name="phone"]').type('79991234567')
+    cy.get('input[name="access_key"]').type('12345678')
     cy.get('button.register-form__submit').click()
 
     cy.location('pathname').should('eq', '/register/password/')

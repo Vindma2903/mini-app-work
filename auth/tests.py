@@ -4,13 +4,80 @@ from datetime import timedelta
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
+from .forms import RegisterStepForm
 from .models import AdminLibraryItem, AdminTraining, AdminTrainingExercise, CommunityReaction, TrainingRate, TrainingResult, UserExerciseRepProfile, UserProfile
+from .serializers import CustomRegisterSerializer
+
+
+class RegistrationAccessKeyTests(TestCase):
+    @override_settings(REGISTRATION_ACCESS_KEY='12345678')
+    def test_register_step_form_requires_valid_eight_digit_access_key(self):
+        form = RegisterStepForm(
+            data={
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'birth_date': '1995-01-01',
+                'email': 'new-user@example.com',
+                'phone': '79991234567',
+                'access_key': '12345678',
+            }
+        )
+        self.assertTrue(form.is_valid())
+
+        wrong_key_form = RegisterStepForm(
+            data={
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'birth_date': '1995-01-01',
+                'email': 'new-user-2@example.com',
+                'phone': '79991234567',
+                'access_key': '11112222',
+            }
+        )
+        self.assertFalse(wrong_key_form.is_valid())
+        self.assertIn('access_key', wrong_key_form.errors)
+
+        bad_format_form = RegisterStepForm(
+            data={
+                'first_name': 'Ivan',
+                'last_name': 'Ivanov',
+                'birth_date': '1995-01-01',
+                'email': 'new-user-3@example.com',
+                'phone': '79991234567',
+                'access_key': 'abcd1234',
+            }
+        )
+        self.assertFalse(bad_format_form.is_valid())
+        self.assertIn('access_key', bad_format_form.errors)
+
+    @override_settings(REGISTRATION_ACCESS_KEY='12345678')
+    def test_api_register_serializer_requires_access_key(self):
+        serializer = CustomRegisterSerializer(
+            data={
+                'email': 'api-user@example.com',
+                'password1': 'StrongPass123!',
+                'password2': 'StrongPass123!',
+                'access_key': '12345678',
+            }
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+        serializer_wrong = CustomRegisterSerializer(
+            data={
+                'email': 'api-user2@example.com',
+                'password1': 'StrongPass123!',
+                'password2': 'StrongPass123!',
+                'access_key': '00000000',
+            }
+        )
+        self.assertFalse(serializer_wrong.is_valid())
+        self.assertIn('access_key', serializer_wrong.errors)
 
 
 class JwtAuthFlowTests(TestCase):

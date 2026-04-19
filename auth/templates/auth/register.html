@@ -22,6 +22,9 @@
             {% if form.non_field_errors %}
                 <p class="register-form__error">{{ form.non_field_errors.0 }}</p>
             {% endif %}
+            {% if form.access_key.errors %}
+                <p class="register-form__error">{{ form.access_key.errors.0 }}</p>
+            {% endif %}
             <label class="register-form__field">
                 <span class="register-form__label">Имя</span>
                 <input class="register-form__input" type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" required>
@@ -47,8 +50,28 @@
                 <input class="register-form__input" type="tel" name="phone" value="{{ form.phone.value|default:'' }}" required>
             </label>
 
+            <label class="register-form__field">
+                <span class="register-form__label">Access key</span>
+                <input class="register-form__input" type="text" name="access_key" value="{{ form.access_key.value|default:'' }}" inputmode="numeric" pattern="\d{8}" maxlength="8" required>
+            </label>
+
             <button class="register-form__submit" type="submit">Далее</button>
         </form>
     </section>
 </main>
+<script>
+    (function () {
+        const accessKeyInput = document.querySelector('input[name="access_key"]');
+        if (!accessKeyInput) {
+            return;
+        }
+
+        const sanitizeAccessKey = () => {
+            accessKeyInput.value = accessKeyInput.value.replace(/\D/g, '').slice(0, 8);
+        };
+
+        accessKeyInput.addEventListener('input', sanitizeAccessKey);
+        sanitizeAccessKey();
+    })();
+</script>
 {% endblock %}

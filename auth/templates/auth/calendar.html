@@ -2570,6 +2570,22 @@
             });
             const data = await response.json().catch(() => ({}));
             if (!response.ok || !data.ok) {
+                if (data.error === "validation_error" && data.field_errors && typeof data.field_errors === "object") {
+                    const entries = Object.entries(data.field_errors);
+                    const [firstField, firstCode] = entries[0] || ["unknown", "validation_error"];
+                    const knownMessages = {
+                        sets_and_reps_must_be_together: "Укажите и подходы, и повторения для упражнения.",
+                        exercise_name_required: "Укажите название упражнения.",
+                        at_least_one_exercise_required: "Добавьте хотя бы одно упражнение.",
+                        block_custom_name_required: "Укажите название кастомного блока.",
+                        invalid_result_type: "Выбран некорректный тип результата.",
+                        invalid_block_type: "Выбран некорректный блок.",
+                    };
+                    const detail = knownMessages[firstCode] || `Validation failed: ${firstField} (${firstCode})`;
+                    const error = new Error(detail);
+                    error.validation = data.field_errors;
+                    throw error;
+                }
                 throw new Error(data.error || "save_failed");
             }
 
@@ -2665,6 +2681,7 @@
                 await saveTraining();
             } catch (error) {
                 console.error(error);
+                window.alert(error?.message || "Не удалось сохранить тренировку.");
             }
         });
 
@@ -2674,6 +2691,7 @@
                 closeCreateModal();
             } catch (error) {
                 console.error(error);
+                window.alert(error?.message || "Не удалось сохранить тренировку.");
             }
         });
     })();

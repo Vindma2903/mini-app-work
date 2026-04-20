@@ -215,6 +215,11 @@ class AchievementExerciseRepProfileTests(TestCase):
             email='exercise-user@example.com',
             password='StrongPass123!',
         )
+        self.library_item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BARBELL,
+            name_ru='Front Squat',
+            name_en='Front Squat',
+        )
 
     def test_unique_profile_per_user_and_exercise_slug(self):
         UserExerciseRepProfile.objects.create(
@@ -290,6 +295,56 @@ class AchievementExerciseRepProfileTests(TestCase):
         self.assertEqual(exercise['max'], [10, 15, 30, 40])
         self.assertEqual(exercise['percent_rows'][0], [('11', '105%'), ('10', '100%'), ('10', '95%'), ('9', '90%')])
         self.assertEqual(exercise['percent_rows'][3], [('5', '45%'), ('4', '40%'), ('4', '35%'), ('3', '30%')])
+
+    def test_library_item_view_uses_saved_reps_from_db(self):
+        slug = f'library-item-{self.library_item.id}'
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug=slug,
+            rep_1=33,
+            rep_2=22,
+            rep_3=11,
+            rep_4=9,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:achievement_exercise', kwargs={'exercise_slug': slug}))
+        self.assertEqual(response.status_code, 200)
+        exercise = response.context['exercise']
+        self.assertEqual(exercise['max'], [33, 22, 11, 9])
+
+    def test_library_items_keep_separate_reps_for_each_slug(self):
+        second_item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BARBELL,
+            name_ru='Deadlift',
+            name_en='Deadlift',
+        )
+        first_slug = f'library-item-{self.library_item.id}'
+        second_slug = f'library-item-{second_item.id}'
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug=first_slug,
+            rep_1=70,
+            rep_2=65,
+            rep_3=60,
+            rep_4=55,
+        )
+        UserExerciseRepProfile.objects.create(
+            user=self.user,
+            exercise_slug=second_slug,
+            rep_1=120,
+            rep_2=110,
+            rep_3=100,
+            rep_4=90,
+        )
+        self.client.force_login(self.user)
+
+        response_first = self.client.get(reverse('auth:achievement_exercise', kwargs={'exercise_slug': first_slug}))
+        response_second = self.client.get(reverse('auth:achievement_exercise', kwargs={'exercise_slug': second_slug}))
+
+        self.assertEqual(response_first.status_code, 200)
+        self.assertEqual(response_second.status_code, 200)
+        self.assertEqual(response_first.context['exercise']['max'], [70, 65, 60, 55])
+        self.assertEqual(response_second.context['exercise']['max'], [120, 110, 100, 90])
 
 
 class AchievementsViewTests(TestCase):
@@ -463,7 +518,10 @@ class ProfileActivityVisitsTests(TestCase):
         activity = json.loads(response.context['profile_activity_values_json'])
         self.assertEqual(self._extract_count(activity['week']['visits']), 0)
         self.assertEqual(self._extract_count(activity['month']['visits']), 0)
-        self.assertEqual(self._extract_count(activity['all']['visits']), 0)
+        self.assertEqual(self._extract_count(activity['year']['visits']), 0)
+        self.assertEqual(self._extract_count(activity['week']['goal']), 6)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 312)
 
     def test_profile_activity_counts_unique_dates_and_is_user_scoped(self):
         today = timezone.localdate()
@@ -518,7 +576,10 @@ class ProfileActivityVisitsTests(TestCase):
         activity = json.loads(response.context['profile_activity_values_json'])
         self.assertEqual(self._extract_count(activity['week']['visits']), 1)
         self.assertEqual(self._extract_count(activity['month']['visits']), 2)
-        self.assertEqual(self._extract_count(activity['all']['visits']), 3)
+        self.assertEqual(self._extract_count(activity['year']['visits']), 3)
+        self.assertEqual(self._extract_count(activity['week']['goal']), 6)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 312)
 
 
 class CommunityReactionApiTests(TestCase):
@@ -1137,16 +1198,16 @@ class LeaderboardAwardsTests(TestCase):
             mode=mode,
         )
 
-    def test_leaderboard_day_routes_are_split_for_user_and_admin(self):
+    def test_leaderboard_day_routes_are_available_for_user_and_admin(self):
         self.client.force_login(self.user_b)
         user_response = self.client.get(reverse('auth:leaderboard_day'))
         self.assertEqual(user_response.status_code, 200)
         self.assertTemplateUsed(user_response, 'auth/leaderboard-day.html')
 
         self.client.force_login(self.user_a)
-        redirected_response = self.client.get(reverse('auth:leaderboard_day'))
-        self.assertEqual(redirected_response.status_code, 302)
-        self.assertEqual(redirected_response.url, reverse('auth:calendar'))
+        admin_user_view_response = self.client.get(reverse('auth:leaderboard_day'))
+        self.assertEqual(admin_user_view_response.status_code, 200)
+        self.assertTemplateUsed(admin_user_view_response, 'auth/leaderboard-day.html')
 
         admin_response = self.client.get(reverse('auth:leaderboard_day_admin'))
         self.assertEqual(admin_response.status_code, 200)
@@ -1164,7 +1225,7 @@ class LeaderboardAwardsTests(TestCase):
         self.assertEqual(user_response.status_code, 302)
         self.assertEqual(user_response.url, reverse('auth:profile'))
 
-    def test_admin_is_redirected_from_user_only_pages_to_calendar(self):
+    def test_admin_can_open_user_pages(self):
         self.client.force_login(self.user_a)
         user_only_urls = [
             reverse('auth:profile'),
@@ -1181,8 +1242,7 @@ class LeaderboardAwardsTests(TestCase):
 
         for url in user_only_urls:
             response = self.client.get(url)
-            self.assertEqual(response.status_code, 302)
-            self.assertEqual(response.url, reverse('auth:calendar'))
+            self.assertEqual(response.status_code, 200)
 
     def test_leaderboard_places_and_tie_break_by_updated_at(self):
         self._create_result(self.user_a, TrainingResult.SECTION_STRENGTH, 25, 10)

@@ -149,6 +149,23 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+USE_MANIFEST_STATIC_FILES = (
+    os.getenv('USE_MANIFEST_STATIC_FILES', 'false' if DEBUG else 'true').strip().lower() == 'true'
+)
+
+STORAGES = {
+    'default': {
+        'BACKEND': 'django.core.files.storage.FileSystemStorage',
+    },
+    'staticfiles': {
+        'BACKEND': (
+            'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+            if USE_MANIFEST_STATIC_FILES
+            else 'django.contrib.staticfiles.storage.StaticFilesStorage'
+        ),
+    },
+}
+
 SITE_ID = 1
 
 AUTHENTICATION_BACKENDS = [

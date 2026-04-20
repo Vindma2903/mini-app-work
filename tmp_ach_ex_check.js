@@ -1,87 +1,4 @@
-﻿{% extends 'auth/base.html' %}
-{% load static %}
-
-{% block title %}{{ exercise.title }}{% endblock %}
-
-{% block styles %}
-<link rel="stylesheet" href="{% static 'auth/css/achievement-exercise.css' %}">
-{% endblock %}
-
-{% block content %}
-<main class="achievement-exercise-screen">
-    <header class="achievement-exercise-top">
-        <a class="achievement-exercise-top__back" href="{% url 'auth:achievements' %}" aria-label="Назад">←</a>
-        <h1>{{ exercise.title }}</h1>
-        <a class="achievement-exercise-top__close" href="{% url 'auth:achievements' %}" aria-label="Закрыть">✕</a>
-    </header>
-
-    <section class="exercise-max-card">
-        <div class="exercise-max-grid">
-            {% for rep in exercise.max %}
-                <div class="exercise-max-grid__cell" data-max-rep-col="{{ forloop.counter0 }}">
-                    <strong data-max-rep-value>{{ rep }}</strong>
-                    <span>{{ forloop.counter }} REP MAX</span>
-                </div>
-            {% endfor %}
-        </div>
-        <button type="button" class="exercise-btn exercise-btn--outline" id="exercise-open-edit-modal">Редактировать</button>
-    </section>
-
-    <section class="exercise-percent-card">
-        <div class="exercise-percent-head">
-            <span class="exercise-percent-head__item exercise-percent-head__item--active" data-rep-tab="0" role="button" tabindex="0">1 REP</span>
-            <span class="exercise-percent-head__item" data-rep-tab="1" role="button" tabindex="0">2 REP</span>
-            <span class="exercise-percent-head__item" data-rep-tab="2" role="button" tabindex="0">3 REP</span>
-            <span class="exercise-percent-head__item" data-rep-tab="3" role="button" tabindex="0">4 REP</span>
-        </div>
-        {% for row in exercise.percent_rows %}
-            <div class="exercise-percent-row" data-percent-row="{{ forloop.counter0 }}">
-                {% for value, percent in row %}
-                    <div class="exercise-percent-row__cell" data-percent-col="{{ forloop.counter0 }}">
-                        <strong data-percent-value>{{ value }}</strong>
-                        <span>{{ percent }}</span>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endfor %}
-    </section>
-
-    <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-save-db">Сохранить</button>
-
-    {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
-</main>
-
-<div class="exercise-edit-modal" id="exercise-edit-modal" hidden>
-    <div class="exercise-edit-modal__overlay" data-close-edit-modal></div>
-    <section class="exercise-edit-modal__card" role="dialog" aria-modal="true" aria-label="Редактирование повторений">
-        <button type="button" class="exercise-edit-modal__close" data-close-edit-modal aria-label="Закрыть">×</button>
-        <h3 class="exercise-edit-modal__title">Введите значения подходов</h3>
-        <div class="exercise-edit-modal__grid">
-            <label class="exercise-edit-modal__field">
-                <span>1 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-1" />
-            </label>
-            <label class="exercise-edit-modal__field">
-                <span>2 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-2" />
-            </label>
-            <label class="exercise-edit-modal__field">
-                <span>3 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-3" />
-            </label>
-            <label class="exercise-edit-modal__field">
-                <span>4 подход</span>
-                <input type="text" inputmode="numeric" id="exercise-edit-rep-4" />
-            </label>
-        </div>
-        <p class="exercise-edit-modal__error" id="exercise-edit-error" hidden></p>
-        <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-edit-save">Посчитать</button>
-    </section>
-</div>
-
-{{ exercise_initial_reps_json|json_script:"exercise-initial-reps-json" }}
-{{ exercise_relative_percents_json|json_script:"exercise-relative-percents-json" }}
-<script>
+﻿
     (function () {
         const updateUrl = "{{ exercise_update_url }}";
         const openButton = document.getElementById("exercise-open-edit-modal");
@@ -102,19 +19,8 @@
 
         const initialRepsNode = document.getElementById("exercise-initial-reps-json");
         const initialPercentsNode = document.getElementById("exercise-relative-percents-json");
-        function ensurePositiveInt(value, fallback = 10) {
-            const parsed = Number.parseInt(String(value ?? "").trim(), 10);
-            return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
-        }
-
-        const initialRepsRaw = initialRepsNode?.textContent ? JSON.parse(initialRepsNode.textContent) : {};
         const state = {
-            reps: {
-                rep_1: ensurePositiveInt(initialRepsRaw.rep_1, 10),
-                rep_2: ensurePositiveInt(initialRepsRaw.rep_2, 10),
-                rep_3: ensurePositiveInt(initialRepsRaw.rep_3, 10),
-                rep_4: ensurePositiveInt(initialRepsRaw.rep_4, 10),
-            },
+            reps: initialRepsNode?.textContent ? JSON.parse(initialRepsNode.textContent) : { rep_1: 10, rep_2: 10, rep_3: 10, rep_4: 10 },
             percents: initialPercentsNode?.textContent ? JSON.parse(initialPercentsNode.textContent) : { p1: 100, p2: 100, p3: 100, p4: 100 },
         };
 
@@ -138,10 +44,10 @@
 
         function getRepsArray() {
             return [
-                ensurePositiveInt(state.reps.rep_1, 10),
-                ensurePositiveInt(state.reps.rep_2, 10),
-                ensurePositiveInt(state.reps.rep_3, 10),
-                ensurePositiveInt(state.reps.rep_4, 10),
+                Number(state.reps.rep_1) || 0,
+                Number(state.reps.rep_2) || 0,
+                Number(state.reps.rep_3) || 0,
+                Number(state.reps.rep_4) || 0,
             ];
         }
 
@@ -260,13 +166,13 @@
         async function persistRepsToDb() {
             const payload = collectPayloadFromState();
             if (Object.values(payload).some((value) => value === null)) {
-                window.alert("Неверные значения. Нажмите 'Посчитать', затем 'Сохранить'.");
+                window.alert("РќРµРІРµСЂРЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ. РќР°Р¶РјРёС‚Рµ 'РџРѕСЃС‡РёС‚Р°С‚СЊ', Р·Р°С‚РµРј 'РЎРѕС…СЂР°РЅРёС‚СЊ'.");
                 return;
             }
 
             const initialButtonText = persistButton.textContent;
             persistButton.disabled = true;
-            persistButton.textContent = "Сохранение...";
+            persistButton.textContent = "РЎРѕС…СЂР°РЅРµРЅРёРµ...";
             try {
                 const response = await fetch(updateUrl, {
                     method: "POST",
@@ -279,22 +185,22 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.ok) {
-                    window.alert("Не удалось сохранить. Проверьте значения и попробуйте еще раз.");
+                    window.alert("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ. РџСЂРѕРІРµСЂСЊС‚Рµ Р·РЅР°С‡РµРЅРёСЏ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·.");
                     return;
                 }
                 applySavedData(data);
                 try {
                     window.sessionStorage.setItem("achievements_refresh_required", "1");
                 } catch (_error) {}
-                persistButton.textContent = "Сохранено";
+                persistButton.textContent = "РЎРѕС…СЂР°РЅРµРЅРѕ";
                 window.setTimeout(() => {
                     persistButton.textContent = initialButtonText;
                 }, 1200);
             } catch (error) {
-                window.alert("Ошибка сети при сохранении. Попробуйте снова.");
+                window.alert("РћС€РёР±РєР° СЃРµС‚Рё РїСЂРё СЃРѕС…СЂР°РЅРµРЅРёРё. РџРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.");
             } finally {
                 persistButton.disabled = false;
-                if (persistButton.textContent !== "Сохранено") {
+                if (persistButton.textContent !== "РЎРѕС…СЂР°РЅРµРЅРѕ") {
                     persistButton.textContent = initialButtonText;
                 }
             }
@@ -323,7 +229,4 @@
 
         setActiveRepTab(0);
     })();
-</script>
-{% endblock %}
-
 

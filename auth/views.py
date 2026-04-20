@@ -1186,7 +1186,9 @@ class UserProtectedMixin:
 
 
 class UserOnlyProtectedMixin(UserProtectedMixin):
-    allow_admin_panel_access = False
+    # Keep backward-compatible class name, but allow shared access:
+    # admin accounts can open user pages as well.
+    allow_admin_panel_access = True
 
 
 class SharedProfileHeaderMixin:
@@ -1238,6 +1240,7 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
         today = timezone.localdate()
         week_start = today - timedelta(days=today.weekday())
         month_start = today - timedelta(days=29)
+        year_start = today - timedelta(days=364)
         user_results = TrainingResult.objects.filter(user=self.request.user)
         week_visits = (
             user_results
@@ -1253,12 +1256,15 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
             .distinct()
             .count()
         )
-        all_visits = (
+        year_visits = (
             user_results
+            .filter(training_date__gte=year_start, training_date__lte=today)
             .values('training_date')
             .distinct()
             .count()
         )
+        month_goal = weekly_goal * 4
+        year_goal = weekly_goal * 52
         context['profile_activity_values_json'] = json.dumps(
             {
                 'week': {
@@ -1267,11 +1273,11 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
                 },
                 'month': {
                     'visits': self._format_training_count(month_visits),
-                    'goal': self._format_training_count(20),
+                    'goal': self._format_training_count(month_goal),
                 },
-                'all': {
-                    'visits': self._format_training_count(all_visits),
-                    'goal': self._format_training_count(150),
+                'year': {
+                    'visits': self._format_training_count(year_visits),
+                    'goal': self._format_training_count(year_goal),
                 },
             },
             ensure_ascii=False,
@@ -1311,15 +1317,19 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
                         ).count()
                     ),
                 },
-                'all': {
+                'year': {
                     'given': str(
                         CommunityReaction.objects.filter(
                             sender=self.request.user,
+                            training_date__gte=year_start,
+                            training_date__lte=today,
                         ).count()
                     ),
                     'received': str(
                         CommunityReaction.objects.filter(
                             target_user=self.request.user,
+                            training_date__gte=year_start,
+                            training_date__lte=today,
                         ).count()
                     ),
                 },
@@ -4178,7 +4188,7 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        slug = self.kwargs.get('exercise_slug', '')
+        slug = str(self.kwargs.get('exercise_slug', '') or '').strip().lower()
         data = self.EXERCISE_DATA.get(slug)
         if data is None:
             library_match = re.fullmatch(r'library-item-(\d+)', slug)

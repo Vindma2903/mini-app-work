@@ -47,6 +47,11 @@
                 <input class="register-form__input" type="tel" name="phone" value="{{ form.phone.value|default:'' }}" required>
             </label>
 
+            <label class="register-form__field">
+                <span class="register-form__label">Ключ доступа (8 цифр)</span>
+                <input class="register-form__input" type="text" name="access_key" value="{{ form.access_key.value|default:'' }}" inputmode="numeric" pattern="\d{8}" maxlength="8" autocomplete="off" required>
+            </label>
+
             <button class="register-form__submit" type="submit">Далее</button>
         </form>
     </section>

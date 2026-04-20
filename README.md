@@ -76,3 +76,8 @@ python manage.py runserver 127.0.0.1:8000 --noreload
 ```powershell
 python manage.py seed_admin
 ```
+
+## Ключ доступа при регистрации
+
+- Для регистрации пользователя нужен ключ из 8 цифр.
+- Ключ задается переменной окружения `REGISTRATION_ACCESS_KEY` (см. `.env.example`).

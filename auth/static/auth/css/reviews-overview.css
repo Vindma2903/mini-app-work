@@ -1,6 +1,28 @@
-.reviews-page{background:#eef3f9}
-.reviews-content{width:auto}
-.reviews-shell{margin-top:32px;flex:1 1 auto;min-height:0;width:100%;border:1px solid #d7dbe2;background:#fff;border-radius:10px;padding:20px}
+.reviews-page{background:#eef3f9;min-height:100vh;height:auto;overflow:visible}
+.reviews-page .calendar-sidebar{position:fixed;left:0;top:0;bottom:0;height:100vh}
+.reviews-page .calendar-content.reviews-content{
+position:relative;
+left:265px;
+top:0;
+right:auto;
+height:auto;
+min-height:100vh;
+overflow:visible;
+padding:0 24px 24px 0;
+width:calc(100% - 265px)
+}
+.reviews-content{width:auto;display:flex;flex-direction:column;min-height:0}
+.reviews-shell{
+margin-top:32px;
+width:100%;
+flex:1 1 auto;
+min-height:calc(100vh - 145px);
+border:1px solid #d7dbe2;
+background:#fff;
+border-radius:10px;
+padding:20px;
+overflow:auto
+}
 .reviews-toolbar{display:grid;gap:20px;margin-bottom:18px}
 .reviews-search{position:relative;display:block}
 .reviews-search input{width:100%;height:36px;border:1px solid #dbe2ea;border-radius:8px;padding:0 42px 0 14px;font:400 14px/20px Inter,Arial,sans-serif;color:#101828;background:#fff}

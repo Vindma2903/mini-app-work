@@ -5,6 +5,7 @@ from django.contrib.auth.models import User
 from allauth.account.models import EmailAddress
 
 from .models import UserProfile
+from .registration_access import validate_registration_access_key
 
 
 def user_has_admin_panel_access(user):
@@ -158,6 +159,7 @@ class RegisterStepForm(forms.Form):
     birth_date = forms.DateField(input_formats=['%Y-%m-%d'])
     email = forms.EmailField()
     phone = forms.CharField(max_length=32)
+    access_key = forms.CharField(max_length=8, min_length=8)
 
     error_messages = {
         'email_exists': 'Пользователь с таким email уже существует.',
@@ -168,6 +170,9 @@ class RegisterStepForm(forms.Form):
         if User.objects.filter(email__iexact=email).exists():
             raise forms.ValidationError(self.error_messages['email_exists'])
         return email
+
+    def clean_access_key(self):
+        return validate_registration_access_key(self.cleaned_data.get('access_key'))
 
 
 class RegisterPasswordForm(forms.Form):

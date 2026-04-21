@@ -565,7 +565,7 @@
 </script>
 <script>
     (function () {
-        const REFRESH_INTERVAL_MS = 120000;
+        const REFRESH_INTERVAL_MS = 10000;
         const modalIds = [
             "my-results-modal",
             "result-saved-modal",
@@ -616,6 +616,7 @@
             }
         }
 
+        refreshIfSafe();
         window.setInterval(refreshIfSafe, REFRESH_INTERVAL_MS);
     })();
 </script>

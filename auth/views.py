@@ -275,8 +275,14 @@ def serialize_admin_training(training):
         'title': training_title,
         'visibility': training.visibility,
         'comment': normalize_mojibake_text(training.comment or ''),
+        'comment_for_coaches': normalize_mojibake_text(training.comment_for_coaches or ''),
+        'comment_for_athletes': normalize_mojibake_text(training.comment_for_athletes or ''),
         'color': training.color,
         'source_type': training.source_type,
+        'manual_description_ru': normalize_mojibake_text(training.manual_description_ru or ''),
+        'manual_description_en': normalize_mojibake_text(training.manual_description_en or ''),
+        'manual_sets': training.manual_sets,
+        'manual_result_type': training.manual_result_type or '',
         'ready_workout_type': training.ready_workout_type,
         'ready_complex_type': training.ready_complex_type,
         'ready_complex_name': normalize_mojibake_text(training.ready_complex_name or ''),
@@ -2102,6 +2108,7 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
             'id': item.id,
             'section': item.section,
             'category': item.benchmark_category,
+            'movement_group': item.movement_group,
             'name_ru': item.name_ru,
             'name_en': item.name_en,
             'desc_ru': item.desc_ru,
@@ -2123,9 +2130,11 @@ class AdminLibraryListView(AdminProtectedMixin, View):
     def get(self, request, *args, **kwargs):
         section = str(request.GET.get('section') or AdminLibraryItem.SECTION_EXERCISES).strip().lower()
         category = str(request.GET.get('category') or '').strip().lower()
+        movement_group = str(request.GET.get('movement_group') or '').strip().lower()
 
         valid_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         valid_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+        valid_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
         if section not in valid_sections:
             return JsonResponse({'ok': False, 'error': 'invalid_section'}, status=400)
 
@@ -2133,6 +2142,10 @@ class AdminLibraryListView(AdminProtectedMixin, View):
         if section == AdminLibraryItem.SECTION_BENCHMARKS:
             normalized_category = category if category in valid_categories else AdminLibraryItem.CATEGORY_GIRLS
             query = query.filter(benchmark_category=normalized_category)
+        elif section == AdminLibraryItem.SECTION_EXERCISES and movement_group:
+            if movement_group not in valid_groups:
+                return JsonResponse({'ok': False, 'error': 'invalid_movement_group'}, status=400)
+            query = query.filter(movement_group=movement_group)
 
         rows = [AdminLibraryView._serialize_item(item) for item in query]
         return JsonResponse({'ok': True, 'rows': rows})
@@ -2146,6 +2159,7 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
     def post(self, request, *args, **kwargs):
         section = str(request.POST.get('section') or '').strip().lower()
         category = str(request.POST.get('category') or '').strip().lower()
+        movement_group = str(request.POST.get('movement_group') or '').strip().lower()
         name_ru = str(request.POST.get('name_ru') or '').strip()
         name_en = str(request.POST.get('name_en') or '').strip()
         desc_ru = str(request.POST.get('desc_ru') or '').strip()
@@ -2154,6 +2168,7 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
 
         allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+        allowed_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
 
         field_errors = {}
         if section not in allowed_sections:
@@ -2161,8 +2176,14 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         if section == AdminLibraryItem.SECTION_BENCHMARKS:
             if category not in allowed_categories:
                 field_errors['category'] = 'invalid_category'
+            movement_group = ''
+        elif section == AdminLibraryItem.SECTION_EXERCISES:
+            category = ''
+            if movement_group and movement_group not in allowed_groups:
+                field_errors['movement_group'] = 'invalid_movement_group'
         else:
             category = ''
+            movement_group = ''
         if not name_ru:
             field_errors['name_ru'] = 'required'
         if len(name_ru) > 255:
@@ -2182,6 +2203,7 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         item = AdminLibraryItem.objects.create(
             section=section,
             benchmark_category=category,
+            movement_group=movement_group,
             name_ru=name_ru,
             name_en=name_en,
             desc_ru=desc_ru,
@@ -2197,6 +2219,7 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
                     'id': item.id,
                     'section': item.section,
                     'category': item.benchmark_category,
+                    'movement_group': item.movement_group,
                     'name_ru': item.name_ru,
                     'name_en': item.name_en,
                     'desc_ru': item.desc_ru,
@@ -2219,6 +2242,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
 
         section = str(request.POST.get('section') or '').strip().lower()
         category = str(request.POST.get('category') or '').strip().lower()
+        movement_group = str(request.POST.get('movement_group') or '').strip().lower()
         name_ru = str(request.POST.get('name_ru') or '').strip()
         name_en = str(request.POST.get('name_en') or '').strip()
         desc_ru = str(request.POST.get('desc_ru') or '').strip()
@@ -2227,6 +2251,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
 
         allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
+        allowed_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
 
         field_errors = {}
         if section not in allowed_sections:
@@ -2234,8 +2259,14 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
         if section == AdminLibraryItem.SECTION_BENCHMARKS:
             if category not in allowed_categories:
                 field_errors['category'] = 'invalid_category'
+            movement_group = ''
+        elif section == AdminLibraryItem.SECTION_EXERCISES:
+            category = ''
+            if movement_group and movement_group not in allowed_groups:
+                field_errors['movement_group'] = 'invalid_movement_group'
         else:
             category = ''
+            movement_group = ''
         if not name_ru:
             field_errors['name_ru'] = 'required'
         if len(name_ru) > 255:
@@ -2254,6 +2285,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
 
         item.section = section
         item.benchmark_category = category
+        item.movement_group = movement_group
         item.name_ru = name_ru
         item.name_en = name_en
         item.desc_ru = desc_ru
@@ -2264,6 +2296,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
             update_fields=[
                 'section',
                 'benchmark_category',
+                'movement_group',
                 'name_ru',
                 'name_en',
                 'desc_ru',
@@ -2280,6 +2313,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
                     'id': item.id,
                     'section': item.section,
                     'category': item.benchmark_category,
+                    'movement_group': item.movement_group,
                     'name_ru': item.name_ru,
                     'name_en': item.name_en,
                     'desc_ru': item.desc_ru,
@@ -2918,13 +2952,19 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         valid_visibility = {key for key, _ in AdminTraining.VISIBILITY_CHOICES}
         valid_color = {key for key, _ in AdminTraining.COLOR_CHOICES}
         valid_source = {key for key, _ in AdminTraining.SOURCE_CHOICES}
+        valid_manual_result_types = {key for key, _ in AdminTraining.MANUAL_RESULT_CHOICES}
 
         training_date = self._parse_date(payload.get('date'))
         direction = str(payload.get('direction') or AdminTraining.DIRECTION_FBB).strip().lower()
         visibility = str(payload.get('visibility') or AdminTraining.VISIBILITY_ALL).strip().lower()
         color = str(payload.get('color') or AdminTraining.COLOR_BLUE).strip().lower()
         source_type = str(payload.get('source_type') or AdminTraining.SOURCE_MANUAL).strip().lower()
-        comment = str(payload.get('comment') or '').strip()
+        comment_for_coaches = str(payload.get('comment_for_coaches') or '').strip()
+        comment_for_athletes = str(payload.get('comment_for_athletes') or '').strip()
+        manual_description_ru = str(payload.get('manual_description_ru') or '').strip()
+        manual_description_en = str(payload.get('manual_description_en') or '').strip()
+        manual_sets = self._parse_positive_int(payload.get('manual_sets'))
+        manual_result_type = str(payload.get('manual_result_type') or '').strip().lower()
         ready_workout_type = str(payload.get('ready_workout_type') or '').strip()
         ready_complex_type = str(payload.get('ready_complex_type') or '').strip()
         ready_complex_name = str(payload.get('ready_complex_name') or '').strip()
@@ -2941,8 +2981,10 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             field_errors['color'] = 'invalid_color'
         if source_type not in valid_source:
             field_errors['source_type'] = 'invalid_source_type'
-        if len(comment) > 1000:
-            field_errors['comment'] = 'comment_too_long'
+        if len(comment_for_coaches) > 1000:
+            field_errors['comment_for_coaches'] = 'comment_too_long'
+        if len(comment_for_athletes) > 1000:
+            field_errors['comment_for_athletes'] = 'comment_too_long'
 
         if source_type != AdminTraining.SOURCE_READY:
             ready_workout_type = ''
@@ -2950,14 +2992,40 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             ready_complex_name = ''
             ready_plan_title = ''
 
-        exercises, exercise_errors = self._collect_exercises(payload)
-        field_errors.update(exercise_errors)
+        exercises = []
+        exercise_errors = {}
+        if source_type in {AdminTraining.SOURCE_LIBRARY, AdminTraining.SOURCE_READY}:
+            exercises, exercise_errors = self._collect_exercises(payload)
+            field_errors.update(exercise_errors)
 
         if source_type == AdminTraining.SOURCE_READY and not ready_plan_title:
             field_errors['ready_plan_title'] = 'ready_plan_title_required'
 
-        if not exercises:
-            if source_type == AdminTraining.SOURCE_READY and ready_plan_title:
+        if source_type == AdminTraining.SOURCE_MANUAL:
+            if not manual_description_ru:
+                field_errors['manual_description_ru'] = 'manual_description_ru_required'
+            if not manual_description_en:
+                field_errors['manual_description_en'] = 'manual_description_en_required'
+            if manual_sets is None:
+                field_errors['manual_sets'] = 'manual_sets_required'
+            if manual_result_type not in valid_manual_result_types:
+                field_errors['manual_result_type'] = 'invalid_manual_result_type'
+            exercises = []
+            ready_workout_type = ''
+            ready_complex_type = ''
+            ready_complex_name = ''
+            ready_plan_title = ''
+        else:
+            manual_description_ru = ''
+            manual_description_en = ''
+            manual_sets = None
+            manual_result_type = ''
+
+        if source_type == AdminTraining.SOURCE_LIBRARY and not exercises:
+            field_errors['exercises'] = 'at_least_one_exercise_required'
+
+        if source_type == AdminTraining.SOURCE_READY and not exercises:
+            if ready_plan_title:
                 exercises = [
                     {
                         'exercise_kind': AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
@@ -2980,9 +3048,14 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             'training_date': training_date,
             'direction': direction,
             'visibility': visibility,
-            'comment': comment,
+            'comment_for_coaches': comment_for_coaches,
+            'comment_for_athletes': comment_for_athletes,
             'color': color,
             'source_type': source_type,
+            'manual_description_ru': manual_description_ru,
+            'manual_description_en': manual_description_en,
+            'manual_sets': manual_sets,
+            'manual_result_type': manual_result_type,
             'ready_workout_type': ready_workout_type,
             'ready_complex_type': ready_complex_type,
             'ready_complex_name': ready_complex_name,
@@ -3029,9 +3102,15 @@ class AdminTrainingCreateView(AdminTrainingBaseView):
                 training_date=parsed_payload['training_date'],
                 direction=parsed_payload['direction'],
                 visibility=parsed_payload['visibility'],
-                comment=parsed_payload['comment'],
+                comment='',
+                comment_for_coaches=parsed_payload['comment_for_coaches'],
+                comment_for_athletes=parsed_payload['comment_for_athletes'],
                 color=parsed_payload['color'],
                 source_type=parsed_payload['source_type'],
+                manual_description_ru=parsed_payload['manual_description_ru'],
+                manual_description_en=parsed_payload['manual_description_en'],
+                manual_sets=parsed_payload['manual_sets'],
+                manual_result_type=parsed_payload['manual_result_type'],
                 ready_workout_type=parsed_payload['ready_workout_type'],
                 ready_complex_type=parsed_payload['ready_complex_type'],
                 ready_complex_name=parsed_payload['ready_complex_name'],
@@ -3065,9 +3144,15 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
             training.training_date = parsed_payload['training_date']
             training.direction = parsed_payload['direction']
             training.visibility = parsed_payload['visibility']
-            training.comment = parsed_payload['comment']
+            training.comment = ''
+            training.comment_for_coaches = parsed_payload['comment_for_coaches']
+            training.comment_for_athletes = parsed_payload['comment_for_athletes']
             training.color = parsed_payload['color']
             training.source_type = parsed_payload['source_type']
+            training.manual_description_ru = parsed_payload['manual_description_ru']
+            training.manual_description_en = parsed_payload['manual_description_en']
+            training.manual_sets = parsed_payload['manual_sets']
+            training.manual_result_type = parsed_payload['manual_result_type']
             training.ready_workout_type = parsed_payload['ready_workout_type']
             training.ready_complex_type = parsed_payload['ready_complex_type']
             training.ready_complex_name = parsed_payload['ready_complex_name']
@@ -3078,8 +3163,14 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
                     'direction',
                     'visibility',
                     'comment',
+                    'comment_for_coaches',
+                    'comment_for_athletes',
                     'color',
                     'source_type',
+                    'manual_description_ru',
+                    'manual_description_en',
+                    'manual_sets',
+                    'manual_result_type',
                     'ready_workout_type',
                     'ready_complex_type',
                     'ready_complex_name',

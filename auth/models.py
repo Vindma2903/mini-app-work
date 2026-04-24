@@ -167,9 +167,11 @@ class AdminTraining(models.Model):
     )
 
     SOURCE_MANUAL = 'manual'
+    SOURCE_LIBRARY = 'library'
     SOURCE_READY = 'ready'
     SOURCE_CHOICES = (
         (SOURCE_MANUAL, 'Manual'),
+        (SOURCE_LIBRARY, 'Library'),
         (SOURCE_READY, 'Ready complex'),
     )
 
@@ -201,12 +203,32 @@ class AdminTraining(models.Model):
         (COLOR_VIOLET, 'Violet'),
     )
 
+    MANUAL_RESULT_TIME = 'time'
+    MANUAL_RESULT_WEIGHT = 'weight'
+    MANUAL_RESULT_REPS = 'reps'
+    MANUAL_RESULT_CHOICES = (
+        (MANUAL_RESULT_TIME, 'Time'),
+        (MANUAL_RESULT_WEIGHT, 'Weight'),
+        (MANUAL_RESULT_REPS, 'Reps count'),
+    )
+
     training_date = models.DateField(default=timezone.localdate, db_index=True)
     direction = models.CharField(max_length=32, choices=DIRECTION_CHOICES, default=DIRECTION_FBB)
     visibility = models.CharField(max_length=16, choices=VISIBILITY_CHOICES, default=VISIBILITY_ALL)
     comment = models.TextField(blank=True, default='')
     color = models.CharField(max_length=16, choices=COLOR_CHOICES, default=COLOR_BLUE)
     source_type = models.CharField(max_length=16, choices=SOURCE_CHOICES, default=SOURCE_MANUAL)
+    comment_for_coaches = models.TextField(blank=True, default='')
+    comment_for_athletes = models.TextField(blank=True, default='')
+    manual_description_ru = models.TextField(blank=True, default='')
+    manual_description_en = models.TextField(blank=True, default='')
+    manual_sets = models.PositiveSmallIntegerField(null=True, blank=True)
+    manual_result_type = models.CharField(
+        max_length=16,
+        choices=MANUAL_RESULT_CHOICES,
+        blank=True,
+        default='',
+    )
     ready_workout_type = models.CharField(max_length=32, blank=True, default='')
     ready_complex_type = models.CharField(max_length=32, blank=True, default='')
     ready_complex_name = models.CharField(max_length=255, blank=True, default='')
@@ -329,10 +351,28 @@ class AdminLibraryItem(models.Model):
         (CATEGORY_GYMNASTICS, 'Gymnastics'),
     )
 
+    MOVEMENT_GROUP_SQUAT = 'squat'
+    MOVEMENT_GROUP_PUSH = 'push'
+    MOVEMENT_GROUP_PULL = 'pull'
+    MOVEMENT_GROUP_BEND = 'bend'
+    MOVEMENT_GROUP_CHOICES = (
+        (MOVEMENT_GROUP_SQUAT, 'Squat'),
+        (MOVEMENT_GROUP_PUSH, 'Push'),
+        (MOVEMENT_GROUP_PULL, 'Pull'),
+        (MOVEMENT_GROUP_BEND, 'Bend'),
+    )
+
     section = models.CharField(max_length=16, choices=SECTION_CHOICES, default=SECTION_EXERCISES, db_index=True)
     benchmark_category = models.CharField(
         max_length=16,
         choices=BENCHMARK_CATEGORY_CHOICES,
+        blank=True,
+        default='',
+        db_index=True,
+    )
+    movement_group = models.CharField(
+        max_length=16,
+        choices=MOVEMENT_GROUP_CHOICES,
         blank=True,
         default='',
         db_index=True,

@@ -811,9 +811,14 @@ class AdminTrainingCrudTests(TestCase):
             'date': '2026-04-10',
             'direction': 'crossfit',
             'visibility': 'all',
-            'comment': 'РљРѕРјРјРµРЅС‚Р°СЂРёР№ С‚СЂРµРЅРёСЂРѕРІРєРё',
+            'comment_for_coaches': 'Комментарий для тренеров',
+            'comment_for_athletes': 'Комментарий для атлетов',
             'color': 'green',
-            'source_type': 'manual',
+            'source_type': 'library',
+            'manual_description_ru': '',
+            'manual_description_en': '',
+            'manual_sets': '',
+            'manual_result_type': '',
             'ready_workout_type': '',
             'ready_complex_type': '',
             'ready_complex_name': '',
@@ -875,7 +880,8 @@ class AdminTrainingCrudTests(TestCase):
         self.client.force_login(self.admin)
 
         payload = self._payload()
-        payload['comment'] = 'updated'
+        payload['comment_for_coaches'] = 'updated coaches'
+        payload['comment_for_athletes'] = 'updated athletes'
         payload['color'] = 'violet'
         payload['exercises'][0]['exercise_name'] = 'РЎС‚Р°РЅРѕРІР°СЏ С‚СЏРіР°'
         update_response = self.client.post(
@@ -885,7 +891,9 @@ class AdminTrainingCrudTests(TestCase):
         )
         self.assertEqual(update_response.status_code, 200)
         training.refresh_from_db()
-        self.assertEqual(training.comment, 'updated')
+        self.assertEqual(training.comment, '')
+        self.assertEqual(training.comment_for_coaches, 'updated coaches')
+        self.assertEqual(training.comment_for_athletes, 'updated athletes')
         self.assertEqual(training.color, 'violet')
         self.assertEqual(training.exercises.first().exercise_name, 'РЎС‚Р°РЅРѕРІР°СЏ С‚СЏРіР°')
 
@@ -905,7 +913,8 @@ class AdminTrainingCrudTests(TestCase):
                 'date': '2026-04-12',
                 'direction': 'workout',
                 'visibility': 'coaches',
-                'comment': 'Несколько упражнений',
+                'comment_for_coaches': 'Несколько упражнений',
+                'comment_for_athletes': 'Комментарий для атлетов',
                 'color': 'pink',
                 'exercises': [
                     {
@@ -941,7 +950,9 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(training.training_date.isoformat(), '2026-04-12')
         self.assertEqual(training.direction, 'workout')
         self.assertEqual(training.visibility, 'coaches')
-        self.assertEqual(training.comment, 'Несколько упражнений')
+        self.assertEqual(training.comment, '')
+        self.assertEqual(training.comment_for_coaches, 'Несколько упражнений')
+        self.assertEqual(training.comment_for_athletes, 'Комментарий для атлетов')
         self.assertEqual(training.color, 'pink')
 
         exercises = list(training.exercises.order_by('order').values('exercise_name', 'block_type', 'block_custom_name', 'result_type', 'sets', 'reps'))
@@ -963,6 +974,10 @@ class AdminTrainingCrudTests(TestCase):
                 'ready_workout_type': 'ready',
                 'ready_complex_type': 'benchmarks',
                 'ready_complex_name': 'Test',
+                'manual_description_ru': 'Описание RU',
+                'manual_description_en': 'Description EN',
+                'manual_sets': 3,
+                'manual_result_type': 'time',
             }
         )
 
@@ -976,6 +991,10 @@ class AdminTrainingCrudTests(TestCase):
         self.assertTrue(data.get('ok'))
         self.assertEqual(data['training']['title'], 'Гимнастика')
         self.assertEqual(data['training']['ready_plan_title'], '')
+        self.assertEqual(data['training']['manual_description_ru'], 'Описание RU')
+        self.assertEqual(data['training']['manual_description_en'], 'Description EN')
+        self.assertEqual(data['training']['manual_sets'], 3)
+        self.assertEqual(data['training']['manual_result_type'], 'time')
 
         training = AdminTraining.objects.get(id=data['training_id'])
         self.assertEqual(training.source_type, 'manual')
@@ -983,6 +1002,107 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(training.ready_workout_type, '')
         self.assertEqual(training.ready_complex_type, '')
         self.assertEqual(training.ready_complex_name, '')
+
+    def test_manual_training_requires_manual_fields(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload['source_type'] = 'manual'
+        payload['exercises'] = []
+        payload['manual_description_ru'] = ''
+        payload['manual_description_en'] = ''
+        payload['manual_sets'] = ''
+        payload['manual_result_type'] = ''
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertIn('manual_description_ru', data.get('field_errors', {}))
+        self.assertIn('manual_description_en', data.get('field_errors', {}))
+        self.assertIn('manual_sets', data.get('field_errors', {}))
+        self.assertIn('manual_result_type', data.get('field_errors', {}))
+
+    def test_library_training_requires_sets_and_reps_for_exercise(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload['exercises'][0]['sets'] = ''
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertIn('exercises.0.sets_reps', data.get('field_errors', {}))
+
+
+class AdminLibraryListTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin-library-list@example.com',
+            email='admin-library-list@example.com',
+            password='AdminPass123!',
+            is_staff=True,
+        )
+
+    def test_library_list_filters_by_movement_group_for_exercises(self):
+        squat = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_SQUAT,
+            name_ru='Back Squat',
+            name_en='Back Squat',
+        )
+        AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Push Up',
+            name_en='Push Up',
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('auth:admin_library_list'),
+            {'section': 'exercises', 'movement_group': 'squat'},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('ok'))
+        rows = data.get('rows') or []
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['id'], squat.id)
+        self.assertEqual(rows[0]['movement_group'], 'squat')
+
+    def test_library_list_keeps_benchmark_category_filter(self):
+        girls = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BENCHMARKS,
+            benchmark_category=AdminLibraryItem.CATEGORY_GIRLS,
+            name_ru='Fran',
+            name_en='Fran',
+        )
+        AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BENCHMARKS,
+            benchmark_category=AdminLibraryItem.CATEGORY_HEROES,
+            name_ru='Murph',
+            name_en='Murph',
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('auth:admin_library_list'),
+            {'section': 'benchmarks', 'category': 'girls'},
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data.get('ok'))
+        rows = data.get('rows') or []
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['id'], girls.id)
 
 
 class TrainingPlanTodayVisibilityTests(TestCase):

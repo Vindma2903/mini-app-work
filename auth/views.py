@@ -89,7 +89,9 @@ TRAINING_DIRECTION_LABELS = {
     AdminTraining.DIRECTION_FBB: 'FBB',
     AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
     AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
-    AdminTraining.DIRECTION_WORKOUT: 'Воркаут дня',
+    AdminTraining.DIRECTION_WORKOUT: 'Тренировка дня',
+    AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
+    AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
 }
 
 TRAINING_BLOCK_LABELS = {
@@ -3467,6 +3469,27 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             selected_date = timezone.localdate()
 
         leaderboard = build_daily_leaderboard_payload(selected_date)
+        reaction_counts = dict(
+            CommunityReaction.objects
+            .filter(training_date=selected_date)
+            .values('target_user_id')
+            .annotate(total=Count('id'))
+            .values_list('target_user_id', 'total')
+        )
+        my_reacted_user_ids = set(
+            CommunityReaction.objects
+            .filter(training_date=selected_date, sender=self.request.user)
+            .values_list('target_user_id', flat=True)
+        )
+        current_user_id = self.request.user.id
+        for section in leaderboard['sections']:
+            for entry in section.get('entries', []):
+                target_user_id = entry.get('user_id')
+                entry['target_user_id'] = target_user_id
+                entry['reactions_count'] = reaction_counts.get(target_user_id, 0)
+                entry['reacted_by_me'] = target_user_id in my_reacted_user_ids
+                entry['is_me'] = target_user_id == current_user_id
+
         direction_value = (
             AdminTraining.objects
             .filter(training_date=selected_date, visibility=AdminTraining.VISIBILITY_ALL)
@@ -3552,6 +3575,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
         context['leaderboard_week_days'] = build_week_days(selected_date)
         context['leaderboard_selected_date_iso'] = selected_date.isoformat()
         context['leaderboard_training_direction_label'] = TRAINING_DIRECTION_LABELS.get(direction_value, 'FBB')
+        context['leaderboard_current_user_id'] = self.request.user.id
 
         # Dedicated presentation payload for admin leaderboard page:
         # list of cards with direction header and real exercises of the day.

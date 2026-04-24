@@ -1385,7 +1385,7 @@ class LeaderboardAwardsTests(TestCase):
 
         cards = response.context['leaderboard_admin_cards']
         self.assertEqual(len(cards), 1)
-        self.assertEqual(cards[0]['direction_label'], 'Воркаут дня')
+        self.assertEqual(cards[0]['direction_label'], 'Тренировка дня')
         self.assertEqual(cards[0]['exercise_cards'][0]['title'], 'Гребля')
 
     def test_admin_cards_keep_exercise_order_by_order_and_id(self):

@@ -62,7 +62,22 @@
                             {{ entry.place_label }}
                             {% endif %}
                         </div>
-                        <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/nav-community.svg' %}" alt=""></span></div>
+                        <div class="leaderboard-item__cell leaderboard-item__cell--icon">
+                            {% if entry.target_user_id and not entry.is_me %}
+                            <button
+                                type="button"
+                                class="leaderboard-reaction{% if entry.reacted_by_me %} leaderboard-reaction--active{% endif %}"
+                                aria-label="Реакции"
+                                data-leaderboard-reaction
+                                data-target-user-id="{{ entry.target_user_id }}"
+                            >
+                                <img src="{% static 'auth/img/community-fist.svg' %}" alt="">
+                                <span data-reaction-count>{{ entry.reactions_count }}</span>
+                            </button>
+                            {% else %}
+                            <span>—</span>
+                            {% endif %}
+                        </div>
                     </article>
                     {% empty %}
                     <article class="leaderboard-item">
@@ -82,6 +97,10 @@
     {% include 'auth/components/bottom_nav.html' with active='calendar' nav_block='bottom-nav' %}
 </main>
 
+<script>
+    window.leaderboardSelectedDateIso = "{{ leaderboard_selected_date_iso }}";
+    window.leaderboardCurrentUserId = "{{ leaderboard_current_user_id }}";
+</script>
 <script>
     (function () {
         const dayButtons = Array.from(document.querySelectorAll(".leaderboard-date__day[data-iso-date]"));
@@ -130,6 +149,58 @@
             });
 
             syncPlanState();
+        });
+
+        const reactionButtons = Array.from(document.querySelectorAll("[data-leaderboard-reaction]"));
+        if (!reactionButtons.length) return;
+
+        const reactUrl = "{% url 'auth:community_react' %}";
+        const csrfTokenFallback = "{{ csrf_token }}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
+        function syncButtonsForUser(targetUserId, reacted, reactionsCount) {
+            reactionButtons
+                .filter((button) => button.getAttribute("data-target-user-id") === targetUserId)
+                .forEach((button) => {
+                    button.classList.toggle("leaderboard-reaction--active", Boolean(reacted));
+                    const countNode = button.querySelector("[data-reaction-count]");
+                    if (countNode) countNode.textContent = String(reactionsCount ?? 0);
+                });
+        }
+
+        reactionButtons.forEach((button) => {
+            button.addEventListener("click", async () => {
+                if (button.classList.contains("leaderboard-reaction--active")) return;
+                const targetUserId = button.getAttribute("data-target-user-id");
+                if (!targetUserId) return;
+                if (String(window.leaderboardCurrentUserId || "") === String(targetUserId)) return;
+
+                button.disabled = true;
+                try {
+                    const response = await fetch(reactUrl, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: JSON.stringify({
+                            target_user_id: targetUserId,
+                            date: window.leaderboardSelectedDateIso || "",
+                        }),
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.ok) return;
+                    syncButtonsForUser(targetUserId, data.reacted, data.reactions_count);
+                } finally {
+                    button.disabled = false;
+                }
+            });
         });
     })();
 </script>

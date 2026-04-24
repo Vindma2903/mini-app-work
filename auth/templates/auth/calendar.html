@@ -47,6 +47,9 @@
                 </div>
                 <div class="calendar-create-menu-wrap">
                     <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
+                    <button type="button" class="calendar-language-toggle" id="calendar-language-toggle" aria-label="Переключить язык" title="Переключить язык">
+                        <span class="calendar-language-toggle__flag" aria-hidden="true"></span>
+                    </button>
                 </div>
             </div>
 
@@ -79,9 +82,9 @@
 
 <div class="calendar-create-modal" id="calendar-create-modal" hidden>
     <div class="calendar-create-modal__overlay" data-close-create="true"></div>
-    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление тренировки">
+    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Добавление блока">
         <header class="calendar-create-modal__head">
-            <h3>Добавление тренировки</h3>
+            <h3>Добавление блока</h3>
             <button type="button" class="calendar-create-modal__close" data-close-create="true" aria-label="Закрыть">
                 <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
             </button>
@@ -107,11 +110,21 @@
                         <button type="button" class="calendar-create-modal__dropdown-option is-active" data-direction-option="fbb" data-direction-label="FBB">FBB</button>
                         <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="crossfit" data-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
                         <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="gymnastics" data-direction-label="Гимнастика">Гимнастика</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="workout" data-direction-label="Воркаут дня">Воркаут дня</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="workout" data-direction-label="Тренировка дня">Тренировка дня</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="functional" data-direction-label="Функциональная тренировка">Функциональная тренировка</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-direction-option="strength" data-direction-label="Силовая тренировка">Силовая тренировка</button>
                     </div>
                     <input type="hidden" name="training_direction" id="calendar-direction-input" value="fbb">
                 </div>
             </label>
+            <label class="calendar-create-modal__field">
+                <span>Блок тренировки</span>
+                <button type="button" class="calendar-create-modal__input">
+                    <em>Силовая часть</em>
+                    <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                </button>
+            </label>
+
 <label class="calendar-create-modal__field">
                 <span>Видимость</span>
                 <div class="calendar-create-modal__dropdown" id="calendar-visibility-dropdown">
@@ -127,105 +140,72 @@
                 </div>
             </label>
 
-            <label class="calendar-create-modal__field">
-                <span>Комментарий</span>
-                <textarea class="calendar-create-modal__textarea"></textarea>
-            </label>
+            <div class="calendar-create-modal__source-toggle" role="group" aria-label="Источник блока">
+                <button type="button" class="calendar-create-modal__source-btn is-active" aria-pressed="true" data-create-source="library">Из библиотеки</button>
+                <button type="button" class="calendar-create-modal__source-btn" aria-pressed="false" data-create-source="manual">Свободный ввод</button>
+            </div>
 
-            <div class="calendar-create-modal__existing" id="calendar-create-existing-exercises" hidden></div>
+            <div class="calendar-create-modal__library-block" id="calendar-create-library-block">
+                <div class="calendar-create-modal__library-search">
+                    <input type="text" placeholder="Найти комплекс">
+                    <img src="{% static 'auth/img/admin/search.svg' %}" alt="" aria-hidden="true">
+                </div>
+                <div class="calendar-create-modal__library-tabs" role="tablist" aria-label="Тип">
+                    <button type="button" class="calendar-create-modal__library-tab is-active" role="tab" aria-selected="true" data-library-tab="exercise">Упражнения</button>
+                    <button type="button" class="calendar-create-modal__library-tab" role="tab" aria-selected="false" data-library-tab="benchmark">Benchmarks</button>
+                </div>
+                <div class="calendar-create-modal__library-filters">
+                    <button type="button" class="calendar-create-modal__library-arrow" data-library-arrow="prev" aria-label="Назад">&lsaquo;</button>
+                    <button type="button" class="calendar-create-modal__library-chip is-active" data-library-chip="Squat">Squat</button>
+                    <button type="button" class="calendar-create-modal__library-chip" data-library-chip="Push">Push</button>
+                    <button type="button" class="calendar-create-modal__library-chip" data-library-chip="Pull">Pull</button>
+                    <button type="button" class="calendar-create-modal__library-chip" data-library-chip="Bend">Bend</button>
+                    <button type="button" class="calendar-create-modal__library-arrow" data-library-arrow="next" aria-label="Вперед">&rsaquo;</button>
+                </div>
+                <div class="calendar-create-modal__library-list" id="calendar-create-library-list"></div>
+            </div>
 
-            <div class="calendar-create-modal__exercise-card">
-                <p class="calendar-create-modal__exercise-name">Не выбрано</p>
-                <div class="calendar-create-modal__exercise-grid">
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block">
-                        <span>Блок</span>
-                        <div class="calendar-create-modal__dropdown" id="calendar-block-dropdown">
-                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-block-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-block-value">Блок</em><img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
-                            </button>
-                            <div class="calendar-create-modal__dropdown-menu" id="calendar-block-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-block-option="default" data-block-label="Блок">Блок</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="strength" data-block-label="Силовая">Силовая</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="cardio" data-block-label="Кардио">Кардио</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="gymnastics" data-block-label="Гимнастика">Гимнастика</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-block-option="custom" data-block-label="Свое название">Свое название</button>
-                            </div>
-                            <input type="hidden" name="training_block_type" id="calendar-block-input" value="default">
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--block-custom" id="calendar-block-custom-wrap" hidden>
-                        <span>&nbsp;</span>
-                        <input id="calendar-block-custom-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise" id="calendar-exercise-kind-wrap">
-                        <span>Упражнение</span>
-                        <div class="calendar-create-modal__dropdown" id="calendar-exercise-kind-dropdown">
-                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-exercise-kind-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-exercise-kind-value">Упражнение</em>
+            <div class="calendar-create-modal__manual-block" id="calendar-create-manual-block" hidden>
+                <label class="calendar-create-modal__field">
+                    <span>Описание тренировки на русском</span>
+                    <textarea class="calendar-create-modal__textarea calendar-create-modal__textarea--lg"></textarea>
+                </label>
+
+                <label class="calendar-create-modal__field">
+                    <span>Описание тренировки на английском</span>
+                    <textarea class="calendar-create-modal__textarea calendar-create-modal__textarea--lg"></textarea>
+                </label>
+
+                <label class="calendar-create-modal__field">
+                    <span>Подходов по Результат</span>
+                    <div class="calendar-create-modal__result-row">
+                        <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
+                        <small>по</small>
+                        <div class="calendar-create-modal__dropdown" id="calendar-block-result-type-dropdown">
+                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-block-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                <em id="calendar-block-result-type-value">Результат</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
-                            <div class="calendar-create-modal__dropdown-menu" id="calendar-exercise-kind-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-exercise-kind-option="exercise" data-exercise-kind-label="Упражнение">Упражнение</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-exercise-kind-option="benchmarks" data-exercise-kind-label="Benchmarks">Benchmarks</button>
-                            </div>
-                            <input type="hidden" name="training_exercise_kind" id="calendar-exercise-kind-input" value="exercise">
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--exercise-name" id="calendar-exercise-name-wrap">
-                        <span>Название</span>
-                        <input id="calendar-exercise-name-input" class="calendar-create-modal__text-input" type="text" placeholder="Введите название">
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--benchmark" id="calendar-benchmark-name-wrap" hidden>
-                        <span>Тип комплекса</span>
-                        <div class="calendar-create-modal__search-input-wrap">
-                            <input id="calendar-benchmark-name-input" class="calendar-create-modal__text-input calendar-create-modal__text-input--search" type="text" placeholder="Введите название">
-                            <span class="calendar-create-modal__search-icon" aria-hidden="true"></span>
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--count">
-                        <span>Количество</span>
-                        <div class="calendar-create-modal__count">
-                            <input id="calendar-create-sets-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
-                            <small>по</small>
-                            <input id="calendar-create-reps-input" class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
-                        </div>
-                    </label>
-                    <label class="calendar-create-modal__cell calendar-create-modal__cell--result">
-                        <span>Результат</span>
-                        <div class="calendar-create-modal__dropdown" id="calendar-result-type-dropdown">
-                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-result-type-value">Результат</em>
-                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
-                            </button>
-                            <div class="calendar-create-modal__dropdown-menu" id="calendar-result-type-menu" role="listbox" hidden>
+                            <div class="calendar-create-modal__dropdown-menu" id="calendar-block-result-type-menu" role="listbox" hidden>
                                 <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="time" data-result-type-label="Время">Время</button>
                                 <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
                                 <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
                             </div>
-                            <input type="hidden" name="training_result_type" id="calendar-result-type-input" value="time">
+                            <input type="hidden" name="block_result_type" id="calendar-block-result-type-input" value="time">
                         </div>
-                    </label>
-                </div>
-                <button type="button" class="calendar-create-modal__save" id="calendar-create-save">Сохранить</button>
+                    </div>
+                </label>
             </div>
 
-            <button type="button" class="calendar-create-modal__add-exercise">
-                <img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить упражнение
-            </button>
+            <label class="calendar-create-modal__field">
+                <span>Комментарий для тренеров</span>
+                <textarea class="calendar-create-modal__textarea"></textarea>
+            </label>
 
-            <div class="calendar-create-modal__colors">
-                <p>Цвет тренировки в админ панели</p>
-                <div>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue is-active" aria-label="Синий" aria-pressed="true" data-create-color="blue"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-create-color="orange"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-create-color="green"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-create-color="pink"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--violet" aria-label="Фиолетовый" aria-pressed="false" data-create-color="violet"></button>
-                </div>
-                <input type="hidden" name="training_color" id="calendar-create-color" value="blue">
-                <small id="calendar-create-color-selected">Выбран цвет: Синий</small>
-                <small>Выберите цвет для визуального отображения тренировки в календаре</small>
-            </div>
+            <label class="calendar-create-modal__field">
+                <span>Комментарий для атлетов</span>
+                <textarea class="calendar-create-modal__textarea"></textarea>
+            </label>
 
             <div class="calendar-create-modal__preview">
                 <p>Предпросмотр</p>
@@ -239,7 +219,7 @@
                 </article>
             </div>
 
-            <button type="button" class="calendar-create-modal__publish" id="calendar-publish-training">Опубликовать</button>
+            <button type="button" class="calendar-create-modal__publish" id="calendar-publish-training">Сохранить</button>
         </div>
     </section>
 </div>
@@ -378,6 +358,24 @@
     </section>
 </div>
 
+<div class="calendar-comment-modal" id="calendar-comment-modal" hidden>
+    <div class="calendar-comment-modal__overlay" data-close-comment></div>
+    <section class="calendar-comment-modal__card" role="dialog" aria-modal="true" aria-label="Комментарии к тренировке">
+        <button type="button" class="calendar-comment-modal__close" data-close-comment aria-label="Закрыть">
+            <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
+        </button>
+        <h3 class="calendar-comment-modal__title" id="calendar-comment-modal-title">Комментарии к блоку “Силовая часть”</h3>
+        <div class="calendar-comment-modal__group">
+            <p class="calendar-comment-modal__label">Для тренеров:</p>
+            <p class="calendar-comment-modal__bubble" id="calendar-comment-coaches">Без комментария</p>
+        </div>
+        <div class="calendar-comment-modal__group">
+            <p class="calendar-comment-modal__label">Для атлеты:</p>
+            <p class="calendar-comment-modal__bubble" id="calendar-comment-athletes">Без комментария</p>
+        </div>
+    </section>
+</div>
+
 <script>
     (function () {
         const openBtn = document.getElementById("calendar-open-picker");
@@ -412,6 +410,10 @@
         const deleteModal = document.getElementById("calendar-delete-modal");
         const deletePreview = document.getElementById("calendar-delete-preview");
         const confirmDeleteBtn = document.getElementById("calendar-confirm-delete");
+        const commentModal = document.getElementById("calendar-comment-modal");
+        const commentModalTitle = document.getElementById("calendar-comment-modal-title");
+        const commentCoaches = document.getElementById("calendar-comment-coaches");
+        const commentAthletes = document.getElementById("calendar-comment-athletes");
         const readyDateTrigger = document.getElementById("calendar-ready-date-trigger");
         const readyDateValue = document.getElementById("calendar-ready-date-value");
         const readyWorkoutDropdown = document.getElementById("calendar-ready-workout-dropdown");
@@ -441,6 +443,13 @@
         const readyPlanInput = document.getElementById("calendar-ready-plan-input");
         const readyPlanOptions = readyPlanMenu?.querySelectorAll("[data-ready-plan-option]") || [];
         const createCommentInput = createModal?.querySelector(".calendar-create-modal__textarea");
+        const createSourceButtons = createModal?.querySelectorAll("[data-create-source]") || [];
+        const createLibraryBlock = document.getElementById("calendar-create-library-block");
+        const createManualBlock = document.getElementById("calendar-create-manual-block");
+        const libraryListContainer = document.getElementById("calendar-create-library-list");
+        const libraryTabs = createModal?.querySelectorAll("[data-library-tab]") || [];
+        const libraryChipButtons = createModal?.querySelectorAll("[data-library-chip]") || [];
+        const libraryArrowButtons = createModal?.querySelectorAll("[data-library-arrow]") || [];
         const addExerciseBtn = createModal?.querySelector(".calendar-create-modal__add-exercise");
         const existingExercisesWrap = document.getElementById("calendar-create-existing-exercises");
         const exerciseKindDropdown = document.getElementById("calendar-exercise-kind-dropdown");
@@ -503,7 +512,23 @@
         let editingTrainingId = null;
         let deletingTrainingId = null;
         let activeResultsRequestId = 0;
-        let activeCreateSourceType = "manual";
+        let activeCreateSourceType = "library";
+        const libraryChipCatalog = ["Squat", "Push", "Pull", "Bend", "Lunge", "Press", "Core", "Run"];
+        const libraryExercisesByChip = {
+            Squat: ["Squat / Приседания", "Back Squat", "Front Squat", "Goblet Squat", "Overhead Squat"],
+            Push: ["Push-up / Отжимания", "Bench Press", "Strict Press", "Push Press", "Dips"],
+            Pull: ["Pull-up / Подтягивания", "Row", "Deadlift", "Power Clean", "High Pull"],
+            Bend: ["Good Morning", "Romanian Deadlift", "Hip Hinge Drill", "Kettlebell Swing", "Back Extension"],
+            Lunge: ["Forward Lunge", "Reverse Lunge", "Walking Lunge", "Jumping Lunge", "Split Squat"],
+            Press: ["Shoulder Press", "Incline Press", "Arnold Press", "Landmine Press", "Pike Push-up"],
+            Core: ["Plank", "Hollow Hold", "Sit-up", "Russian Twist", "Leg Raise"],
+            Run: ["200m Run", "400m Run", "800m Run", "Interval Run", "Tempo Run"],
+        };
+        let libraryChipStartIndex = 0;
+        let activeLibraryTab = "exercise";
+        let activeLibraryChip = "Squat";
+        const selectedLibraryExercisesByChip = {};
+        const libraryExerciseParamsByChip = {};
         let editingExercisesBuffer = [];
         let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
@@ -1026,7 +1051,7 @@
 
         function setCreateModalMode(isEditing) {
             if (createModalTitle) {
-                createModalTitle.textContent = isEditing ? "Редактирование тренировки" : "Добавление тренировки";
+                createModalTitle.textContent = isEditing ? "Редактирование блока" : "Добавление блока";
             }
             if (createSaveBtn) {
                 createSaveBtn.textContent = "Сохранить";
@@ -1112,6 +1137,47 @@
             }
         }
 
+        function openCommentModal(trainingId) {
+            if (!commentModal) return;
+            const training = trainingsStore.find((item) => Number(item.id) === Number(trainingId));
+            if (!training) return;
+
+            const sections = Array.isArray(training.sections) ? training.sections : [];
+            const blockTitle = String(sections[0]?.title || "").trim() || "Силовая часть";
+            const coachesText = String(
+                training.comment_for_coaches
+                || training.coach_comment
+                || training.comment
+                || ""
+            ).trim();
+            const athletesText = String(
+                training.comment_for_athletes
+                || training.athlete_comment
+                || training.comment_athletes
+                || ""
+            ).trim();
+
+            if (commentModalTitle) commentModalTitle.textContent = `Комментарии к блоку “${blockTitle}”`;
+            if (commentCoaches) commentCoaches.textContent = coachesText || "Без комментария";
+            if (commentAthletes) commentAthletes.textContent = athletesText || "Без комментария";
+
+            commentModal.hidden = false;
+            document.body.style.overflow = "hidden";
+        }
+
+        function closeCommentModal() {
+            if (!commentModal) return;
+            commentModal.hidden = true;
+            if (
+                resultsModal?.hidden !== false &&
+                deleteModal?.hidden !== false &&
+                createModal?.hidden !== false &&
+                readyModal?.hidden !== false
+            ) {
+                document.body.style.overflow = "";
+            }
+        }
+
         function openDeleteModal(card) {
             if (!deleteModal || !card) return;
             deletingTrainingId = Number(card.getAttribute("data-training-id") || 0) || null;
@@ -1174,16 +1240,171 @@
             if (directionInput) directionInput.value = nextValue;
         }
 
+        function setCreateSourceMode(nextMode) {
+            const normalized = nextMode === "manual" ? "manual" : "library";
+            activeCreateSourceType = normalized;
+
+            createSourceButtons.forEach((button) => {
+                const isActive = (button.getAttribute("data-create-source") || "library") === normalized;
+                button.classList.toggle("is-active", isActive);
+                button.setAttribute("aria-pressed", isActive ? "true" : "false");
+            });
+
+            if (createLibraryBlock) {
+                const showLibrary = normalized === "library";
+                createLibraryBlock.hidden = !showLibrary;
+                createLibraryBlock.style.display = showLibrary ? "" : "none";
+            }
+            if (createManualBlock) {
+                const showManual = normalized === "manual";
+                createManualBlock.hidden = !showManual;
+                createManualBlock.style.display = showManual ? "" : "none";
+            }
+        }
+
+        function renderLibraryChips() {
+            if (!libraryChipButtons.length || !libraryChipCatalog.length) return;
+            const total = libraryChipCatalog.length;
+            libraryChipButtons.forEach((button, index) => {
+                const chip = libraryChipCatalog[(libraryChipStartIndex + index) % total];
+                button.textContent = chip;
+                button.setAttribute("data-library-chip", chip);
+                button.classList.toggle("is-active", chip === activeLibraryChip);
+            });
+        }
+
+        function renderLibraryList() {
+            if (!libraryListContainer) return;
+            const items = activeLibraryTab === "benchmark"
+                ? [
+                    "Fran",
+                    "Cindy",
+                    "Murph",
+                    "Karen",
+                    "Helen"
+                ]
+                : (libraryExercisesByChip[activeLibraryChip] || []);
+            if (!items.length) {
+                libraryListContainer.innerHTML = "";
+                return;
+            }
+            if (!(selectedLibraryExercisesByChip[activeLibraryChip] instanceof Set)) {
+                selectedLibraryExercisesByChip[activeLibraryChip] = new Set();
+            }
+            if (!libraryExerciseParamsByChip[activeLibraryChip] || typeof libraryExerciseParamsByChip[activeLibraryChip] !== "object") {
+                libraryExerciseParamsByChip[activeLibraryChip] = {};
+            }
+            const selectedItems = selectedLibraryExercisesByChip[activeLibraryChip];
+            const paramsByItem = libraryExerciseParamsByChip[activeLibraryChip];
+            libraryListContainer.innerHTML = items.map((item) => {
+                const isActive = selectedItems.has(item);
+                const exerciseParams = paramsByItem[item] || { sets: "", reps: "" };
+                const metaMarkup = activeLibraryTab === "exercise" && isActive
+                    ? `<div class="calendar-create-modal__library-item-meta">
+                            <span>Подходов по Повторений</span>
+                            <div class="calendar-create-modal__result-row">
+                                <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов" value="${exerciseParams.sets || ""}" data-library-item-sets="${item}">
+                                <small>по</small>
+                                <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений" value="${exerciseParams.reps || ""}" data-library-item-reps="${item}">
+                            </div>
+                        </div>`
+                    : "";
+                return `<div class="calendar-create-modal__library-item-group">
+                            <button type="button" class="calendar-create-modal__library-item${isActive ? " is-active" : ""}" data-library-item="${item}">${item}</button>
+                            ${metaMarkup}
+                        </div>`;
+            }).join("");
+        }
+
+        function shiftLibraryChipWindow(step) {
+            if (!libraryChipCatalog.length) return;
+            const total = libraryChipCatalog.length;
+            libraryChipStartIndex = (libraryChipStartIndex + step + total) % total;
+            renderLibraryChips();
+        }
+
         openCreateBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
             resetCreateFormToDefaults();
-            activeCreateSourceType = "manual";
+            setCreateSourceMode("library");
             selectDirectionOption("fbb", "FBB");
             openCreateModal(false);
         });
         createModal?.addEventListener("click", (event) => {
             if (event.target.closest("[data-close-create]")) closeCreateModal();
         });
+        createSourceButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextMode = button.getAttribute("data-create-source") || "library";
+                setCreateSourceMode(nextMode);
+            });
+        });
+        libraryChipButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextChip = button.getAttribute("data-library-chip") || "";
+                if (!nextChip) return;
+                activeLibraryChip = nextChip;
+                renderLibraryChips();
+                renderLibraryList();
+            });
+        });
+        libraryTabs.forEach((button) => {
+            button.addEventListener("click", () => {
+                const nextTab = button.getAttribute("data-library-tab") || "exercise";
+                activeLibraryTab = nextTab === "benchmark" ? "benchmark" : "exercise";
+                libraryTabs.forEach((tabButton) => {
+                    const isActive = tabButton === button;
+                    tabButton.classList.toggle("is-active", isActive);
+                    tabButton.setAttribute("aria-selected", isActive ? "true" : "false");
+                });
+                renderLibraryList();
+            });
+        });
+        libraryArrowButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                const direction = button.getAttribute("data-library-arrow") || "next";
+                shiftLibraryChipWindow(direction === "prev" ? -1 : 1);
+            });
+        });
+        libraryListContainer?.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLButtonElement)) return;
+            const nextItem = target.getAttribute("data-library-item") || "";
+            if (!nextItem) return;
+            if (!(selectedLibraryExercisesByChip[activeLibraryChip] instanceof Set)) {
+                selectedLibraryExercisesByChip[activeLibraryChip] = new Set();
+            }
+            const selectedItems = selectedLibraryExercisesByChip[activeLibraryChip];
+            if (selectedItems.has(nextItem)) {
+                selectedItems.delete(nextItem);
+            } else {
+                selectedItems.add(nextItem);
+            }
+            renderLibraryList();
+        });
+        libraryListContainer?.addEventListener("input", (event) => {
+            const target = event.target;
+            if (!(target instanceof HTMLInputElement)) return;
+            const setsItem = target.getAttribute("data-library-item-sets");
+            const repsItem = target.getAttribute("data-library-item-reps");
+            const itemName = setsItem || repsItem || "";
+            if (!itemName) return;
+            if (!libraryExerciseParamsByChip[activeLibraryChip] || typeof libraryExerciseParamsByChip[activeLibraryChip] !== "object") {
+                libraryExerciseParamsByChip[activeLibraryChip] = {};
+            }
+            if (!libraryExerciseParamsByChip[activeLibraryChip][itemName]) {
+                libraryExerciseParamsByChip[activeLibraryChip][itemName] = { sets: "", reps: "" };
+            }
+            if (setsItem) {
+                libraryExerciseParamsByChip[activeLibraryChip][itemName].sets = target.value;
+            }
+            if (repsItem) {
+                libraryExerciseParamsByChip[activeLibraryChip][itemName].reps = target.value;
+            }
+        });
+        renderLibraryChips();
+        renderLibraryList();
+        setCreateSourceMode("library");
         existingExercisesWrap?.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
@@ -1320,6 +1541,16 @@
                 return;
             }
 
+            if (target.closest("[data-open-comment]")) {
+                event.preventDefault();
+                const card = target.closest(".calendar-day");
+                const trainingId = card instanceof HTMLElement ? Number(card.getAttribute("data-training-id") || 0) : 0;
+                if (trainingId) {
+                    openCommentModal(trainingId);
+                }
+                return;
+            }
+
             if (target.closest("[data-close-results]")) {
                 closeResultsModal();
             }
@@ -1327,52 +1558,15 @@
             if (target.closest("[data-close-delete]")) {
                 closeDeleteModal();
             }
+
+            if (target.closest("[data-close-comment]")) {
+                closeCommentModal();
+            }
         });
 
         document.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
-            const copyTrigger = target.closest("[data-copy-training]");
-            if (copyTrigger instanceof HTMLButtonElement) {
-                const card = copyTrigger.closest(".calendar-day");
-                if (!(card instanceof HTMLElement)) return;
-                const trainingId = Number(card.getAttribute("data-training-id") || 0);
-                if (!trainingId) return;
-                const training = trainingsStore.find((item) => Number(item.id) === trainingId);
-                if (!training) return;
-                const statusNode = card.querySelector("[data-copy-status]");
-                const showCopyStatus = (message, isError = false) => {
-                    if (!(statusNode instanceof HTMLElement)) return;
-                    statusNode.textContent = message;
-                    statusNode.hidden = false;
-                    statusNode.classList.toggle("calendar-event__copy-status--error", Boolean(isError));
-                    const previousTimer = Number(statusNode.dataset.hideTimerId || 0);
-                    if (previousTimer) {
-                        window.clearTimeout(previousTimer);
-                    }
-                    const timerId = window.setTimeout(() => {
-                        statusNode.hidden = true;
-                    }, 1400);
-                    statusNode.dataset.hideTimerId = String(timerId);
-                };
-
-                const text = buildTelegramTrainingText(training);
-                copyTextToClipboard(text).then((copied) => {
-                    if (!copied) {
-                        showCopyStatus("Не удалось скопировать", true);
-                        return;
-                    }
-                    copyTrigger.classList.add("calendar-event__copy-btn--copied");
-                    const previousTitle = copyTrigger.getAttribute("title") || "";
-                    copyTrigger.setAttribute("title", "Скопировано");
-                    showCopyStatus("Скопировано");
-                    window.setTimeout(() => {
-                        copyTrigger.classList.remove("calendar-event__copy-btn--copied");
-                        copyTrigger.setAttribute("title", previousTitle || "Скопировать для Telegram");
-                    }, 1200);
-                });
-                return;
-            }
             const toggleButton = target.closest("[data-section-toggle]");
             if (!(toggleButton instanceof HTMLButtonElement)) return;
             const section = toggleButton.closest(".calendar-event__section--compact");
@@ -1392,6 +1586,9 @@
             if (event.key === "Escape" && deleteModal && !deleteModal.hidden) {
                 closeDeleteModal();
             }
+            if (event.key === "Escape" && commentModal && !commentModal.hidden) {
+                closeCommentModal();
+            }
         });
 
         document.addEventListener("click", (event) => {
@@ -1409,7 +1606,7 @@
             event.stopPropagation();
             resetCreateFormToDefaults();
             editingTrainingId = trainingId;
-            activeCreateSourceType = "manual";
+            setCreateSourceMode("library");
             populateCreateFormFromTraining(trainingId);
             setCreateModalMode(true);
             openCreateModal(false);
@@ -2326,78 +2523,6 @@
                 .replace(/\r/g, "\n");
         }
 
-        function buildTelegramTrainingText(training) {
-            if (!training || typeof training !== "object") return "";
-            const title = String(training.title || training.direction_label || "Тренировка").trim();
-            const parsedDate = parseIsoDate(training.date);
-            const dateText = parsedDate ? formatCreateDate(parsedDate) : "";
-            const comment = String(training.comment || "").trim();
-            const sections = Array.isArray(training.sections) ? training.sections : [];
-
-            const lines = [];
-            lines.push(`${title}`);
-            if (dateText) lines.push(`Дата: ${dateText}`);
-            lines.push("");
-            lines.push("Комментарий:");
-            lines.push(comment || "Без комментария");
-
-            if (sections.length) {
-                lines.push("");
-                lines.push("Блоки:");
-                sections.forEach((section) => {
-                    const sectionTitle = String(section?.title || "Блок").trim();
-                    lines.push(`${sectionTitle}:`);
-                    const rawItems = Array.isArray(section?.items) ? section.items : [];
-                    const normalizedItems = rawItems
-                        .map((item) => normalizeLineBreaks(item).split("\n").map((part) => String(part || "").trim()))
-                        .flat()
-                        .filter(Boolean);
-                    if (!normalizedItems.length) {
-                        lines.push("- Без упражнений");
-                        return;
-                    }
-                    normalizedItems.forEach((item) => {
-                        lines.push(`- ${item}`);
-                    });
-                });
-            }
-
-            return lines.join("\n").trim();
-        }
-
-        async function copyTextToClipboard(text) {
-            const value = String(text || "");
-            if (!value) return false;
-
-            try {
-                if (navigator.clipboard && window.isSecureContext) {
-                    await navigator.clipboard.writeText(value);
-                    return true;
-                }
-            } catch (error) {
-                console.error(error);
-            }
-
-            const temp = document.createElement("textarea");
-            temp.value = value;
-            temp.setAttribute("readonly", "readonly");
-            temp.style.position = "fixed";
-            temp.style.opacity = "0";
-            temp.style.pointerEvents = "none";
-            document.body.appendChild(temp);
-            temp.focus();
-            temp.select();
-
-            let copied = false;
-            try {
-                copied = document.execCommand("copy");
-            } catch (error) {
-                console.error(error);
-            }
-            temp.remove();
-            return copied;
-        }
-
         function enforceIntegerOnlyInput(inputNode) {
             if (!inputNode || inputNode.dataset.integerOnlyReady === "true") return;
             inputNode.addEventListener("input", () => {
@@ -2413,10 +2538,6 @@
             const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
             const isFull = (training.sections || []).length > 2;
-            const normalizedComment = String(training.comment || "").trim();
-            const commentHtml = normalizedComment
-                ? `<p class="calendar-event__comment-row"><img src="{% static 'auth/img/admin/comment.svg' %}" alt="" aria-hidden="true"><span class="calendar-event__comment">Комментарий</span></p><p>${escapeHtml(normalizedComment)}</p>`
-                : "";
             const sectionsHtml = (training.sections || []).map((section) => {
                 if (isFull) {
                     return `
@@ -2443,13 +2564,11 @@
                         <div class="calendar-event__head">
                             <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
                             <div class="calendar-event__copy-wrap">
-                                <button type="button" class="calendar-event__copy-btn" data-copy-training aria-label="Скопировать тренировку для Telegram" title="Скопировать для Telegram">
-                                    <img src="{% static 'auth/img/admin/Copy.svg' %}" alt="" aria-hidden="true">
+                                <button type="button" class="calendar-event__head-icon" data-open-comment aria-label="Открыть комментарии тренировки" title="Комментарии">
+                                    <img src="{% static 'auth/img/admin/comment.svg' %}" alt="" aria-hidden="true">
                                 </button>
-                                <span class="calendar-event__copy-status" data-copy-status hidden aria-live="polite">Скопировано</span>
                             </div>
                         </div>
-                        ${commentHtml}
                         ${sectionsHtml}
                         <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""><img src="{% static 'auth/img/admin/Trash_Full.svg' %}" alt=""></span></div>
                     </div>
@@ -2601,7 +2720,7 @@
                 keepOnlyPrimaryExerciseCard();
                 setCreateModalMode(true);
             }
-            activeCreateSourceType = "manual";
+            setCreateSourceMode("library");
         }
 
         async function deleteTraining(trainingId) {
@@ -2642,7 +2761,7 @@
             resetExerciseEditorForm();
             renderExistingExercises();
 
-            activeCreateSourceType = training.source_type || "manual";
+            setCreateSourceMode(training.source_type || "library");
             if (readyWorkoutInput) readyWorkoutInput.value = training.ready_workout_type || readyWorkoutInput.value;
             if (readyComplexTypeInput) readyComplexTypeInput.value = training.ready_complex_type || readyComplexTypeInput.value;
             const readyNameInput = readyModal?.querySelector(".calendar-ready-modal__text-input");
@@ -2665,7 +2784,7 @@
 
             resetCreateFormToDefaults();
             editingTrainingId = trainingId;
-            activeCreateSourceType = "manual";
+            setCreateSourceMode("library");
             populateCreateFormFromTraining(trainingId);
             setCreateModalMode(true);
             openCreateModal(false);

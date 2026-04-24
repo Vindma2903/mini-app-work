@@ -177,11 +177,15 @@ class AdminTraining(models.Model):
     DIRECTION_CROSSFIT = 'crossfit'
     DIRECTION_GYMNASTICS = 'gymnastics'
     DIRECTION_WORKOUT = 'workout'
+    DIRECTION_FUNCTIONAL = 'functional'
+    DIRECTION_STRENGTH = 'strength'
     DIRECTION_CHOICES = (
         (DIRECTION_FBB, 'FBB'),
         (DIRECTION_CROSSFIT, 'Crossfit with Denis Zalozniy'),
         (DIRECTION_GYMNASTICS, 'Gymnastics'),
-        (DIRECTION_WORKOUT, 'Workout of the day'),
+        (DIRECTION_WORKOUT, 'Training of the day'),
+        (DIRECTION_FUNCTIONAL, 'Functional training'),
+        (DIRECTION_STRENGTH, 'Strength training'),
     )
 
     COLOR_BLUE = 'blue'

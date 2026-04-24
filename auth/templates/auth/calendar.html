@@ -540,12 +540,15 @@
         let deletingTrainingId = null;
         let activeResultsRequestId = 0;
         let activeCreateSourceType = "library";
-        const libraryChipCatalog = ["Squat", "Push", "Pull", "Bend"];
+        const exerciseChipCatalog = ["Squat", "Push", "Pull", "Bend"];
+        const benchmarkChipCatalog = ["Girls", "Heroes", "Gymnastics", "Total"];
         let libraryChipStartIndex = 0;
         let activeLibraryTab = "exercise";
-        let activeLibraryChip = "Squat";
+        let activeExerciseChip = "Squat";
+        let activeBenchmarkChip = "Girls";
         let libraryItemsCache = { exercise: [], benchmark: [] };
         const selectedLibraryItems = new Map();
+        const expandedBenchmarkItems = new Set();
         const libraryExerciseParamsById = {};
         let editingExercisesBuffer = [];
         let activeExerciseEditIndex = null;
@@ -1333,6 +1336,26 @@
             }).filter(Boolean);
         }
 
+        function buildBenchmarkPreviewRows() {
+            const rows = Array.from(selectedLibraryItems.values())
+                .filter((item) => item?.section === "benchmarks")
+                .slice(0, 8);
+            return rows.map((item) => {
+                const isExpanded = expandedBenchmarkItems.has(item.id);
+                const details = isExpanded
+                    ? `<div class="calendar-create-modal__preview-benchmark-detail">
+                            <p>Squat 10 повторений по 5 раз</p>
+                            <p>Jerk 10 повторений по 5 раз</p>
+                            <p>Squat 5 повторений по 5 раз</p>
+                       </div>`
+                    : "";
+                return `<div class="calendar-create-modal__preview-benchmark-row">
+                            <div class="calendar-create-modal__preview-benchmark-head">${escapeHtml(item.title)}<span>${isExpanded ? "&#9652;" : "&#9662;"}</span></div>
+                            ${details}
+                        </div>`;
+            }).join("");
+        }
+
         function updateCreatePreviewContent() {
             if (!createPreviewCard) return;
             const titleNode = createPreviewCard.querySelector("h4");
@@ -1340,8 +1363,13 @@
             if (!(titleNode instanceof HTMLElement) || !(listNode instanceof HTMLElement)) return;
 
             const title = getTrainingBlockPreviewTitle();
-            const lines = buildCreatePreviewLines();
             titleNode.textContent = title;
+            if (activeCreateSourceType === "library" && activeLibraryTab === "benchmark") {
+                const rowsMarkup = buildBenchmarkPreviewRows();
+                listNode.innerHTML = rowsMarkup || `<li>Выберите benchmark в списке</li>`;
+                return;
+            }
+            const lines = buildCreatePreviewLines();
             const safeLines = lines.length ? lines : ["Добавьте описание или выберите упражнения"];
             listNode.innerHTML = safeLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("");
         }
@@ -1373,13 +1401,15 @@
         }
 
         function renderLibraryChips() {
-            if (!libraryChipButtons.length || !libraryChipCatalog.length) return;
-            const total = libraryChipCatalog.length;
+            const chipCatalog = getActiveChipCatalog();
+            if (!libraryChipButtons.length || !chipCatalog.length) return;
+            const total = chipCatalog.length;
+            const activeChip = getActiveLibraryChip();
             libraryChipButtons.forEach((button, index) => {
-                const chip = libraryChipCatalog[(libraryChipStartIndex + index) % total];
+                const chip = chipCatalog[(libraryChipStartIndex + index) % total];
                 button.textContent = chip;
                 button.setAttribute("data-library-chip", chip);
-                button.classList.toggle("is-active", chip === activeLibraryChip);
+                button.classList.toggle("is-active", chip === activeChip);
             });
         }
 
@@ -1389,6 +1419,36 @@
             if (normalized === "pull") return "pull";
             if (normalized === "bend") return "bend";
             return "squat";
+        }
+
+        function chipToBenchmarkCategory(chipValue) {
+            const normalized = String(chipValue || "").trim().toLowerCase();
+            if (normalized === "heroes") return "heroes";
+            if (normalized === "gymnastics") return "gymnastics";
+            if (normalized === "total") return "total";
+            return "girls";
+        }
+
+        function getActiveChipCatalog() {
+            return activeLibraryTab === "benchmark" ? benchmarkChipCatalog : exerciseChipCatalog;
+        }
+
+        function getActiveLibraryChip() {
+            return activeLibraryTab === "benchmark" ? activeBenchmarkChip : activeExerciseChip;
+        }
+
+        function setActiveLibraryChip(nextChip) {
+            if (activeLibraryTab === "benchmark") {
+                activeBenchmarkChip = nextChip;
+            } else {
+                activeExerciseChip = nextChip;
+            }
+        }
+
+        function applyLibraryTabMode() {
+            if (!createLibraryBlock) return;
+            createLibraryBlock.classList.toggle("is-benchmark", activeLibraryTab === "benchmark");
+            createLibraryBlock.classList.toggle("is-exercise", activeLibraryTab !== "benchmark");
         }
 
         function normalizeLibraryRow(row) {
@@ -1409,9 +1469,10 @@
             const params = new URLSearchParams();
             if (activeLibraryTab === "benchmark") {
                 params.set("section", "benchmarks");
+                params.set("category", chipToBenchmarkCategory(getActiveLibraryChip()));
             } else {
                 params.set("section", "exercises");
-                params.set("movement_group", chipToMovementGroup(activeLibraryChip));
+                params.set("movement_group", chipToMovementGroup(getActiveLibraryChip()));
             }
             try {
                 const response = await fetch(`${adminLibraryListUrl}?${params.toString()}`, {
@@ -1435,21 +1496,44 @@
 
         function getVisibleLibraryItems() {
             const list = Array.isArray(libraryItemsCache[activeLibraryTab]) ? libraryItemsCache[activeLibraryTab] : [];
+            const activeChip = getActiveLibraryChip();
+            const categoryFiltered = activeLibraryTab === "benchmark"
+                ? list.filter((item) => {
+                    const itemCategory = String(item.category || "").trim().toLowerCase();
+                    const chipCategory = chipToBenchmarkCategory(activeChip);
+                    return !itemCategory || itemCategory === chipCategory;
+                })
+                : list;
             const search = String(librarySearchInput?.value || "").trim().toLowerCase();
-            if (!search) return list;
-            return list.filter((item) => item.title.toLowerCase().includes(search));
+            if (!search) return categoryFiltered;
+            return categoryFiltered.filter((item) => item.title.toLowerCase().includes(search));
         }
 
         function renderLibraryList() {
             if (!libraryListContainer) return;
-            const items = getVisibleLibraryItems();
+            let items = getVisibleLibraryItems();
+            if (activeLibraryTab === "benchmark" && !items.length) {
+                const fallbackCategory = chipToBenchmarkCategory(getActiveLibraryChip());
+                items = [
+                    { id: `${fallbackCategory}-anna-1`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
+                    { id: `${fallbackCategory}-anna-2`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
+                    { id: `${fallbackCategory}-anna-3`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
+                    { id: `${fallbackCategory}-anna-4`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
+                    { id: `${fallbackCategory}-anna-5`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
+                ];
+            }
             if (!items.length) {
                 libraryListContainer.innerHTML = `<p>Ничего не найдено</p>`;
                 updateCreatePreviewContent();
                 return;
             }
+            if (activeLibraryTab === "benchmark" && !selectedLibraryItems.size && items[0]) {
+                selectedLibraryItems.set(items[0].id, items[0]);
+            }
             libraryListContainer.innerHTML = items.map((item) => {
-                const isActive = selectedLibraryItems.has(item.id);
+                const isActive = item.section === "benchmarks"
+                    ? expandedBenchmarkItems.has(item.id)
+                    : selectedLibraryItems.has(item.id);
                 const exerciseParams = libraryExerciseParamsById[item.id] || { sets: "", reps: "", result_type: "time" };
                 const metaMarkup = item.section === "exercises" && isActive
                     ? `<div class="calendar-create-modal__library-item-meta">
@@ -1461,17 +1545,30 @@
                             </div>
                         </div>`
                     : "";
+                const isBenchmarkExpanded = item.section === "benchmarks" && expandedBenchmarkItems.has(item.id);
+                const chevronMarkup = item.section === "benchmarks"
+                    ? `<span class="calendar-create-modal__library-item-chevron${isBenchmarkExpanded ? " is-expanded" : ""}" aria-hidden="true">&#9662;</span>`
+                    : "";
+                const benchmarkStubMarkup = item.section === "benchmarks" && isBenchmarkExpanded
+                    ? `<div class="calendar-create-modal__benchmark-stub">
+                            <p>Squat 10 повторений по 5 раз</p>
+                            <p>Jerk 10 повторений по 5 раз</p>
+                            <p>Squat 5 повторений по 5 раз</p>
+                        </div>`
+                    : "";
                 return `<div class="calendar-create-modal__library-item-group">
-                            <button type="button" class="calendar-create-modal__library-item${isActive ? " is-active" : ""}" data-library-item-id="${item.id}">${escapeHtml(item.title)}</button>
+                            <button type="button" class="calendar-create-modal__library-item${isActive ? " is-active" : ""}" data-library-item-id="${item.id}">${escapeHtml(item.title)}${chevronMarkup}</button>
                             ${metaMarkup}
+                            ${benchmarkStubMarkup}
                         </div>`;
             }).join("");
             updateCreatePreviewContent();
         }
 
         function shiftLibraryChipWindow(step) {
-            if (!libraryChipCatalog.length) return;
-            const total = libraryChipCatalog.length;
+            const chipCatalog = getActiveChipCatalog();
+            if (!chipCatalog.length) return;
+            const total = chipCatalog.length;
             libraryChipStartIndex = (libraryChipStartIndex + step + total) % total;
             renderLibraryChips();
         }
@@ -1496,7 +1593,7 @@
             button.addEventListener("click", async () => {
                 const nextChip = button.getAttribute("data-library-chip") || "";
                 if (!nextChip) return;
-                activeLibraryChip = nextChip;
+                setActiveLibraryChip(nextChip);
                 renderLibraryChips();
                 await loadLibraryItems();
                 renderLibraryList();
@@ -1506,11 +1603,14 @@
             button.addEventListener("click", async () => {
                 const nextTab = button.getAttribute("data-library-tab") || "exercise";
                 activeLibraryTab = nextTab === "benchmark" ? "benchmark" : "exercise";
+                libraryChipStartIndex = 0;
                 libraryTabs.forEach((tabButton) => {
                     const isActive = tabButton === button;
                     tabButton.classList.toggle("is-active", isActive);
                     tabButton.setAttribute("aria-selected", isActive ? "true" : "false");
                 });
+                applyLibraryTabMode();
+                renderLibraryChips();
                 await loadLibraryItems();
                 renderLibraryList();
             });
@@ -1523,16 +1623,33 @@
         });
         libraryListContainer?.addEventListener("click", (event) => {
             const target = event.target;
-            if (!(target instanceof HTMLButtonElement)) return;
-            const itemId = target.getAttribute("data-library-item-id") || "";
+            if (!(target instanceof Element)) return;
+            const itemButton = target.closest("[data-library-item-id]");
+            if (!(itemButton instanceof HTMLButtonElement)) return;
+            const itemId = itemButton.getAttribute("data-library-item-id") || "";
             if (!itemId) return;
+            const itemTitle = (itemButton.textContent || "").replace("▾", "").trim() || "Анна / Anna";
             const sourceItems = getVisibleLibraryItems();
-            const row = sourceItems.find((item) => item.id === itemId);
-            if (!row) return;
-            if (selectedLibraryItems.has(itemId)) {
-                selectedLibraryItems.delete(itemId);
+            const row = sourceItems.find((item) => item.id === itemId) || {
+                id: itemId,
+                title: itemTitle,
+                section: activeLibraryTab === "benchmark" ? "benchmarks" : "exercises",
+                category: activeLibraryTab === "benchmark" ? chipToBenchmarkCategory(getActiveLibraryChip()) : "",
+            };
+            if (row.section === "benchmarks") {
+                if (expandedBenchmarkItems.has(itemId)) {
+                    expandedBenchmarkItems.delete(itemId);
+                    selectedLibraryItems.delete(itemId);
+                } else {
+                    expandedBenchmarkItems.add(itemId);
+                    selectedLibraryItems.set(itemId, row);
+                }
             } else {
-                selectedLibraryItems.set(itemId, row);
+                if (selectedLibraryItems.has(itemId)) {
+                    selectedLibraryItems.delete(itemId);
+                } else {
+                    selectedLibraryItems.set(itemId, row);
+                }
             }
             if (!libraryExerciseParamsById[itemId]) {
                 libraryExerciseParamsById[itemId] = { sets: "", reps: "", result_type: "time" };
@@ -1564,6 +1681,7 @@
         trainingBlockCustomInput?.addEventListener("input", () => updateCreatePreviewContent());
         renderLibraryChips();
         loadLibraryItems().then(() => renderLibraryList());
+        applyLibraryTabMode();
         setCreateSourceMode("library");
         existingExercisesWrap?.addEventListener("click", (event) => {
             const target = event.target;

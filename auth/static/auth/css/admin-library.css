@@ -3,39 +3,39 @@
 }
 
 .admin-library-content {
-    padding: 24px;
+    padding: 0;
 }
 
 .admin-library-header {
-    height: 88px;
+    height: 89px;
     background: #fff;
-    border: 1px solid #d7dbe2;
-    border-radius: 10px;
-    padding: 16px 20px;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 16px 32px 1px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 18px;
+    margin-bottom: 32px;
 }
 
 .admin-library-header h1 {
     margin: 0;
-    font: 600 36px/42px Inter, Arial, sans-serif;
+    font: 600 24px/32px Montserrat, Inter, Arial, sans-serif;
     color: #101828;
 }
 
 .admin-library-header p {
-    margin: 2px 0 0;
-    font: 400 16px/20px Inter, Arial, sans-serif;
-    color: #667085;
+    margin: 4px 0 0;
+    font: 400 14px/20px Inter, Arial, sans-serif;
+    color: #6a7282;
 }
 
 .admin-library-card {
     background: #fff;
-    border: 1px solid #d7dbe2;
-    border-radius: 10px;
-    min-height: 610px;
-    padding: 20px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px -1px rgba(0, 0, 0, .1), 0 1px 3px 0 rgba(0, 0, 0, .1);
+    min-height: 871px;
+    padding: 25px 25px 1px;
 }
 
 .admin-library-toolbar {
@@ -43,20 +43,21 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 24px;
 }
 
 .admin-library-tabs {
     display: inline-flex;
-    border-bottom: 1px solid #e4e7ec;
+    border-bottom: 1px solid #e5e7eb;
 }
 
 .admin-library-tabs__item {
-    color: #667085;
+    color: #6a7282;
     text-decoration: none;
-    font: 500 22px/26px Inter, Arial, sans-serif;
-    padding: 12px 18px;
-    border-bottom: 3px solid transparent;
+    font: 500 15px/22px Inter, Arial, sans-serif;
+    padding: 10px 24px 12px;
+    border-bottom: 2px solid transparent;
+    transition: color .15s ease, border-color .15s ease;
 }
 
 .admin-library-tabs__item.is-active {
@@ -65,101 +66,201 @@
 }
 
 .admin-library-add {
-    height: 38px;
-    border: 1px solid #d0d5dd;
-    border-radius: 10px;
-    background: #f9fafb;
-    color: #344054;
-    padding: 0 18px;
-    font: 500 20px/24px Inter, Arial, sans-serif;
+    height: 36px;
+    border: 1px solid #b2bac5;
+    border-radius: 8px;
+    background: #fff;
+    color: #364153;
+    padding: 0 16px;
+    font: 500 14px/24px Inter, Arial, sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
 }
 
-.admin-library-benchmark-filters {
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    margin: 2px 0 14px;
+.admin-library-add img {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
-.admin-library-benchmark-filters[hidden] {
+.admin-library-segment-filters {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -8px 0 20px;
+}
+
+.admin-library-segment-filters[hidden] {
     display: none !important;
 }
 
-.admin-library-benchmark-filters__item {
+.admin-library-segment-filters__item {
     height: 32px;
-    border: 1px solid #d0d5dd;
+    border: 1px solid #b2bac5;
     border-radius: 8px;
-    background: #f9fafb;
-    color: #667085;
-    padding: 0 12px;
+    background: #fff;
+    color: #364153;
+    padding: 0 14px;
     font: 500 14px/18px Inter, Arial, sans-serif;
     cursor: pointer;
 }
 
-.admin-library-benchmark-filters__item.is-active {
+.admin-library-segment-filters__item.is-active {
     background: #155dfc;
     border-color: #155dfc;
     color: #fff;
 }
 
+#admin-library-benchmark-filters:not([hidden]) {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin: 0 0 24px;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item {
+    height: 44px !important;
+    border: 2px solid #d0d5dd !important;
+    border-radius: 12px !important;
+    background: #f3f4f6 !important;
+    color: #667085 !important;
+    padding: 0 22px !important;
+    font: 500 14px/18px Inter, Arial, sans-serif !important;
+    letter-spacing: 0;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item[data-benchmark-filter="girls"] {
+    min-width: 96px;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item[data-benchmark-filter="heroes"] {
+    min-width: 112px;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item[data-benchmark-filter="gymnastics"] {
+    min-width: 148px;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item[data-benchmark-filter="total"] {
+    min-width: 90px;
+}
+
+#admin-library-benchmark-filters .admin-library-segment-filters__item.is-active {
+    background: #2563eb !important;
+    border-color: #2563eb !important;
+    color: #ffffff !important;
+}
+
+@media (max-width: 1360px) {
+    #admin-library-benchmark-filters {
+        gap: 12px;
+    }
+
+    #admin-library-benchmark-filters .admin-library-segment-filters__item {
+        height: 40px !important;
+        border-radius: 10px !important;
+        padding: 0 16px !important;
+        min-width: 0 !important;
+        font: 500 13px/16px Inter, Arial, sans-serif !important;
+    }
+}
+
 .admin-library-table-wrap {
     overflow-x: auto;
-    border: 1px solid #e4e7ec;
-    border-radius: 8px;
 }
 
 .admin-library-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 1040px;
+    min-width: 1125px;
 }
 
 .admin-library-table thead th {
     text-align: left;
-    background: #f2f4f7;
-    color: #101828;
-    font: 600 16px/20px Inter, Arial, sans-serif;
-    padding: 14px 14px;
-    border-bottom: 1px solid #e4e7ec;
+    background: rgba(177, 183, 195, .1);
+    color: #000;
+    font: 600 13px/20px Inter, Arial, sans-serif;
+    padding: 0 0 0 0;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+    height: 40px;
 }
 
 .admin-library-table tbody td {
-    color: #344054;
-    font: 400 15px/21px Inter, Arial, sans-serif;
-    padding: 14px 14px;
-    border-bottom: 1px solid #eaecf0;
+    color: #000;
+    font: 400 13px/20px Inter, Arial, sans-serif;
+    padding: 12px 0 0;
+    border-bottom: 1px solid #e5e7eb;
     vertical-align: top;
 }
 
+.admin-library-table th:nth-child(1),
+.admin-library-table td:nth-child(1) { width: 140px; padding-left: 24px; }
+.admin-library-table th:nth-child(2),
+.admin-library-table td:nth-child(2) { width: 140px; padding-left: 12px; }
+.admin-library-table th:nth-child(3),
+.admin-library-table td:nth-child(3) { width: 300px; padding-left: 12px; }
+.admin-library-table th:nth-child(4),
+.admin-library-table td:nth-child(4) { width: 330px; padding-left: 12px; }
+.admin-library-table th:nth-child(5),
+.admin-library-table td:nth-child(5) { width: 60px; text-align: center; }
+.admin-library-table th:nth-child(6),
+.admin-library-table td:nth-child(6) { width: 80px; text-align: center; padding-right: 24px; }
+
+.admin-library-table td:nth-child(5),
+.admin-library-table td:nth-child(6) {
+    padding-top: 16px;
+}
+
 .admin-library-video {
-    color: #155dfc;
-    text-decoration: underline;
+    color: #000;
+    text-decoration: none;
+    font: 400 13px/20px Inter, Arial, sans-serif;
 }
 
 .admin-library-actions {
     display: inline-flex;
     align-items: center;
-    gap: 14px;
+    justify-content: center;
+    gap: 8px;
 }
 
 .admin-library-actions a {
+    width: 28px;
+    height: 28px;
+    border: 1px solid transparent;
+    border-radius: 6px;
     text-decoration: none;
-    color: #475467;
-    font-size: 18px;
+    color: #6a7282;
     display: inline-flex;
     align-items: center;
     justify-content: center;
 }
 
-.admin-library-actions a:last-child {
-    color: #f04438;
+.admin-library-actions a[data-library-edit] {
+    border-color: #d1d5dc;
+}
+
+.admin-library-actions a[data-library-delete] {
+    border-color: #fca5a5;
 }
 
 .admin-library-actions a img {
     width: 16px;
     height: 16px;
     display: block;
+}
+
+.admin-library-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-library-table tbody td[colspan="6"] {
+    padding: 16px 24px;
+    text-align: left;
 }
 
 .admin-library-modal[hidden] {

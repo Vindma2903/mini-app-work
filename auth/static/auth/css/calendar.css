@@ -159,32 +159,34 @@ flex-shrink:0;
 .calendar-comment-modal[hidden]{display:none!important}
 .calendar-comment-modal{position:fixed;inset:0;z-index:116}
 .calendar-comment-modal__overlay{position:absolute;inset:0;background:rgba(16,24,40,.5)}
-.calendar-comment-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(421px,calc(100vw - 32px));background:#fff;border:1px solid #e5e7eb;border-radius:8px 8px 0 8px;box-shadow:none;padding:24px;display:grid;gap:0}
-.calendar-comment-modal__close{position:absolute;top:20px;right:20px;width:24px;height:24px;border:0;border-radius:999px;background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:.7}
-.calendar-comment-modal__close img{width:14px;height:14px;display:block}
+.calendar-comment-modal__card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(421px,calc(100vw - 32px));background:#f3f4f6;border:1px solid #e5e7eb;border-radius:8px 8px 0 8px;box-shadow:none;padding:24px;display:grid;gap:0}
+.calendar-comment-modal__close{position:absolute;top:16px;right:16px;width:20px;height:20px;border:0;border-radius:999px;background:transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;opacity:.65}
+.calendar-comment-modal__close img{width:12px;height:12px;display:block}
 .calendar-comment-modal__title{margin:0 0 32px;font:600 18px/20px Inter,Arial,sans-serif;color:#000;letter-spacing:0}
 .calendar-comment-modal__group{display:grid;gap:12px}
+.calendar-comment-modal__group:first-of-type{gap:20px}
 .calendar-comment-modal__group+.calendar-comment-modal__group{margin-top:12px}
 .calendar-comment-modal__label{margin:0;font:500 14px/20px Inter,Arial,sans-serif;color:#000}
-.calendar-comment-modal__bubble{position:relative;margin:0 0 12px;padding:12px;background:#edf4ff;border:1px solid #155dfc;border-radius:8px 8px 0 8px;font:400 14px/20px Inter,Arial,sans-serif;color:#000;white-space:pre-line;overflow:visible}
-.calendar-comment-modal__bubble::after{content:"";position:absolute;width:11px;height:11px;pointer-events:none;box-sizing:border-box;transform:rotate(45deg)}
+.calendar-comment-modal__bubble{position:relative;margin:0;padding:12px;background:#edf4ff;border:1px solid #155dfc;border-radius:8px 8px 0 8px;font:400 14px/20px Inter,Arial,sans-serif;color:#000;white-space:pre-line;overflow:visible}
+.calendar-comment-modal__bubble::after{content:"";position:absolute;width:13px;height:13px;pointer-events:none;box-sizing:border-box;transform:rotate(45deg)}
 
 #calendar-comment-coaches{background:#edf4ff;border-radius:8px 8px 0 8px}
-#calendar-comment-coaches::after{right:18px;bottom:-6px;background:#edf4ff;border-right:1px solid #155dfc;border-bottom:1px solid #155dfc}
+#calendar-comment-coaches::after{right:14px;bottom:-7px;background:#edf4ff;border-right:1px solid #155dfc;border-bottom:1px solid #155dfc}
 
 #calendar-comment-athletes{background:#fff;border-radius:8px 8px 8px 0}
-#calendar-comment-athletes::after{left:18px;bottom:-6px;background:#fff;border-left:1px solid #155dfc;border-bottom:1px solid #155dfc}
+#calendar-comment-athletes::after{left:14px;bottom:-7px;background:#fff;border-left:1px solid #155dfc;border-bottom:1px solid #155dfc}
 
 @media (max-width: 900px){
     .calendar-comment-modal__card{padding:20px 18px}
     .calendar-comment-modal__title{margin-bottom:20px;font-size:16px;line-height:22px}
     .calendar-comment-modal__group{gap:10px}
+    .calendar-comment-modal__group:first-of-type{gap:16px}
     .calendar-comment-modal__group+.calendar-comment-modal__group{margin-top:10px}
     .calendar-comment-modal__label{font-size:13px;line-height:18px}
-    .calendar-comment-modal__bubble{font-size:13px;line-height:18px;padding:10px 12px;margin-bottom:8px}
-    .calendar-comment-modal__bubble::after{width:9px;height:9px;bottom:-5px}
-    #calendar-comment-coaches::after{right:14px}
-    #calendar-comment-athletes::after{left:14px}
+    .calendar-comment-modal__bubble{font-size:13px;line-height:18px;padding:10px 12px}
+    .calendar-comment-modal__bubble::after{width:11px;height:11px;bottom:-6px}
+    #calendar-comment-coaches::after{right:12px}
+    #calendar-comment-athletes::after{left:12px}
 }
 
 .calendar-range-modal[hidden]{display:none!important}

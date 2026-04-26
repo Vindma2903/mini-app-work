@@ -5,7 +5,7 @@
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/admin-library.css' %}">
+<link rel="stylesheet" href="{% static 'auth/css/admin-library.css' %}?v=20260426-1">
 {% endblock %}
 
 {% block content %}
@@ -40,17 +40,31 @@
             <div class="admin-library-toolbar">
                 <nav class="admin-library-tabs" aria-label="Типы библиотеки">
                     <a href="#" class="admin-library-tabs__item is-active" data-tab="exercises">Упражнения</a>
-                    <a href="#" class="admin-library-tabs__item" data-tab="trainings">Тренировки</a>
-                    <a href="#" class="admin-library-tabs__item" data-tab="barbell">Barbell PRs</a>
                     <a href="#" class="admin-library-tabs__item" data-tab="benchmarks">Benchmarks</a>
                 </nav>
-                <button type="button" class="admin-library-add">+ Добавить</button>
+                <button type="button" class="admin-library-add">
+                    <img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="" aria-hidden="true">
+                    <span>Добавить</span>
+                </button>
             </div>
 
-            <div class="admin-library-benchmark-filters" id="admin-library-benchmark-filters" hidden>
-                <button type="button" class="admin-library-benchmark-filters__item is-active" data-benchmark-filter="girls">Girls</button>
-                <button type="button" class="admin-library-benchmark-filters__item" data-benchmark-filter="heroes">Heroes</button>
-                <button type="button" class="admin-library-benchmark-filters__item" data-benchmark-filter="gymnastics">Gymnastics</button>
+            <div class="admin-library-segment-filters" id="admin-library-exercise-filters">
+                <button type="button" class="admin-library-segment-filters__item is-active" data-exercise-filter="squat">Squat</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="push">Push</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="pull">Pull</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="bend">Bend</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="lunge">Lunge</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="olympic">Olympic</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="plyometric">Plyometric</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="cardio">Cardio</button>
+                <button type="button" class="admin-library-segment-filters__item" data-exercise-filter="trx">TRX</button>
+            </div>
+
+            <div class="admin-library-segment-filters" id="admin-library-benchmark-filters" hidden>
+                <button type="button" class="admin-library-segment-filters__item is-active" data-benchmark-filter="girls">Girls</button>
+                <button type="button" class="admin-library-segment-filters__item" data-benchmark-filter="heroes">Heroes</button>
+                <button type="button" class="admin-library-segment-filters__item" data-benchmark-filter="gymnastics">Gymnastics</button>
+                <button type="button" class="admin-library-segment-filters__item" data-benchmark-filter="total">Total</button>
             </div>
 
             <div class="admin-library-table-wrap">
@@ -113,6 +127,7 @@
                     <option value="girls">Girls</option>
                     <option value="heroes">Heroes</option>
                     <option value="gymnastics">Gymnastics</option>
+                    <option value="total">Total</option>
                 </select>
             </label>
 
@@ -187,6 +202,8 @@
         const submitButton = document.getElementById("admin-library-form-submit");
         const modalTitle = document.getElementById("admin-library-modal-title");
         const rowsPayloadEl = document.getElementById("admin-library-rows-data");
+        const exerciseFiltersWrap = document.getElementById("admin-library-exercise-filters");
+        const exerciseFilterButtons = exerciseFiltersWrap?.querySelectorAll("[data-exercise-filter]") || [];
         const benchmarkFiltersWrap = document.getElementById("admin-library-benchmark-filters");
         const benchmarkFilterButtons = benchmarkFiltersWrap?.querySelectorAll("[data-benchmark-filter]") || [];
 
@@ -197,6 +214,7 @@
 
         const initialActiveTab = document.querySelector(".admin-library-tabs__item.is-active")?.getAttribute("data-tab");
         let activeTab = initialActiveTab || "exercises";
+        let currentExerciseFilter = "squat";
         let currentBenchmarkFilter = "girls";
         let modalMode = "create";
         let editingItemId = null;
@@ -230,6 +248,9 @@
                 if (activeTab === "benchmarks") {
                     return String(row.category || "") === currentBenchmarkFilter;
                 }
+                if (activeTab === "exercises") {
+                    return String(row.movement_group || "").toLowerCase() === String(currentExerciseFilter || "").toLowerCase();
+                }
                 return true;
             });
         }
@@ -261,8 +282,12 @@
         }
 
         function toggleBenchmarkFilters() {
-            if (!benchmarkFiltersWrap) return;
-            benchmarkFiltersWrap.hidden = activeTab !== "benchmarks";
+            if (exerciseFiltersWrap) {
+                exerciseFiltersWrap.hidden = activeTab !== "exercises";
+            }
+            if (benchmarkFiltersWrap) {
+                benchmarkFiltersWrap.hidden = activeTab !== "benchmarks";
+            }
         }
 
         function setAddModalOpen(open) {
@@ -396,6 +421,9 @@
             if (activeTab === "benchmarks") {
                 params.set("category", currentBenchmarkFilter);
             }
+            if (activeTab === "exercises") {
+                params.set("movement_group", currentExerciseFilter);
+            }
             const response = await fetch(`{% url 'auth:admin_library_list' %}?${params.toString()}`);
             const payload = await response.json();
             if (!response.ok || !payload?.ok || !Array.isArray(payload.rows)) {
@@ -423,6 +451,9 @@
             formData.append("section", sectionInput.value);
             if (sectionInput.value === "benchmarks") {
                 formData.append("category", categoryInput?.value || "");
+            }
+            if (sectionInput.value === "exercises") {
+                formData.append("movement_group", currentExerciseFilter);
             }
             formData.append("name_ru", nameRuInput.value || "");
             formData.append("name_en", nameEnInput?.value || "");
@@ -525,6 +556,22 @@
                 benchmarkFilterButtons.forEach((item) => item.classList.remove("is-active"));
                 button.classList.add("is-active");
                 if (activeTab === "benchmarks") {
+                    try {
+                        await fetchRowsFromServer();
+                    } catch (error) {
+                        rowsCache = [];
+                    }
+                    renderRows();
+                }
+            });
+        });
+
+        exerciseFilterButtons.forEach((button) => {
+            button.addEventListener("click", async () => {
+                currentExerciseFilter = button.getAttribute("data-exercise-filter") || "squat";
+                exerciseFilterButtons.forEach((item) => item.classList.remove("is-active"));
+                button.classList.add("is-active");
+                if (activeTab === "exercises") {
                     try {
                         await fetchRowsFromServer();
                     } catch (error) {

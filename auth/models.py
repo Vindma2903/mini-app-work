@@ -345,21 +345,33 @@ class AdminLibraryItem(models.Model):
     CATEGORY_GIRLS = 'girls'
     CATEGORY_HEROES = 'heroes'
     CATEGORY_GYMNASTICS = 'gymnastics'
+    CATEGORY_TOTAL = 'total'
     BENCHMARK_CATEGORY_CHOICES = (
         (CATEGORY_GIRLS, 'Girls'),
         (CATEGORY_HEROES, 'Heroes'),
         (CATEGORY_GYMNASTICS, 'Gymnastics'),
+        (CATEGORY_TOTAL, 'Total'),
     )
 
     MOVEMENT_GROUP_SQUAT = 'squat'
     MOVEMENT_GROUP_PUSH = 'push'
     MOVEMENT_GROUP_PULL = 'pull'
     MOVEMENT_GROUP_BEND = 'bend'
+    MOVEMENT_GROUP_LUNGE = 'lunge'
+    MOVEMENT_GROUP_OLYMPIC = 'olympic'
+    MOVEMENT_GROUP_PLYOMETRIC = 'plyometric'
+    MOVEMENT_GROUP_CARDIO = 'cardio'
+    MOVEMENT_GROUP_TRX = 'trx'
     MOVEMENT_GROUP_CHOICES = (
         (MOVEMENT_GROUP_SQUAT, 'Squat'),
         (MOVEMENT_GROUP_PUSH, 'Push'),
         (MOVEMENT_GROUP_PULL, 'Pull'),
         (MOVEMENT_GROUP_BEND, 'Bend'),
+        (MOVEMENT_GROUP_LUNGE, 'Lunge'),
+        (MOVEMENT_GROUP_OLYMPIC, 'Olympic'),
+        (MOVEMENT_GROUP_PLYOMETRIC, 'Plyometric'),
+        (MOVEMENT_GROUP_CARDIO, 'Cardio'),
+        (MOVEMENT_GROUP_TRX, 'TRX'),
     )
 
     section = models.CharField(max_length=16, choices=SECTION_CHOICES, default=SECTION_EXERCISES, db_index=True)

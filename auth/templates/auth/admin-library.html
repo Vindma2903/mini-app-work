@@ -86,7 +86,7 @@
                             <td>{{ row.name_en }}</td>
                             <td>{{ row.desc_ru }}</td>
                             <td>{{ row.desc_en }}</td>
-                            <td><a href="#" class="admin-library-video">{{ row.video }}</a></td>
+                            <td><a href="#" class="admin-library-video">{{ row.video_count|default:0 }}</a></td>
                             <td>
                                 <span class="admin-library-actions">
                                     <a href="#" aria-label="Редактировать" data-library-edit="{{ row.id }}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
@@ -115,20 +115,13 @@
                 <span>Раздел</span>
                 <select id="admin-library-form-section" class="admin-library-modal__input">
                     <option value="exercises">Упражнения</option>
-                    <option value="trainings">Тренировки</option>
-                    <option value="barbell">Barbell PRs</option>
                     <option value="benchmarks">Benchmarks</option>
                 </select>
             </label>
 
-            <label class="admin-library-modal__field" id="admin-library-form-category-wrap" hidden>
+            <label class="admin-library-modal__field" id="admin-library-form-category-wrap">
                 <span>Категория</span>
-                <select id="admin-library-form-category" class="admin-library-modal__input">
-                    <option value="girls">Girls</option>
-                    <option value="heroes">Heroes</option>
-                    <option value="gymnastics">Gymnastics</option>
-                    <option value="total">Total</option>
-                </select>
+                <select id="admin-library-form-category" class="admin-library-modal__input"></select>
             </label>
 
             <label class="admin-library-modal__field">
@@ -226,6 +219,25 @@
         const EDIT_BUTTON = "Сохранить";
         const SAVING_LABEL = "Сохраняем...";
         const EMPTY_VIDEO_TEXT = "Нажмите для загрузки видео";
+        const SECTION_EXERCISES = "exercises";
+        const SECTION_BENCHMARKS = "benchmarks";
+        const EXERCISE_CATEGORY_OPTIONS = [
+            { value: "squat", label: "Squat" },
+            { value: "push", label: "Push" },
+            { value: "pull", label: "Pull" },
+            { value: "bend", label: "Bend" },
+            { value: "lunge", label: "Lunge" },
+            { value: "olympic", label: "Olympic" },
+            { value: "plyometric", label: "Plyometric" },
+            { value: "cardio", label: "Cardio" },
+            { value: "trx", label: "TRX" }
+        ];
+        const BENCHMARK_CATEGORY_OPTIONS = [
+            { value: "girls", label: "Girls" },
+            { value: "heroes", label: "Heroes" },
+            { value: "gymnastics", label: "Gymnastics" },
+            { value: "total", label: "Total" }
+        ];
 
         function escapeHtml(value) {
             return String(value)
@@ -263,7 +275,7 @@
                     <td>${escapeHtml(row.name_en || "")}</td>
                     <td>${formatMultiline(row.desc_ru || "")}</td>
                     <td>${formatMultiline(row.desc_en || "")}</td>
-                    <td><a href="#" class="admin-library-video">${escapeHtml(row.video || "")}</a></td>
+                    <td><a href="#" class="admin-library-video">${String(Number(row.video_count || 0))}</a></td>
                     <td>
                         <span class="admin-library-actions">
                             <a href="#" aria-label="Редактировать" data-library-edit="${String(row.id || "")}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
@@ -295,7 +307,7 @@
             addModal.hidden = !open;
             document.body.style.overflow = open ? "hidden" : "";
             if (open) {
-                toggleCategoryField();
+                syncCategoryOptions();
             }
         }
 
@@ -312,14 +324,22 @@
             }
         }
 
-        function toggleCategoryField() {
-            if (!sectionInput || !categoryWrap) return;
-            const shouldShowCategory = String(sectionInput.value || "").toLowerCase() === "benchmarks";
-            categoryWrap.hidden = !shouldShowCategory;
-            categoryWrap.style.display = shouldShowCategory ? "grid" : "none";
-            if (!shouldShowCategory && categoryInput) {
-                categoryInput.value = "girls";
-            }
+        function getCategoryOptionsBySection(section) {
+            return section === SECTION_BENCHMARKS ? BENCHMARK_CATEGORY_OPTIONS : EXERCISE_CATEGORY_OPTIONS;
+        }
+
+        function syncCategoryOptions(selectedValue) {
+            if (!sectionInput || !categoryWrap || !categoryInput) return;
+            const section = String(sectionInput.value || "").toLowerCase();
+            const options = getCategoryOptionsBySection(section);
+            categoryInput.innerHTML = options
+                .map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`)
+                .join("");
+            const optionValues = options.map((option) => option.value);
+            const normalizedSelected = String(selectedValue || "").toLowerCase();
+            categoryInput.value = optionValues.includes(normalizedSelected) ? normalizedSelected : options[0].value;
+            categoryWrap.hidden = false;
+            categoryWrap.style.display = "grid";
         }
 
         function setModalMode(mode) {
@@ -336,9 +356,7 @@
             if (sectionInput) {
                 sectionInput.value = activeTab || "exercises";
             }
-            if (categoryInput) {
-                categoryInput.value = "girls";
-            }
+            syncCategoryOptions(activeTab === SECTION_BENCHMARKS ? BENCHMARK_CATEGORY_OPTIONS[0].value : EXERCISE_CATEGORY_OPTIONS[0].value);
             if (nameRuInput) {
                 nameRuInput.value = "";
             }
@@ -358,7 +376,7 @@
             if (uploadTitle) {
                 uploadTitle.textContent = EMPTY_VIDEO_TEXT;
             }
-            toggleCategoryField();
+            syncCategoryOptions();
         }
 
         function openCreateModal() {
@@ -405,7 +423,7 @@
                 uploadTitle.textContent = String(item.video || "").trim() || EMPTY_VIDEO_TEXT;
             }
 
-            toggleCategoryField();
+            syncCategoryOptions(item.section === SECTION_BENCHMARKS ? item.category : item.movement_group);
             setAddModalOpen(true);
         }
 
@@ -449,11 +467,11 @@
 
             const formData = new FormData();
             formData.append("section", sectionInput.value);
-            if (sectionInput.value === "benchmarks") {
+            if (sectionInput.value === SECTION_BENCHMARKS) {
                 formData.append("category", categoryInput?.value || "");
             }
-            if (sectionInput.value === "exercises") {
-                formData.append("movement_group", currentExerciseFilter);
+            if (sectionInput.value === SECTION_EXERCISES) {
+                formData.append("movement_group", categoryInput?.value || "");
             }
             formData.append("name_ru", nameRuInput.value || "");
             formData.append("name_en", nameEnInput?.value || "");
@@ -652,8 +670,8 @@
         }
 
         if (sectionInput) {
-            sectionInput.addEventListener("change", toggleCategoryField);
-            toggleCategoryField();
+            sectionInput.addEventListener("change", () => syncCategoryOptions());
+            syncCategoryOptions();
         }
 
         if (submitButton) {

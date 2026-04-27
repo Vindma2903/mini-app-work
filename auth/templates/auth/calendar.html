@@ -39,7 +39,7 @@
             <div class="calendar-card__top">
                 <div class="calendar-card__title-row">
                     <img class="calendar-card__arrow" id="calendar-prev-week" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="Предыдущая неделя" role="button" tabindex="0">
-                    <span class="calendar-card__range" id="calendar-range-label">23 Февраля - 1 Марта 2026</span>
+                    <span class="calendar-card__range" id="calendar-range-label"></span>
                     <img class="calendar-card__arrow" id="calendar-next-week" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="Следующая неделя" role="button" tabindex="0">
                     <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Выбрать диапазон дат">
                         <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
@@ -162,6 +162,7 @@
                 <div class="calendar-create-modal__library-search">
                     <input type="text" id="calendar-library-search-input" placeholder="Найти комплекс">
                     <img src="{% static 'auth/img/admin/search.svg' %}" alt="" aria-hidden="true">
+                    <div class="calendar-create-modal__library-suggestions" id="calendar-library-search-suggestions" hidden></div>
                 </div>
                 <div class="calendar-create-modal__library-tabs" role="tablist" aria-label="Тип">
                     <button type="button" class="calendar-create-modal__library-tab is-active" role="tab" aria-selected="true" data-library-tab="exercise">Упражнения</button>
@@ -192,11 +193,9 @@
                 <label class="calendar-create-modal__field">
                     <span>Подходов по Результат</span>
                     <div class="calendar-create-modal__result-row">
-                        <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
-                        <small>по</small>
                         <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-manual-result-type-value">Результат</em>
+                                <em id="calendar-manual-result-type-value">Время</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
@@ -206,6 +205,19 @@
                             </div>
                             <input type="hidden" name="manual_result_type" id="calendar-manual-result-type-input" value="time">
                         </div>
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-time-fields">
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-minutes-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Минуты">
+                        <small>:</small>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-seconds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Секунды">
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-weight-fields" hidden>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-weight-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Кг">
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields" hidden>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
+                        <small>по</small>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-reps-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
                     </div>
                 </label>
             </div>
@@ -469,9 +481,17 @@
         const createLibraryBlock = document.getElementById("calendar-create-library-block");
         const createManualBlock = document.getElementById("calendar-create-manual-block");
         const librarySearchInput = document.getElementById("calendar-library-search-input");
+        const librarySearchSuggestions = document.getElementById("calendar-library-search-suggestions");
         const manualDescriptionRuInput = document.getElementById("calendar-manual-description-ru-input");
         const manualDescriptionEnInput = document.getElementById("calendar-manual-description-en-input");
         const manualSetsInput = document.getElementById("calendar-manual-sets-input");
+        const manualRepsInput = document.getElementById("calendar-manual-reps-input");
+        const manualMinutesInput = document.getElementById("calendar-manual-minutes-input");
+        const manualSecondsInput = document.getElementById("calendar-manual-seconds-input");
+        const manualWeightInput = document.getElementById("calendar-manual-weight-input");
+        const manualTimeFields = document.getElementById("calendar-manual-time-fields");
+        const manualWeightFields = document.getElementById("calendar-manual-weight-fields");
+        const manualRepsFields = document.getElementById("calendar-manual-reps-fields");
         const libraryListContainer = document.getElementById("calendar-create-library-list");
         const libraryTabs = createModal?.querySelectorAll("[data-library-tab]") || [];
         const libraryChipButtons = createModal?.querySelectorAll("[data-library-chip]") || [];
@@ -553,6 +573,11 @@
         let editingExercisesBuffer = [];
         let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
+        enforceIntegerOnlyInput(manualSetsInput);
+        enforceIntegerOnlyInput(manualRepsInput);
+        enforceIntegerOnlyInput(manualMinutesInput);
+        enforceIntegerOnlyInput(manualSecondsInput);
+        enforceIntegerOnlyInput(manualWeightInput);
         function resolveExerciseBlockLabel(card) {
             if (!(card instanceof HTMLElement)) return "Не выбрано";
             const blockInputNode = card.querySelector("#calendar-block-input");
@@ -609,6 +634,36 @@
             if (normalized === "weight") return "Вес";
             if (normalized === "reps") return "Кол-во повторений";
             return "Время";
+        }
+
+        function toggleManualResultInputs(resultTypeValue) {
+            const normalized = String(resultTypeValue || "time").trim().toLowerCase();
+            const isTime = normalized === "time";
+            const isWeight = normalized === "weight";
+            const isReps = normalized === "reps";
+            if (manualTimeFields) {
+                manualTimeFields.hidden = !isTime;
+                manualTimeFields.style.display = isTime ? "grid" : "none";
+            }
+            if (manualWeightFields) {
+                manualWeightFields.hidden = !isWeight;
+                manualWeightFields.style.display = isWeight ? "grid" : "none";
+            }
+            if (manualRepsFields) {
+                manualRepsFields.hidden = !isReps;
+                manualRepsFields.style.display = isReps ? "grid" : "none";
+            }
+            if (!isTime) {
+                if (manualMinutesInput) manualMinutesInput.value = "";
+                if (manualSecondsInput) manualSecondsInput.value = "";
+            }
+            if (!isWeight && manualWeightInput) {
+                manualWeightInput.value = "";
+            }
+            if (!isReps) {
+                if (manualSetsInput) manualSetsInput.value = "";
+                if (manualRepsInput) manualRepsInput.value = "";
+            }
         }
 
         function getTrainingColorAccent(colorKey) {
@@ -809,27 +864,6 @@
         let draftFrom = new Date(fromDate);
         let draftTo = new Date(toDate);
         let draftSelectedDate = new Date(selectedDate);
-        const hasTrainingsInInitialWeek = trainingsStore.some((item) => {
-            const dateValue = parseIsoDateOnly(item.date);
-            return dateValue ? inRange(dateValue, fromDate, toDate) : false;
-        });
-        if (!hasTrainingsInInitialWeek && trainingsStore.length > 0) {
-            const latestByDate = [...trainingsStore]
-                .filter((item) => Boolean(parseIsoDateOnly(item.date)))
-                .sort((a, b) => String(a.date || "").localeCompare(String(b.date || "")))
-                .pop();
-            const latestDate = parseIsoDateOnly(latestByDate?.date || "");
-            if (latestDate) {
-                fromDate = getWeekStart(latestDate);
-                toDate = new Date(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate() + 6);
-                selectedDate = normalize(latestDate);
-                current = new Date(fromDate.getFullYear(), fromDate.getMonth(), 1);
-                draftFrom = new Date(fromDate);
-                draftTo = new Date(toDate);
-                draftSelectedDate = new Date(selectedDate);
-            }
-        }
-
         if (sidebarStatsLink instanceof HTMLAnchorElement) {
             sidebarStatsLink.href = "{% url 'auth:statistics' %}";
         }
@@ -982,8 +1016,13 @@
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = "";
             if (manualSetsInput) manualSetsInput.value = "";
+            if (manualRepsInput) manualRepsInput.value = "";
+            if (manualMinutesInput) manualMinutesInput.value = "";
+            if (manualSecondsInput) manualSecondsInput.value = "";
+            if (manualWeightInput) manualWeightInput.value = "";
             if (resultTypeInput) resultTypeInput.value = "time";
-            if (resultTypeValue) resultTypeValue.textContent = "Результат";
+            if (resultTypeValue) resultTypeValue.textContent = "Время";
+            toggleManualResultInputs("time");
             selectedLibraryItems.clear();
             Object.keys(libraryExerciseParamsById).forEach((key) => delete libraryExerciseParamsById[key]);
             clearCreateFormErrors();
@@ -1455,8 +1494,10 @@
             const source = row && typeof row === "object" ? row : {};
             const id = String(source.id || "").trim();
             const title = String(source.name_ru || source.name_en || "").trim();
+            const parsedLibraryItemId = Number(source.id || 0);
             return {
                 id,
+                library_item_id: Number.isFinite(parsedLibraryItemId) && parsedLibraryItemId > 0 ? parsedLibraryItemId : null,
                 title: title || "Без названия",
                 movement_group: String(source.movement_group || "").trim().toLowerCase(),
                 section: String(source.section || "").trim().toLowerCase(),
@@ -1467,12 +1508,17 @@
         async function loadLibraryItems() {
             if (!libraryListContainer) return;
             const params = new URLSearchParams();
+            const hasSearchQuery = String(librarySearchInput?.value || "").trim().length > 0;
             if (activeLibraryTab === "benchmark") {
                 params.set("section", "benchmarks");
-                params.set("category", chipToBenchmarkCategory(getActiveLibraryChip()));
+                if (!hasSearchQuery) {
+                    params.set("category", chipToBenchmarkCategory(getActiveLibraryChip()));
+                }
             } else {
                 params.set("section", "exercises");
-                params.set("movement_group", chipToMovementGroup(getActiveLibraryChip()));
+                if (!hasSearchQuery) {
+                    params.set("movement_group", chipToMovementGroup(getActiveLibraryChip()));
+                }
             }
             try {
                 const response = await fetch(`${adminLibraryListUrl}?${params.toString()}`, {
@@ -1494,24 +1540,48 @@
             }
         }
 
-        function getVisibleLibraryItems() {
+        function getCategoryFilteredLibraryItems() {
             const list = Array.isArray(libraryItemsCache[activeLibraryTab]) ? libraryItemsCache[activeLibraryTab] : [];
             const activeChip = getActiveLibraryChip();
-            const categoryFiltered = activeLibraryTab === "benchmark"
+            return activeLibraryTab === "benchmark"
                 ? list.filter((item) => {
                     const itemCategory = String(item.category || "").trim().toLowerCase();
                     const chipCategory = chipToBenchmarkCategory(activeChip);
                     return !itemCategory || itemCategory === chipCategory;
                 })
                 : list;
+        }
+
+        function getVisibleLibraryItems() {
+            const categoryFiltered = getCategoryFilteredLibraryItems();
             const search = String(librarySearchInput?.value || "").trim().toLowerCase();
             if (!search) return categoryFiltered;
             return categoryFiltered.filter((item) => item.title.toLowerCase().includes(search));
         }
 
+        function renderLibrarySearchSuggestions() {
+            if (!librarySearchSuggestions) return;
+            const query = String(librarySearchInput?.value || "").trim().toLowerCase();
+            if (!query) {
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+                return;
+            }
+            const matches = getVisibleLibraryItems().slice(0, 8);
+            if (!matches.length) {
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+                return;
+            }
+            librarySearchSuggestions.innerHTML = matches
+                .map((item) => `<button type="button" class="calendar-create-modal__library-suggestion" data-library-suggestion-id="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>`)
+                .join("");
+            librarySearchSuggestions.hidden = false;
+        }
+
         function renderLibraryList() {
             if (!libraryListContainer) return;
-            let items = getVisibleLibraryItems();
+            let items = getCategoryFilteredLibraryItems();
             if (activeLibraryTab === "benchmark" && !items.length) {
                 const fallbackCategory = chipToBenchmarkCategory(getActiveLibraryChip());
                 items = [
@@ -1632,6 +1702,7 @@
             const sourceItems = getVisibleLibraryItems();
             const row = sourceItems.find((item) => item.id === itemId) || {
                 id: itemId,
+                library_item_id: Number(itemId) > 0 ? Number(itemId) : null,
                 title: itemTitle,
                 section: activeLibraryTab === "benchmark" ? "benchmarks" : "exercises",
                 category: activeLibraryTab === "benchmark" ? chipToBenchmarkCategory(getActiveLibraryChip()) : "",
@@ -1674,8 +1745,46 @@
             }
             updateCreatePreviewContent();
         });
-        librarySearchInput?.addEventListener("input", () => {
+        librarySearchSuggestions?.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const option = target.closest("[data-library-suggestion-id]");
+            if (!(option instanceof HTMLButtonElement)) return;
+            const itemId = option.getAttribute("data-library-suggestion-id") || "";
+            if (!itemId) return;
+            const sourceItems = getVisibleLibraryItems();
+            const row = sourceItems.find((item) => item.id === itemId);
+            if (!row) return;
+            if (row.section === "benchmarks") {
+                expandedBenchmarkItems.add(itemId);
+                selectedLibraryItems.set(itemId, row);
+            } else {
+                selectedLibraryItems.set(itemId, row);
+            }
+            if (!libraryExerciseParamsById[itemId]) {
+                libraryExerciseParamsById[itemId] = { sets: "", reps: "", result_type: "time" };
+            }
+            if (librarySearchInput) {
+                librarySearchInput.value = row.title;
+            }
+            librarySearchSuggestions.hidden = true;
+            librarySearchSuggestions.innerHTML = "";
             renderLibraryList();
+        });
+        librarySearchInput?.addEventListener("input", async () => {
+            await loadLibraryItems();
+            renderLibraryList();
+            renderLibrarySearchSuggestions();
+        });
+        librarySearchInput?.addEventListener("focus", () => {
+            renderLibrarySearchSuggestions();
+        });
+        librarySearchInput?.addEventListener("blur", () => {
+            setTimeout(() => {
+                if (!librarySearchSuggestions) return;
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+            }, 120);
         });
         manualDescriptionRuInput?.addEventListener("input", () => updateCreatePreviewContent());
         trainingBlockCustomInput?.addEventListener("input", () => updateCreatePreviewContent());
@@ -1683,6 +1792,7 @@
         loadLibraryItems().then(() => renderLibraryList());
         applyLibraryTabMode();
         setCreateSourceMode("library");
+        toggleManualResultInputs(resultTypeInput?.value || "time");
         existingExercisesWrap?.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
@@ -2286,6 +2396,7 @@
 
                 if (resultTypeValue) resultTypeValue.textContent = nextLabel;
                 if (resultTypeInput) resultTypeInput.value = nextValue;
+                toggleManualResultInputs(nextValue);
 
                 closeResultTypeMenu();
             });
@@ -2946,12 +3057,22 @@
             const selectedRows = Array.from(selectedLibraryItems.values());
             const selectedBlockType = trainingBlockInput?.value || "strength";
             const selectedBlockCustomName = (trainingBlockCustomInput?.value || "").trim();
+            const manualResultType = resultTypeInput?.value || "time";
+            let manualSetsValue = "";
+            if (manualResultType === "reps") {
+                manualSetsValue = (manualSetsInput?.value || "").trim();
+            } else if (manualResultType === "weight") {
+                manualSetsValue = (manualWeightInput?.value || "").trim();
+            } else {
+                manualSetsValue = (manualMinutesInput?.value || "").trim();
+            }
             const exercises = activeCreateSourceType === "library"
                 ? selectedRows.map((item, index) => {
                     const params = libraryExerciseParamsById[item.id] || {};
                     const isBenchmark = item.section === "benchmarks";
                     return {
                         exercise_kind: isBenchmark ? "benchmarks" : "exercise",
+                        library_item_id: item.library_item_id || "",
                         block_type: selectedBlockType,
                         block_custom_name: selectedBlockType === "custom" ? selectedBlockCustomName : "",
                         exercise_name: item.title,
@@ -2974,8 +3095,8 @@
                 source_type: activeCreateSourceType,
                 manual_description_ru: activeCreateSourceType === "manual" ? (manualDescriptionRuInput?.value || "").trim() : "",
                 manual_description_en: activeCreateSourceType === "manual" ? (manualDescriptionEnInput?.value || "").trim() : "",
-                manual_sets: activeCreateSourceType === "manual" ? (manualSetsInput?.value || "").trim() : "",
-                manual_result_type: activeCreateSourceType === "manual" ? (resultTypeInput?.value || "") : "",
+                manual_sets: activeCreateSourceType === "manual" ? manualSetsValue : "",
+                manual_result_type: activeCreateSourceType === "manual" ? manualResultType : "",
                 ready_workout_type: readyWorkoutInput?.value || "",
                 ready_complex_type: readyComplexTypeInput?.value || "",
                 ready_complex_name: (readyModal?.querySelector(".calendar-ready-modal__text-input")?.value || "").trim(),
@@ -3114,9 +3235,22 @@
             if (createCommentForAthletesInput) createCommentForAthletesInput.value = training.comment_for_athletes || "";
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = training.manual_description_ru || "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = training.manual_description_en || "";
-            if (manualSetsInput) manualSetsInput.value = training.manual_sets || "";
+            if (manualSetsInput) manualSetsInput.value = "";
+            if (manualRepsInput) manualRepsInput.value = "";
+            if (manualMinutesInput) manualMinutesInput.value = "";
+            if (manualSecondsInput) manualSecondsInput.value = "";
+            if (manualWeightInput) manualWeightInput.value = "";
             if (resultTypeInput && training.manual_result_type) resultTypeInput.value = training.manual_result_type;
             if (resultTypeValue && training.manual_result_type) resultTypeValue.textContent = getResultTypeLabel(training.manual_result_type);
+            const restoredManualResultType = training.manual_result_type || "time";
+            if (restoredManualResultType === "reps") {
+                if (manualSetsInput) manualSetsInput.value = training.manual_sets || "";
+            } else if (restoredManualResultType === "weight") {
+                if (manualWeightInput) manualWeightInput.value = training.manual_sets || "";
+            } else {
+                if (manualMinutesInput) manualMinutesInput.value = training.manual_sets || "";
+            }
+            toggleManualResultInputs(restoredManualResultType);
             setCreateColor(training.color || "blue");
             if (visibilityInput) visibilityInput.value = training.visibility || "all";
             if (visibilityValue) visibilityValue.textContent = training.visibility === "coaches" ? "Только для тренеров" : "Для всех";
@@ -3150,6 +3284,7 @@
                 const isBenchmark = exercise.exercise_kind === "benchmarks";
                 selectedLibraryItems.set(itemId, {
                     id: itemId,
+                    library_item_id: exercise.library_item_id || null,
                     title: exercise.exercise_name || `Упражнение ${index + 1}`,
                     section: isBenchmark ? "benchmarks" : "exercises",
                     movement_group: "",

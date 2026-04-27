@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from django.test import TestCase
 from django.urls import reverse
@@ -805,6 +806,18 @@ class AdminTrainingCrudTests(TestCase):
             email='user-training@example.com',
             password='UserPass123!',
         )
+        self.library_exercise = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_SQUAT,
+            name_ru='Присед',
+            name_en='Squat',
+        )
+        self.library_benchmark = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_BENCHMARKS,
+            benchmark_category=AdminLibraryItem.CATEGORY_GIRLS,
+            name_ru='Fran',
+            name_en='Fran',
+        )
 
     def _payload(self):
         return {
@@ -825,6 +838,7 @@ class AdminTrainingCrudTests(TestCase):
             'ready_plan_title': '',
             'exercises': [
                 {
+                    'library_item_id': self.library_exercise.id,
                     'block_type': 'strength',
                     'block_custom_name': '',
                     'exercise_name': 'РџСЂРёСЃРµРґ',
@@ -849,6 +863,8 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(training.direction, 'crossfit')
         self.assertEqual(training.color, 'green')
         self.assertEqual(training.exercises.count(), 1)
+        self.assertEqual(training.exercises.first().library_item_id, self.library_exercise.id)
+        self.assertEqual(data['training']['exercises'][0]['library_item_id'], self.library_exercise.id)
 
     def test_regular_user_cannot_create_training(self):
         self.client.force_login(self.user)
@@ -918,6 +934,7 @@ class AdminTrainingCrudTests(TestCase):
                 'color': 'pink',
                 'exercises': [
                     {
+                        'library_item_id': self.library_exercise.id,
                         'block_type': 'strength',
                         'block_custom_name': '',
                         'exercise_name': 'Присед',
@@ -926,6 +943,7 @@ class AdminTrainingCrudTests(TestCase):
                         'result_type': 'reps',
                     },
                     {
+                        'library_item_id': self.library_exercise.id,
                         'block_type': 'custom',
                         'block_custom_name': 'Интервальная',
                         'exercise_name': 'Бёрпи',
@@ -1041,6 +1059,58 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(data.get('error'), 'validation_error')
         self.assertIn('exercises.0.sets_reps', data.get('field_errors', {}))
 
+    def test_library_training_requires_library_item_id(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload['exercises'][0]['library_item_id'] = ''
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertIn('exercises.0.library_item_id', data.get('field_errors', {}))
+
+    def test_library_training_rejects_invalid_library_item_id(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload['exercises'][0]['library_item_id'] = 999999
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertEqual(
+            data.get('field_errors', {}).get('exercises.0.library_item_id'),
+            'invalid_library_item_id',
+        )
+
+    def test_library_training_rejects_kind_section_mismatch(self):
+        self.client.force_login(self.admin)
+        payload = self._payload()
+        payload['exercises'][0]['exercise_kind'] = 'exercise'
+        payload['exercises'][0]['library_item_id'] = self.library_benchmark.id
+
+        response = self.client.post(
+            reverse('auth:calendar_admin_training_create'),
+            data=payload,
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertEqual(
+            data.get('field_errors', {}).get('exercises.0.library_item_id'),
+            'library_item_kind_mismatch',
+        )
+
 
 class AdminLibraryListTests(TestCase):
     def setUp(self):
@@ -1104,6 +1174,61 @@ class AdminLibraryListTests(TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['id'], girls.id)
 
+    def test_library_list_rejects_non_admin_sections(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.get(
+            reverse('auth:admin_library_list'),
+            {'section': AdminLibraryItem.SECTION_BARBELL},
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertFalse(data.get('ok'))
+        self.assertEqual(data.get('error'), 'invalid_section')
+
+    def test_library_create_rejects_non_admin_sections(self):
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('auth:admin_library_create'),
+            {
+                'section': AdminLibraryItem.SECTION_BARBELL,
+                'name_ru': 'Strict Press',
+                'name_en': 'Strict Press',
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertEqual(data.get('field_errors', {}).get('section'), 'invalid_section')
+
+    def test_library_update_rejects_non_admin_sections(self):
+        item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Push Press',
+            name_en='Push Press',
+        )
+        self.client.force_login(self.admin)
+
+        response = self.client.post(
+            reverse('auth:admin_library_update', args=[item.id]),
+            {
+                'section': AdminLibraryItem.SECTION_BARBELL,
+                'name_ru': item.name_ru,
+                'name_en': item.name_en,
+            },
+        )
+
+        self.assertEqual(response.status_code, 400)
+        data = response.json()
+        self.assertEqual(data.get('error'), 'validation_error')
+        self.assertEqual(data.get('field_errors', {}).get('section'), 'invalid_section')
+        item.refresh_from_db()
+        self.assertEqual(item.section, AdminLibraryItem.SECTION_EXERCISES)
+
 
 class TrainingPlanTodayVisibilityTests(TestCase):
     def setUp(self):
@@ -1117,6 +1242,19 @@ class TrainingPlanTodayVisibilityTests(TestCase):
             email='plan-admin@example.com',
             password='AdminPass123!',
             is_staff=True,
+        )
+        self.library_with_video = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_SQUAT,
+            name_ru='Присед видео',
+            name_en='Video Squat',
+            video_file=SimpleUploadedFile('squat.mp4', b'video-data', content_type='video/mp4'),
+        )
+        self.library_without_video = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Отжимания',
+            name_en='Push Up',
         )
 
     def test_training_plan_shows_only_public_trainings(self):
@@ -1271,6 +1409,289 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         cards = response.context['plan_cards']
         self.assertEqual(len(cards), 2)
         self.assertEqual({card['comment'] for card in cards}, {'first-training', 'second-training'})
+
+    def test_training_plan_line_has_video_url_for_linked_library_item_with_video(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='video-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            library_item=self.library_with_video,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Присед видео',
+            sets=3,
+            reps=8,
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        line = cards[0]['sections'][0]['lines'][0]
+        self.assertTrue(line['show_video'])
+        self.assertIn('library/videos/', line['video_url'])
+
+    def test_training_plan_line_hides_video_button_without_library_video(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='no-video-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            library_item=self.library_without_video,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Отжимания',
+            sets=3,
+            reps=12,
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        line = cards[0]['sections'][0]['lines'][0]
+        self.assertFalse(line['show_video'])
+        self.assertEqual(line['video_url'], '')
+        self.assertEqual(line['text_ru'], 'Отжимания 3x12')
+        self.assertEqual(line['text_en'], 'Отжимания 3x12')
+
+    def test_training_plan_library_line_uses_desc_ru_en(self):
+        library_item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_SQUAT,
+            name_ru='Присед',
+            name_en='Squat',
+            desc_ru='Приседания 5 повторений по 15 раз',
+            desc_en='Squat 5 sets of 15 reps',
+        )
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='library-desc-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            library_item=library_item,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Присед',
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        line = response.context['plan_cards'][0]['sections'][0]['lines'][0]
+        self.assertEqual(line['text_ru'], 'Приседания 5 повторений по 15 раз')
+        self.assertEqual(line['text_en'], 'Squat 5 sets of 15 reps')
+        self.assertEqual(line['video_search_name_ru'], 'Присед')
+        self.assertEqual(line['video_search_name_en'], 'Squat')
+
+    def test_training_plan_library_line_fallbacks_en_to_ru_desc(self):
+        library_item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Отжимания',
+            name_en='Push Up',
+            desc_ru='Отжимания 3 подхода',
+            desc_en='',
+        )
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='library-desc-fallback-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            library_item=library_item,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Отжимания',
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        line = response.context['plan_cards'][0]['sections'][0]['lines'][0]
+        self.assertEqual(line['text_ru'], 'Отжимания 3 подхода')
+        self.assertEqual(line['text_en'], 'Отжимания 3 подхода')
+
+    def test_training_plan_manual_line_uses_manual_descriptions(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='manual-desc-training',
+            color='blue',
+            source_type='manual',
+            manual_description_ru='приседания 5 повторений по 15 раз',
+            manual_description_en='squat 5 sets of 15 reps',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='ignored for manual text',
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        line = response.context['plan_cards'][0]['sections'][0]['lines'][0]
+        self.assertEqual(line['text_ru'], 'приседания 5 повторений по 15 раз')
+        self.assertEqual(line['text_en'], 'squat 5 sets of 15 reps')
+
+    def test_training_plan_ready_line_uses_same_text_for_both_languages(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='ready-training',
+            color='blue',
+            source_type='ready',
+            ready_plan_title='Ready plan',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='Thruster',
+            sets=4,
+            reps=10,
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        line = response.context['plan_cards'][0]['sections'][0]['lines'][0]
+        self.assertEqual(line['text_ru'], 'Thruster 4x10')
+        self.assertEqual(line['text_en'], 'Thruster 4x10')
+
+    def test_training_plan_version_respects_visibility(self):
+        target_date = timezone.localdate()
+        AdminTraining.objects.create(
+            training_date=target_date,
+            direction='fbb',
+            visibility='all',
+            comment='public',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTraining.objects.create(
+            training_date=target_date,
+            direction='crossfit',
+            visibility='coaches',
+            comment='private',
+            color='green',
+            source_type='manual',
+            created_by=self.admin,
+        )
+
+        self.client.force_login(self.user)
+        user_response = self.client.get(
+            reverse('auth:training_plan_today_version'),
+            {'date': target_date.isoformat()},
+        )
+        self.assertEqual(user_response.status_code, 200)
+        self.assertEqual(user_response.json().get('version', '').split(':')[0], '1')
+
+        self.client.force_login(self.admin)
+        admin_response = self.client.get(
+            reverse('auth:training_plan_today_version'),
+            {'date': target_date.isoformat()},
+        )
+        self.assertEqual(admin_response.status_code, 200)
+        self.assertEqual(admin_response.json().get('version', '').split(':')[0], '2')
+
+    def test_training_plan_version_changes_after_create(self):
+        target_date = timezone.localdate()
+        self.client.force_login(self.user)
+
+        before_response = self.client.get(
+            reverse('auth:training_plan_today_version'),
+            {'date': target_date.isoformat()},
+        )
+        self.assertEqual(before_response.status_code, 200)
+        before_version = before_response.json().get('version')
+
+        AdminTraining.objects.create(
+            training_date=target_date,
+            direction='fbb',
+            visibility='all',
+            comment='new',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+
+        after_response = self.client.get(
+            reverse('auth:training_plan_today_version'),
+            {'date': target_date.isoformat()},
+        )
+        self.assertEqual(after_response.status_code, 200)
+        self.assertNotEqual(before_version, after_response.json().get('version'))
+
+    def test_training_plan_line_hides_video_for_legacy_library_exercise_without_link(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='legacy-library-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Legacy Exercise',
+            sets=3,
+            reps=10,
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        line = cards[0]['sections'][0]['lines'][0]
+        self.assertFalse(line['show_video'])
+        self.assertEqual(line['video_url'], '')
 
 
 class LeaderboardAwardsTests(TestCase):
@@ -1588,7 +2009,7 @@ class LeaderboardAwardsTests(TestCase):
         self.assertTemplateUsed(response, 'auth/leaderboard-workout-exercise-admin.html')
         self.assertContains(response, 'Бег на дорожке')
         self.assertContains(response, '3 подхода / 11 повторений')
-        self.assertTrue(response.context['workout_kind_badge'])
+        self.assertEqual(response.context['workout_kind_badge'], 'Кардио')
 
     def test_workout_exercise_page_renders_real_leader_rows(self):
         training = AdminTraining.objects.create(

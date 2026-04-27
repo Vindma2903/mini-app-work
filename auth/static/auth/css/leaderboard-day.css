@@ -2,12 +2,12 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(--white);overflow-x:hidden}
 .exercise-screen{width:100%;max-width:var(--content-max);margin:0 auto;padding:24px clamp(20px,3vw,40px) 40px}
-.exercise-header{height:160px;position:relative;display:flex;align-items:flex-end;padding:0 0 24px}
+.exercise-header{height:160px;position:relative;display:flex;align-items:flex-start;padding:72px 0 24px}
 .exercise-header__back{position:absolute;left:0;top:24px;min-width:32px;height:32px;border:0;text-decoration:none;color:#fff;font-size:20px;line-height:32px;font-weight:500;padding-left:44px;display:inline-block}
 .exercise-header__back::before{content:"";position:absolute;left:4px;top:9px;width:10px;height:13px;border-left:2px solid #fff;border-bottom:2px solid #fff;transform:rotate(45deg)}
 .exercise-header__back::after{content:"";position:absolute;left:4px;top:16px;width:24px;border-top:2px solid #fff}
 .exercise-header__close{position:absolute;right:0;top:24px;color:#fff;text-decoration:none;font-size:42px;line-height:32px;font-weight:300}
-.exercise-header h1{margin:0;font-size:clamp(40px,4.6vw,64px);line-height:1.12;font-weight:700;max-width:16ch}
+.exercise-header h1{margin:0;padding-left:0;padding-right:56px;font-size:clamp(40px,4.6vw,64px);line-height:1.12;font-weight:700;width:100%;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-overflow:ellipsis;word-break:normal;overflow-wrap:normal}
 .exercise-grid{margin:24px 0 32px;background:var(--panel);border:4px solid var(--tile);border-radius:24px;padding:32px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:24px}
 .exercise-card{height:400px;border:4px solid transparent;border-radius:16px;background:var(--tile);padding:32px}
 .exercise-card--wide{grid-column:1 / -1;height:96px;background:transparent;border:0;padding:0;display:flex;align-items:center;gap:24px}
@@ -36,17 +36,22 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 .workout-ex-item p{margin:0;color:#155dfc;font-size:30px;line-height:1.2;font-weight:600}
 .workout-ex-item button{border:1px dashed #a1a1aa;background:transparent;color:#fff;border-radius:50%;width:46px;height:46px;font-size:22px;cursor:pointer;align-self:center}
 .workout-ex-item button img{width:24px;height:24px;display:block;margin:0 auto}
-.workout-leader-row{min-height:78px;border:1px solid #3f3f46;border-radius:16px;background:linear-gradient(90deg,#23242b 0%,#272932 100%);display:grid;grid-template-columns:minmax(0,1fr) 124px 78px;align-items:center;padding:10px 14px 10px 10px;margin-bottom:12px;column-gap:8px}
+.workout-leader-row{min-height:78px;border:1px solid #3f3f46;border-radius:16px;background:linear-gradient(90deg,#23242b 0%,#272932 100%);display:grid;grid-template-columns:minmax(0,1fr) 124px 78px;align-items:center;padding:10px 14px 10px 10px;margin-bottom:12px;column-gap:8px;position:relative}
 .workout-leader-row--no-section{grid-template-columns:minmax(0,1fr) 196px}
 .workout-leader-row--no-section span{font-size:26px}
 .workout-leader-row b{min-width:0;font-size:28px;line-height:1.06;font-weight:700;display:flex;align-items:center;gap:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .workout-leader-row b i{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:10px;background:#454753;font-style:normal;font-size:28px;line-height:1;color:#d4d4d8}
-.workout-leader-row span{display:grid;justify-items:start;font-size:30px;line-height:1.02;font-weight:700;white-space:nowrap}
+.workout-leader-row span{display:grid;justify-items:start;row-gap:2px;font-size:30px;line-height:1.02;font-weight:700;white-space:nowrap;padding-right:86px}
+.workout-leader-row span strong{font-size:inherit;line-height:inherit;font-weight:700}
 .workout-leader-row small{font-size:11px;line-height:1;color:#a1a1aa;margin-bottom:3px;font-weight:500}
+.workout-result-mode{position:absolute;right:12px;top:0;display:inline-flex;align-items:center;justify-content:center;min-width:76px;height:30px;padding:0 12px;border-radius:0 0 10px 10px;border:0;background:#454753;color:#ffffff;font-style:normal;font-size:14px;line-height:1;font-weight:500;letter-spacing:0;text-transform:none}
 .workout-leader-row--gold{background:linear-gradient(90deg,#fbbf24 0%,#f59e0b 100%);color:#09090b}
 .workout-leader-row--silver{background:linear-gradient(90deg,#d4d4d8 0%,#a1a1aa 100%);color:#09090b}
 .workout-leader-row--bronze{background:linear-gradient(90deg,#f59e0b 0%,#d97706 100%);color:#09090b}
 .workout-leader-row--gold small,.workout-leader-row--silver small,.workout-leader-row--bronze small{color:#3f3f46}
+.workout-leader-row--gold .workout-result-mode,
+.workout-leader-row--silver .workout-result-mode,
+.workout-leader-row--bronze .workout-result-mode{background:#454753;color:#ffffff}
 .workout-leader-row--gold b i,
 .workout-leader-row--silver b i,
 .workout-leader-row--bronze b i{
@@ -78,6 +83,7 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 }
 .exercise-screen--tv .exercise-header{
     height:196px;
+    padding-top:88px;
     padding-bottom:28px;
 }
 .exercise-screen--tv .exercise-header__back{
@@ -104,7 +110,16 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 }
 .exercise-screen--tv .exercise-header h1{
     font-size:clamp(52px,4.6vw,80px);
-    max-width:18ch;
+    width:100%;
+    padding-left:0;
+    padding-right:70px;
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    overflow-wrap:normal;
+    word-break:normal;
 }
 .exercise-screen--tv .exercise-grid{
     margin:28px 0 36px;
@@ -217,6 +232,13 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 .exercise-screen--tv .workout-leader-row span{
     font-size:36px;
 }
+.exercise-screen--tv .workout-result-mode{
+    min-width:96px;
+    height:38px;
+    padding:0 14px;
+    border-radius:12px;
+    font-size:17px;
+}
 .exercise-screen--tv .workout-leader-row--no-section span{
     font-size:34px;
 }
@@ -281,8 +303,8 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
 
 @media (max-width:1199px){
     .exercise-screen{padding:16px 16px 28px}
-    .exercise-header{height:auto;min-height:88px;padding-bottom:12px}
-    .exercise-header h1{font-size:36px;line-height:44px}
+    .exercise-header{height:auto;min-height:88px;padding-top:52px;padding-bottom:12px}
+    .exercise-header h1{font-size:36px;line-height:44px;padding-left:0;padding-right:44px;max-width:100%}
     .exercise-grid{padding:16px;grid-template-columns:1fr;gap:12px}
     .exercise-card,.exercise-card--wide{height:auto}
     .exercise-card--wide{grid-column:1 / -1;gap:12px}
@@ -309,6 +331,8 @@ body{margin:0;background:var(--bg);font-family:Inter,Arial,sans-serif;color:var(
     .workout-leader-row b i{width:28px;height:28px;font-size:20px;border-radius:8px}
     .workout-leader-row span{font-size:20px}
     .workout-leader-row small{font-size:10px;margin-bottom:2px}
+    .workout-result-mode{min-width:58px;height:26px;right:10px;top:0;padding:0 10px;border-radius:0 0 8px 8px;font-size:12px}
+    .workout-leader-row span{padding-right:66px}
     .workout-leader-row--gold b i,
     .workout-leader-row--silver b i,
     .workout-leader-row--bronze b i{width:26px;height:26px}

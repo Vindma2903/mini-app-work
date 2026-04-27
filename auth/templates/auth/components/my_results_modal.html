@@ -2,32 +2,19 @@
 <div class="my-results-modal" id="my-results-modal" hidden>
     <div class="my-results-modal__overlay" data-close-results-modal></div>
     <section class="my-results-modal__sheet" role="dialog" aria-modal="true" aria-labelledby="my-results-modal-title">
-        <button type="button" class="my-results-modal__close" data-close-results-modal aria-label="Закрыть">
+        <button type="button" class="my-results-modal__close" data-close-results-modal aria-label="Р—Р°РєСЂС‹С‚СЊ">
             <img src="{% static 'auth/img/profile-awards-close.svg' %}" alt="">
         </button>
 
-        <h2 class="my-results-modal__title" id="my-results-modal-title">Мои результаты</h2>
-        <h3 class="my-results-modal__subtitle" data-results-section-title>Силовая</h3>
+        <h2 class="my-results-modal__title" id="my-results-modal-title">РњРѕРё СЂРµР·СѓР»СЊС‚Р°С‚С‹</h2>
 
-        <div class="my-results-modal__inputs" aria-label="Поля ввода результата">
-            <label class="my-results-modal__field">
-                <span data-results-primary-label>Минуты</span>
-                <input type="text" class="my-results-input" placeholder="мин." inputmode="numeric" data-results-minutes>
-            </label>
-            <label class="my-results-modal__field" data-results-secondary-wrap>
-                <span data-results-secondary-label>Секунды</span>
-                <input type="text" class="my-results-input" placeholder="сек." inputmode="numeric" data-results-seconds>
-            </label>
-        </div>
-
-        <div class="my-results-modal__chips" aria-label="Режим выполнения">
-            <button type="button" class="my-results-chip my-results-chip--active" data-results-mode="rx">RX</button>
-            <button type="button" class="my-results-chip" data-results-mode="scaled">SCALED</button>
+        <div class="my-results-modal__sections" data-results-sections aria-label="РџРѕР»СЏ РІРІРѕРґР° СЂРµР·СѓР»СЊС‚Р°С‚Р°">
+            <!-- Section rows are rendered dynamically -->
         </div>
 
         <div class="my-results-modal__actions">
-            <button type="button" class="my-results-modal__btn my-results-modal__btn--primary" data-results-next>Далее</button>
-            <button type="button" class="my-results-modal__btn my-results-modal__btn--ghost" data-results-skip>Пропустить</button>
+            <button type="button" class="my-results-modal__btn my-results-modal__btn--primary" data-results-next>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+            <button type="button" class="my-results-modal__btn my-results-modal__btn--ghost" data-results-skip>РџСЂРѕРїСѓСЃС‚РёС‚СЊ</button>
         </div>
     </section>
 </div>

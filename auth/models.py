@@ -281,6 +281,13 @@ class AdminTrainingExercise(models.Model):
         on_delete=models.CASCADE,
         related_name='exercises',
     )
+    library_item = models.ForeignKey(
+        'AdminLibraryItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='training_exercises',
+    )
     block_type = models.CharField(max_length=16, choices=BLOCK_CHOICES, default=BLOCK_STRENGTH)
     block_custom_name = models.CharField(max_length=255, blank=True, default='')
     exercise_kind = models.CharField(max_length=16, choices=EXERCISE_KIND_CHOICES, default=EXERCISE_KIND_EXERCISE)

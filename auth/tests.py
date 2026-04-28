@@ -1,11 +1,14 @@
 ﻿import json
+import os
+import shutil
+import tempfile
 from datetime import timedelta
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -207,6 +210,68 @@ class TrainingResultsApiTests(TestCase):
                 section=TrainingResult.SECTION_STRENGTH,
             ).exists()
         )
+
+    def test_save_training_results_creates_separate_rows_for_different_trainings(self):
+        today = timezone.localdate()
+        training_one = AdminTraining.objects.create(
+            training_date=today,
+            direction=AdminTraining.DIRECTION_FBB,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
+        training_two = AdminTraining.objects.create(
+            training_date=today,
+            direction=AdminTraining.DIRECTION_FBB,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
+
+        first_response = self.client.post(
+            reverse('auth:calendar_save_results'),
+            data={
+                'date': today.isoformat(),
+                'training_id': training_one.id,
+                'results': {
+                    'strength': {
+                        'minutes': 10,
+                        'seconds': 5,
+                        'mode': TrainingResult.MODE_RX,
+                        'result_type': TrainingResult.RESULT_TIME,
+                    }
+                },
+            },
+            content_type='application/json',
+            headers={'Authorization': f'Bearer {self.access}'},
+        )
+        self.assertEqual(first_response.status_code, 200)
+
+        second_response = self.client.post(
+            reverse('auth:calendar_save_results'),
+            data={
+                'date': today.isoformat(),
+                'training_id': training_two.id,
+                'results': {
+                    'strength': {
+                        'minutes': 11,
+                        'seconds': 15,
+                        'mode': TrainingResult.MODE_SCALED,
+                        'result_type': TrainingResult.RESULT_TIME,
+                    }
+                },
+            },
+            content_type='application/json',
+            headers={'Authorization': f'Bearer {self.access}'},
+        )
+        self.assertEqual(second_response.status_code, 200)
+
+        saved = TrainingResult.objects.filter(
+            user=self.user,
+            training_date=today,
+            section=TrainingResult.SECTION_STRENGTH,
+        ).order_by('training_id')
+        self.assertEqual(saved.count(), 2)
+        self.assertEqual(saved[0].training_id, training_one.id)
+        self.assertEqual(saved[1].training_id, training_two.id)
 
 
 class AchievementExerciseRepProfileTests(TestCase):
@@ -1228,6 +1293,70 @@ class AdminLibraryListTests(TestCase):
         self.assertEqual(data.get('field_errors', {}).get('section'), 'invalid_section')
         item.refresh_from_db()
         self.assertEqual(item.section, AdminLibraryItem.SECTION_EXERCISES)
+
+
+class AdminLibraryVideoFileCleanupTests(TestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user(
+            username='admin-library-cleanup@example.com',
+            email='admin-library-cleanup@example.com',
+            password='AdminPass123!',
+            is_staff=True,
+        )
+        self.client.force_login(self.admin)
+
+        self._temp_media_dir = tempfile.mkdtemp(prefix='test-media-library-')
+        self._media_override = override_settings(MEDIA_ROOT=self._temp_media_dir)
+        self._media_override.enable()
+        self.addCleanup(self._media_override.disable)
+        self.addCleanup(lambda: shutil.rmtree(self._temp_media_dir, ignore_errors=True))
+
+    def test_delete_library_item_removes_video_file_from_disk(self):
+        item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Push Press',
+            name_en='Push Press',
+            video_file=SimpleUploadedFile('delete-me.mp4', b'video-content', content_type='video/mp4'),
+        )
+        file_path = item.video_file.path
+        self.assertTrue(os.path.exists(file_path))
+
+        response = self.client.post(reverse('auth:admin_library_delete', args=[item.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(AdminLibraryItem.objects.filter(id=item.id).exists())
+        self.assertFalse(os.path.exists(file_path))
+
+    def test_update_library_item_video_removes_old_file_from_disk(self):
+        item = AdminLibraryItem.objects.create(
+            section=AdminLibraryItem.SECTION_EXERCISES,
+            movement_group=AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+            name_ru='Push Jerk',
+            name_en='Push Jerk',
+            video_file=SimpleUploadedFile('old.mp4', b'old-video', content_type='video/mp4'),
+        )
+        old_path = item.video_file.path
+        self.assertTrue(os.path.exists(old_path))
+
+        response = self.client.post(
+            reverse('auth:admin_library_update', args=[item.id]),
+            {
+                'section': AdminLibraryItem.SECTION_EXERCISES,
+                'movement_group': AdminLibraryItem.MOVEMENT_GROUP_PUSH,
+                'name_ru': item.name_ru,
+                'name_en': item.name_en,
+                'desc_ru': item.desc_ru,
+                'desc_en': item.desc_en,
+                'video': SimpleUploadedFile('new.mp4', b'new-video', content_type='video/mp4'),
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        item.refresh_from_db()
+        new_path = item.video_file.path
+        self.assertTrue(os.path.exists(new_path))
+        self.assertFalse(os.path.exists(old_path))
 
 
 class TrainingPlanTodayVisibilityTests(TestCase):

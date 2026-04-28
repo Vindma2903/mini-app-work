@@ -47,10 +47,13 @@ html,body{overflow-y:auto!important;overflow-x:hidden}
 .statistics-chart__line{fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .statistics-chart__line--blue{stroke:#245cff}
 .statistics-chart__line--orange{stroke:#ff8a3d}
-.statistics-chart__bar{fill:#9a4df0}
+.statistics-chart__line--gray{stroke:#5d6570}
+.statistics-chart__bar{fill:rgba(255,138,61,.58)}
 .statistics-chart__point{stroke:#fff;stroke-width:2}
 .statistics-chart__point--blue{fill:#245cff}
 .statistics-chart__point--orange{fill:#ff8a3d}
+.statistics-chart__point--gray{fill:#5d6570}
+.statistics-chart__axis-label{font:400 11px/1 Inter,Arial,sans-serif;fill:#98a2b3;text-anchor:end;dominant-baseline:middle}
 .statistics-chart__labels{display:grid;grid-template-columns:repeat(7,1fr);margin-top:4px}
 .statistics-chart__labels span{text-align:center;font:400 12px/16px Inter,Arial,sans-serif;color:#98a2b3}
 

@@ -90,6 +90,28 @@
         {% endfor %}
     </div>
 
+    <div class="exercise-video-modal" id="exercise-video-modal" hidden>
+        <div class="exercise-video-modal__overlay" data-close-exercise-video-modal></div>
+        <section class="exercise-video-modal__sheet" role="dialog" aria-modal="true" aria-label="Просмотр видео упражнения">
+            <button type="button" class="exercise-video-modal__close" data-close-exercise-video-modal aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="">
+            </button>
+            <div class="exercise-video-modal__player-wrap">
+                <video id="exercise-video-player" class="exercise-video-modal__player" controls playsinline hidden></video>
+                <iframe
+                    id="exercise-video-iframe"
+                    class="exercise-video-modal__player"
+                    title="Видео упражнения"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                    hidden
+                ></iframe>
+            </div>
+        </section>
+    </div>
+
 
     {% include 'auth/components/my_results_modal.html' %}
     {% include 'auth/components/result_saved_modal.html' %}
@@ -125,6 +147,54 @@
     (function () {
         const cardLanguageByTrainingId = window.__planCardLanguageByTrainingId || {};
         window.__planCardLanguageByTrainingId = cardLanguageByTrainingId;
+        const videoModal = document.getElementById("exercise-video-modal");
+        const videoPlayer = document.getElementById("exercise-video-player");
+        const videoIframe = document.getElementById("exercise-video-iframe");
+
+        function isLikelyMediaFile(urlValue) {
+            return /\.(mp4|webm|ogg|mov|m4v|avi|wmv)(\?|#|$)/i.test(urlValue);
+        }
+
+        function setVideoModalVisible(visible) {
+            if (!videoModal || !videoPlayer || !videoIframe) return;
+            if (visible) {
+                videoModal.hidden = false;
+                document.body.style.overflow = "hidden";
+                return;
+            }
+            videoModal.hidden = true;
+            videoPlayer.pause();
+            videoPlayer.removeAttribute("src");
+            videoPlayer.load();
+            videoPlayer.hidden = true;
+            videoIframe.setAttribute("src", "");
+            videoIframe.hidden = true;
+            document.body.style.overflow = "";
+        }
+
+        function openExerciseVideo(urlValue) {
+            if (!videoModal || !videoPlayer || !videoIframe) {
+                window.open(urlValue, "_blank", "noopener,noreferrer");
+                return;
+            }
+            const normalizedUrl = String(urlValue || "").trim();
+            if (!normalizedUrl) return;
+
+            if (isLikelyMediaFile(normalizedUrl)) {
+                videoIframe.setAttribute("src", "");
+                videoIframe.hidden = true;
+                videoPlayer.src = normalizedUrl;
+                videoPlayer.hidden = false;
+            } else {
+                videoPlayer.pause();
+                videoPlayer.removeAttribute("src");
+                videoPlayer.load();
+                videoPlayer.hidden = true;
+                videoIframe.setAttribute("src", normalizedUrl);
+                videoIframe.hidden = false;
+            }
+            setVideoModalVisible(true);
+        }
 
         function getCardTrainingId(card) {
             return String(card?.getAttribute("data-training-id") || "").trim();
@@ -203,13 +273,18 @@
                 event.stopPropagation();
                 const directUrl = (videoButton.getAttribute("data-video-url") || "").trim();
                 if (directUrl) {
-                    window.open(directUrl, "_blank", "noopener,noreferrer");
+                    openExerciseVideo(directUrl);
                     return;
                 }
                 const exerciseName = (videoButton.getAttribute("data-exercise-name") || "").trim();
                 if (!exerciseName) return;
                 const searchUrl = "https://www.youtube.com/results?search_query=" + encodeURIComponent(exerciseName);
                 window.open(searchUrl, "_blank", "noopener,noreferrer");
+                return;
+            }
+
+            if (event.target.closest("[data-close-exercise-video-modal]")) {
+                setVideoModalVisible(false);
                 return;
             }
 
@@ -233,6 +308,10 @@
         });
 
         document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && videoModal && !videoModal.hidden) {
+                setVideoModalVisible(false);
+                return;
+            }
             if (event.key !== "Enter" && event.key !== " ") return;
             const toggle = event.target.closest("[data-plan-toggle]");
             if (!toggle) return;
@@ -267,6 +346,7 @@
             { key: "metabolic", title: "Метаболическая" }
         ];
         const resultsDraft = {};
+        let activeTrainingId = "";
 
         const myResultsModal = document.getElementById("my-results-modal");
         const resultSavedModal = document.getElementById("result-saved-modal");
@@ -486,6 +566,14 @@
         }
 
         async function saveResultsToServer() {
+            const parsedTrainingId = Number.parseInt(String(activeTrainingId || "").trim(), 10);
+            const payload = {
+                date: isoDateToday(),
+                results: resultsDraft
+            };
+            if (Number.isFinite(parsedTrainingId) && parsedTrainingId > 0) {
+                payload.training_id = parsedTrainingId;
+            }
             const response = await fetch("{% url 'auth:calendar_save_results' %}", {
                 method: "POST",
                 credentials: "same-origin",
@@ -493,10 +581,7 @@
                     "Content-Type": "application/json",
                     "X-CSRFToken": getCsrfToken()
                 },
-                body: JSON.stringify({
-                    date: isoDateToday(),
-                    results: resultsDraft
-                })
+                body: JSON.stringify(payload)
             });
             if (!response.ok) throw new Error("save_results_failed");
         }
@@ -539,6 +624,8 @@
         document.addEventListener("click", (event) => {
             const button = event.target.closest(".plan-card__add");
             if (!button) return;
+            const card = button.closest("[data-plan-card]");
+            activeTrainingId = String(card?.getAttribute("data-training-id") || "").trim();
             const defaults = getCurrentDefaultSectionResultTypes();
             activeSectionResultTypes = {
                 strength: button.getAttribute("data-result-type-strength") || defaults.strength || "time",
@@ -575,11 +662,15 @@
 
         skipButton?.addEventListener("click", () => {
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
+            activeTrainingId = "";
             setModalVisible(myResultsModal, false);
         });
 
         myResultsModal.querySelectorAll("[data-close-results-modal]").forEach((node) => {
-            node.addEventListener("click", () => setModalVisible(myResultsModal, false));
+            node.addEventListener("click", () => {
+                activeTrainingId = "";
+                setModalVisible(myResultsModal, false);
+            });
         });
 
         resultSavedModal.querySelectorAll("[data-close-result-saved-modal]").forEach((node) => {
@@ -671,6 +762,7 @@
         const FALLBACK_REFRESH_INTERVAL_MS = 30000;
         const versionEndpoint = "{% url 'auth:training_plan_today_version' %}";
         const modalIds = [
+            "exercise-video-modal",
             "my-results-modal",
             "result-saved-modal",
             "training-rate-modal",

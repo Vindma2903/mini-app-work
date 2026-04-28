@@ -4,6 +4,7 @@ import json
 import re
 import hmac
 import hashlib
+from errno import ENOSPC
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -342,12 +343,23 @@ def build_admin_training_results_payload(training):
         ]
         section_index = {col['section_key']: idx for idx, col in enumerate(columns)}
 
-    day_results = (
+    day_results = list(
         TrainingResult.objects
         .select_related('user')
-        .filter(training_date=training.training_date, section__in=list(section_index.keys()))
+        .filter(training=training, section__in=list(section_index.keys()))
         .order_by('user__first_name', 'user__last_name', 'user__email', 'section')
     )
+    if not day_results:
+        day_results = list(
+            TrainingResult.objects
+            .select_related('user')
+            .filter(
+                training__isnull=True,
+                training_date=training.training_date,
+                section__in=list(section_index.keys()),
+            )
+            .order_by('user__first_name', 'user__last_name', 'user__email', 'section')
+        )
 
     grouped = {}
     for item in day_results:
@@ -449,8 +461,14 @@ def build_daily_leaderboard_payload(training_date):
         .select_related('user')
         .filter(training_date=training_date)
         .filter(Q(minutes__isnull=False) | Q(seconds__isnull=False))
+        .order_by('user_id', 'section', '-updated_at', '-id')
     )
+    seen_user_section = set()
     for item in raw_results:
+        pair_key = (item.user_id, item.section)
+        if pair_key in seen_user_section:
+            continue
+        seen_user_section.add(pair_key)
         full_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
         minutes = item.minutes if item.minutes is not None else 0
         seconds = item.seconds if item.seconds is not None else 0
@@ -1234,11 +1252,11 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
         remainder_ten = value % 10
         remainder_hundred = value % 100
         if remainder_ten == 1 and remainder_hundred != 11:
-            word = 'РЎвЂљРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°'
+            word = 'тренировка'
         elif remainder_ten in (2, 3, 4) and remainder_hundred not in (12, 13, 14):
-            word = 'РЎвЂљРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р С‘'
+            word = 'тренировки'
         else:
-            word = 'РЎвЂљРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С•Р С”'
+            word = 'тренировок'
         return f'{value} {word}'
 
     def get_context_data(self, **kwargs):
@@ -2105,6 +2123,12 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
 
     @staticmethod
     def _serialize_item(item):
+        video_url = ''
+        if item.video_file:
+            try:
+                video_url = item.video_file.url
+            except ValueError:
+                video_url = ''
         return {
             'id': item.id,
             'section': item.section,
@@ -2115,6 +2139,7 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
             'desc_ru': item.desc_ru,
             'desc_en': item.desc_en,
             'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
+            'video_url': video_url,
             'video_count': 1 if item.video_file else 0,
         }
 
@@ -2202,33 +2227,27 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         if field_errors:
             return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
 
-        item = AdminLibraryItem.objects.create(
-            section=section,
-            benchmark_category=category,
-            movement_group=movement_group,
-            name_ru=name_ru,
-            name_en=name_en,
-            desc_ru=desc_ru,
-            desc_en=desc_en,
-            video_file=video_file,
-            created_by=request.user,
-        )
+        try:
+            item = AdminLibraryItem.objects.create(
+                section=section,
+                benchmark_category=category,
+                movement_group=movement_group,
+                name_ru=name_ru,
+                name_en=name_en,
+                desc_ru=desc_ru,
+                desc_en=desc_en,
+                video_file=video_file,
+                created_by=request.user,
+            )
+        except OSError as exc:
+            if getattr(exc, 'errno', None) == ENOSPC:
+                return JsonResponse({'ok': False, 'error': 'storage_full'}, status=507)
+            raise
 
         return JsonResponse(
             {
                 'ok': True,
-                'item': {
-                    'id': item.id,
-                    'section': item.section,
-                    'category': item.benchmark_category,
-                    'movement_group': item.movement_group,
-                    'name_ru': item.name_ru,
-                    'name_en': item.name_en,
-                    'desc_ru': item.desc_ru,
-                    'desc_en': item.desc_en,
-                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
-                    'video_count': 1 if item.video_file else 0,
-                },
+                'item': AdminLibraryView._serialize_item(item),
             }
         )
 
@@ -2295,35 +2314,29 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
         item.desc_en = desc_en
         if video_file:
             item.video_file = video_file
-        item.save(
-            update_fields=[
-                'section',
-                'benchmark_category',
-                'movement_group',
-                'name_ru',
-                'name_en',
-                'desc_ru',
-                'desc_en',
-                'video_file',
-                'updated_at',
-            ]
-        )
+        try:
+            item.save(
+                update_fields=[
+                    'section',
+                    'benchmark_category',
+                    'movement_group',
+                    'name_ru',
+                    'name_en',
+                    'desc_ru',
+                    'desc_en',
+                    'video_file',
+                    'updated_at',
+                ]
+            )
+        except OSError as exc:
+            if getattr(exc, 'errno', None) == ENOSPC:
+                return JsonResponse({'ok': False, 'error': 'storage_full'}, status=507)
+            raise
 
         return JsonResponse(
             {
                 'ok': True,
-                'item': {
-                    'id': item.id,
-                    'section': item.section,
-                    'category': item.benchmark_category,
-                    'movement_group': item.movement_group,
-                    'name_ru': item.name_ru,
-                    'name_en': item.name_en,
-                    'desc_ru': item.desc_ru,
-                    'desc_en': item.desc_en,
-                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
-                    'video_count': 1 if item.video_file else 0,
-                },
+                'item': AdminLibraryView._serialize_item(item),
             }
         )
 
@@ -2336,8 +2349,6 @@ class AdminLibraryDeleteView(AdminProtectedMixin, View):
         if item is None:
             return JsonResponse({'ok': False, 'error': 'item_not_found'}, status=404)
 
-        if item.video_file:
-            item.video_file.delete(save=False)
         item.delete()
         return JsonResponse({'ok': True, 'deleted_id': item_id})
 
@@ -2402,6 +2413,25 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _rating_label(value):
         return f'{float(value):.1f}'.replace('.', ',')
+
+    @staticmethod
+    def _result_submissions_queryset():
+        return (
+            TrainingResult.objects
+            .values('training_date', 'user_id', 'training_id')
+            .distinct()
+        )
+
+    @classmethod
+    def _result_submissions_by_date(cls, start_date, end_date):
+        counts = {}
+        rows = cls._result_submissions_queryset().filter(training_date__range=(start_date, end_date))
+        for row in rows:
+            day = row.get('training_date')
+            if day is None:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+        return counts
 
     @staticmethod
     def _result_unit_label(result_type):
@@ -2649,10 +2679,47 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         context['users_active_count'] = active_users_count
 
         today = timezone.localdate()
-        context['results_today_count'] = TrainingResult.objects.filter(training_date=today).count()
-        context['results_period_count'] = TrainingResult.objects.filter(
+        context['results_today_count'] = self._result_submissions_queryset().filter(training_date=today).count()
+        context['results_period_count'] = self._result_submissions_queryset().filter(
             training_date__range=(period_start, period_end)
         ).count()
+
+        chart_week_end = period_end
+        chart_week_start = chart_week_end - timedelta(days=6)
+
+        results_counts_current_week = self._result_submissions_by_date(chart_week_start, chart_week_end)
+        sent_reactions_counts_current_week = {
+            row['training_date']: row['total']
+            for row in (
+                CommunityReaction.objects
+                .filter(training_date__range=(chart_week_start, chart_week_end))
+                .values('training_date')
+                .annotate(total=Count('id'))
+            )
+        }
+
+        chart_labels = []
+        results_logged_bars = []
+        results_logged_line = []
+        sent_reactions_per_day_line = []
+        for day_offset in range(7):
+            current_day = chart_week_start + timedelta(days=day_offset)
+            chart_labels.append(RU_WEEKDAY_SHORT.get(current_day.weekday(), current_day.strftime('%a')))
+            day_results_count = int(results_counts_current_week.get(current_day, 0))
+            results_logged_bars.append(day_results_count)
+            results_logged_line.append(day_results_count)
+            sent_reactions_per_day_line.append(int(sent_reactions_counts_current_week.get(current_day, 0)))
+
+        context['statistics_charts_json'] = {
+            'labels': chart_labels,
+            'results_logged': {
+                'bars': results_logged_bars,
+                'line': results_logged_line,
+            },
+            'sent_reactions_per_day': {
+                'line': sent_reactions_per_day_line,
+            },
+        }
 
         visited_counts = {
             row['user_id']: row['visited']
@@ -2702,16 +2769,16 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     PERIOD_OPTIONS = {'all', 'today', 'week', 'month'}
     DIRECTION_LABELS_RU = {
         AdminTraining.DIRECTION_FBB: 'FBB',
-        AdminTraining.DIRECTION_CROSSFIT: 'РљСЂРѕСЃСЃС„РёС‚ СЃ Р”РµРЅРёСЃРѕРј Р—Р°Р»РѕР·РЅРёРј',
-        AdminTraining.DIRECTION_GYMNASTICS: 'Р“РёРјРЅР°СЃС‚РёРєР°',
-        AdminTraining.DIRECTION_WORKOUT: 'РўСЂРµРЅРёСЂРѕРІРєР° РґРЅСЏ',
-        AdminTraining.DIRECTION_FUNCTIONAL: 'Р¤СѓРЅРєС†РёРѕРЅР°Р»СЊРЅР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°',
-        AdminTraining.DIRECTION_STRENGTH: 'РЎРёР»РѕРІР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°',
+        AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
+        AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
+        AdminTraining.DIRECTION_WORKOUT: 'Тренировка дня',
+        AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
+        AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
     }
     BLOCK_LABELS_RU = {
-        AdminTrainingExercise.BLOCK_STRENGTH: 'РЎРёР»РѕРІР°СЏ',
-        AdminTrainingExercise.BLOCK_CARDIO: 'РљР°СЂРґРёРѕ',
-        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Р“РёРјРЅР°СЃС‚РёРєР°',
+        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
     }
 
     @staticmethod
@@ -2729,7 +2796,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         sets = getattr(exercise, 'sets', None)
         reps = getattr(exercise, 'reps', None)
         if name and sets and reps:
-            return f'{name} x {sets} РїРѕРґС…РѕРґР° РїРѕ {reps}'
+            return f'{name} x {sets} подхода по {reps}'
         return name
 
     @classmethod
@@ -2738,7 +2805,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
             custom_name = str(exercise.block_custom_name or '').strip()
             if custom_name:
                 return normalize_mojibake_text(custom_name)
-        return normalize_mojibake_text(cls.BLOCK_LABELS_RU.get(exercise.block_type, 'Р‘Р»РѕРє'))
+        return normalize_mojibake_text(cls.BLOCK_LABELS_RU.get(exercise.block_type, 'Блок'))
 
     @staticmethod
     def _pick_training_for_rate(rate, candidates):
@@ -2834,10 +2901,10 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
 
                 training_view_payload[training_key] = {
                     'training_id': training.id,
-                    'title': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
+                    'title': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
                     'date_label': training.training_date.strftime('%d.%m.%Y'),
-                    'direction': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
-                    'visibility': 'РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Р”Р»СЏ РІСЃРµС…',
+                    'direction': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
+                    'visibility': 'Только для тренеров' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
                     'comment': normalize_mojibake_text(str(training.comment or '').strip()),
                     'color': training.color or 'blue',
                     'exercises': exercises,
@@ -2849,7 +2916,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                     'training_title': normalize_mojibake_text(training_title),
                     'date_label': rate.training_date.strftime('%d.%m.%Y'),
                     'author_name': full_name,
-                    'comment': normalize_mojibake_text(rate.comment.strip()) or 'Р‘РµР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ',
+                    'comment': normalize_mojibake_text(rate.comment.strip()) or 'Без комментария',
                     'overall_stars': self._stars(rate.overall),
                     'strength_stars': self._stars(rate.strength),
                     'cardio_stars': self._stars(rate.cardio),
@@ -3315,14 +3382,25 @@ class SaveTrainingResultsView(View):
         except json.JSONDecodeError:
             return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
 
+        training = None
+        training_id_raw = payload.get('training_id')
+        training_id = self._parse_positive_int(training_id_raw)
+        if training_id is not None and training_id > 0:
+            training = AdminTraining.objects.filter(id=training_id).only('id', 'training_date').first()
+            if training is None:
+                return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
+
         raw_date = payload.get('date')
-        if raw_date:
-            try:
-                training_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
-            except ValueError:
-                return JsonResponse({'ok': False, 'error': 'invalid_date'}, status=400)
+        if training is not None:
+            training_date = training.training_date
         else:
-            training_date = timezone.localdate()
+            if raw_date:
+                try:
+                    training_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({'ok': False, 'error': 'invalid_date'}, status=400)
+            else:
+                training_date = timezone.localdate()
 
         if get_user_role(user) == UserProfile.ROLE_USER and training_date != timezone.localdate():
             return JsonResponse({'ok': False, 'error': 'only_today_allowed'}, status=403)
@@ -3359,17 +3437,33 @@ class SaveTrainingResultsView(View):
             if result_type == TrainingResult.RESULT_TIME and seconds is not None and seconds > 59:
                 return JsonResponse({'ok': False, 'error': f'invalid_seconds:{section_key}'}, status=400)
 
-            TrainingResult.objects.update_or_create(
-                user=user,
-                training_date=training_date,
-                section=section_key,
-                defaults={
-                    'result_type': result_type,
-                    'minutes': minutes,
-                    'seconds': seconds,
-                    'mode': mode,
-                },
-            )
+            if training is not None:
+                TrainingResult.objects.update_or_create(
+                    user=user,
+                    training=training,
+                    section=section_key,
+                    defaults={
+                        'training_date': training_date,
+                        'result_type': result_type,
+                        'minutes': minutes,
+                        'seconds': seconds,
+                        'mode': mode,
+                    },
+                )
+            else:
+                TrainingResult.objects.update_or_create(
+                    user=user,
+                    training_date=training_date,
+                    training__isnull=True,
+                    section=section_key,
+                    defaults={
+                        'training': None,
+                        'result_type': result_type,
+                        'minutes': minutes,
+                        'seconds': seconds,
+                        'mode': mode,
+                    },
+                )
             saved_count += 1
 
         logger.info(
@@ -4059,7 +4153,7 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             TrainingResult.objects
             .select_related('user')
             .filter(training_date=selected_date)
-            .order_by('-updated_at', 'user_id')
+            .order_by('-updated_at', '-id', 'user_id', 'section')
         )
         for item in day_results:
             user_id = item.user_id
@@ -4073,6 +4167,8 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                     'sections': {key: {'title': title, 'value': '--', 'mode': '--'} for key, title in section_meta},
                 }
 
+            if grouped[user_id]['sections'][item.section]['value'] != '--':
+                continue
             grouped[user_id]['sections'][item.section] = {
                 'title': normalize_mojibake_text(section_titles[item.section]),
                 'value': normalize_mojibake_text(self._format_training_value(item)),

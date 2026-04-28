@@ -217,8 +217,15 @@
 
 .admin-library-video {
     color: #000;
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
     font: 400 13px/20px Inter, Arial, sans-serif;
+    cursor: pointer;
+}
+
+.admin-library-video.is-empty {
+    color: #98a2b3;
+    cursor: default;
 }
 
 .admin-library-actions {
@@ -480,4 +487,46 @@
     border: 1px solid #155dfc;
     background: #155dfc;
     color: #fff;
+}
+
+.admin-library-video-modal__card {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(880px, calc(100vw - 24px));
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+}
+
+.admin-library-video-modal__close {
+    position: absolute;
+    right: 0;
+    top: -34px;
+    border: 0;
+    background: transparent;
+    color: #ffffff;
+    font-size: 30px;
+    line-height: 1;
+    cursor: pointer;
+    z-index: 2;
+    padding: 0;
+}
+
+.admin-library-video-modal__player-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 0;
+    overflow: visible;
+    background: transparent;
+}
+
+.admin-library-video-modal__player {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+    background: #000;
 }

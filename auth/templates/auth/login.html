@@ -66,4 +66,36 @@
         });
     })();
 </script>
+
+<script>
+    (function () {
+        const loginPath = "{% url 'auth:login' %}";
+        const startedAt = Date.now();
+        const maxDurationMs = 2 * 60 * 1000;
+        const intervalMs = 1500;
+
+        async function checkAuthAndRedirect() {
+            if (Date.now() - startedAt > maxDurationMs) {
+                clearInterval(timerId);
+                return;
+            }
+            try {
+                const response = await fetch(loginPath, {
+                    method: 'GET',
+                    credentials: 'include',
+                    redirect: 'follow',
+                    cache: 'no-store',
+                });
+                if (response.redirected && response.url && !response.url.endsWith(loginPath)) {
+                    window.location.href = response.url;
+                }
+            } catch (error) {
+                // Ignore transient network errors and retry on next tick.
+            }
+        }
+
+        const timerId = setInterval(checkAuthAndRedirect, intervalMs);
+    })();
+</script>
+
 {% endblock %}

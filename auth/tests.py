@@ -586,8 +586,8 @@ class ProfileActivityVisitsTests(TestCase):
         self.assertEqual(self._extract_count(activity['month']['visits']), 0)
         self.assertEqual(self._extract_count(activity['year']['visits']), 0)
         self.assertEqual(self._extract_count(activity['week']['goal']), 6)
-        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
-        self.assertEqual(self._extract_count(activity['year']['goal']), 312)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 18)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 216)
 
     def test_profile_activity_counts_unique_dates_and_is_user_scoped(self):
         today = timezone.localdate()
@@ -644,8 +644,8 @@ class ProfileActivityVisitsTests(TestCase):
         self.assertEqual(self._extract_count(activity['month']['visits']), 2)
         self.assertEqual(self._extract_count(activity['year']['visits']), 3)
         self.assertEqual(self._extract_count(activity['week']['goal']), 6)
-        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
-        self.assertEqual(self._extract_count(activity['year']['goal']), 312)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 18)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 216)
 
 
 class CommunityReactionApiTests(TestCase):

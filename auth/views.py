@@ -1290,8 +1290,8 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
             .distinct()
             .count()
         )
-        month_goal = weekly_goal * 4
-        year_goal = weekly_goal * 52
+        month_goal = weekly_goal * 3
+        year_goal = month_goal * 12
         context['profile_activity_values_json'] = json.dumps(
             {
                 'week': {

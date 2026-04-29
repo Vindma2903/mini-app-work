@@ -211,11 +211,21 @@ body {
     height: 4px;
     border-radius: 50%;
     background: var(--pt-blue);
+    margin-top: 6px;
 }
 
+.plan-card__line-content { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.plan-card__line-main { display: flex; align-items: center; gap: 8px; }
 .plan-card__line span {
     flex: 1;
     display: block;
+    font-size: 12px;
+    line-height: 15px;
+    color: rgba(25, 33, 38, 0.8);
+    white-space: pre-line;
+}
+.plan-card__line-details {
+    margin: 0;
     font-size: 12px;
     line-height: 15px;
     color: rgba(25, 33, 38, 0.5);
@@ -224,7 +234,7 @@ body {
 
 .plan-card__line button {
     margin-left: auto;
-    align-self: flex-start;
+    align-self: center;
     border: 0;
     background: transparent;
     width: 18px;

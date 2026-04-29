@@ -60,7 +60,7 @@ body {
 .exercise-max-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    margin-bottom: 24px;
+    margin-bottom: 0;
 }
 
 .exercise-max-grid__cell {
@@ -94,6 +94,10 @@ body {
     border: 1px solid var(--axe-blue);
     background: #fff;
     color: #000;
+}
+
+#exercise-open-edit-modal {
+    margin-top: 24px;
 }
 
 .exercise-percent-card {

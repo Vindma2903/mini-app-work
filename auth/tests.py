@@ -986,6 +986,60 @@ class AdminTrainingCrudTests(TestCase):
         self.assertEqual(delete_response.status_code, 200)
         self.assertFalse(AdminTraining.objects.filter(id=training.id).exists())
 
+    def test_admin_delete_training_handles_legacy_result_collision(self):
+        training = AdminTraining.objects.create(
+            training_date='2026-04-10',
+            direction='fbb',
+            visibility='all',
+            comment='initial',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='Присед',
+            result_type='time',
+            order=0,
+        )
+        TrainingResult.objects.create(
+            user=self.user,
+            training=training,
+            training_date=training.training_date,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=1,
+            seconds=20,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.user,
+            training=None,
+            training_date=training.training_date,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=2,
+            seconds=30,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.admin)
+        delete_response = self.client.post(
+            reverse('auth:calendar_admin_training_delete', kwargs={'training_id': training.id}),
+            data={},
+            content_type='application/json',
+        )
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertFalse(AdminTraining.objects.filter(id=training.id).exists())
+        self.assertEqual(
+            TrainingResult.objects.filter(
+                user=self.user,
+                training_date=training.training_date,
+                section=TrainingResult.SECTION_STRENGTH,
+                training__isnull=True,
+            ).count(),
+            1,
+        )
+
     def test_admin_create_saves_multiple_exercises_and_fields(self):
         self.client.force_login(self.admin)
         payload = self._payload()
@@ -1568,6 +1622,42 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         line = cards[0]['sections'][0]['lines'][0]
         self.assertTrue(line['show_video'])
         self.assertIn('library/videos/', line['video_url'])
+
+    def test_training_plan_line_hides_video_when_library_file_missing_on_disk(self):
+        missing_path = self.library_with_video.video_file.path
+        if os.path.exists(missing_path):
+            os.remove(missing_path)
+
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='missing-video-training',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            library_item=self.library_with_video,
+            exercise_kind=AdminTrainingExercise.EXERCISE_KIND_EXERCISE,
+            block_type='strength',
+            exercise_name='Присед видео',
+            sets=3,
+            reps=8,
+            result_type='reps',
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        line = cards[0]['sections'][0]['lines'][0]
+        self.assertFalse(line['show_video'])
+        self.assertEqual(line['video_url'], '')
+        self.library_with_video.refresh_from_db()
+        self.assertFalse(bool(self.library_with_video.video_file))
 
     def test_training_plan_line_hides_video_button_without_library_video(self):
         training = AdminTraining.objects.create(

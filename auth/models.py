@@ -244,6 +244,8 @@ class AdminTraining(models.Model):
     comment_for_athletes = models.TextField(blank=True, default='')
     manual_description_ru = models.TextField(blank=True, default='')
     manual_description_en = models.TextField(blank=True, default='')
+    manual_block_type = models.CharField(max_length=16, blank=True, default='')
+    manual_block_custom_name = models.CharField(max_length=255, blank=True, default='')
     manual_sets = models.PositiveSmallIntegerField(null=True, blank=True)
     manual_result_type = models.CharField(
         max_length=16,

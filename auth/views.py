@@ -1,4 +1,4 @@
-﻿import secrets
+import secrets
 import logging
 import json
 import re
@@ -65,6 +65,34 @@ ADMIN_PASSWORD_RESET_LINK_SALT = 'admin_password_reset_link_v1'
 TELEGRAM_LINK_TTL_MINUTES = 10
 TELEGRAM_QUICK_LOGIN_TTL_SECONDS = 10 * 60
 logger = logging.getLogger(__name__)
+
+
+def _get_existing_media_file_url(file_field, *, auto_clear_missing=False):
+    if not file_field:
+        return ''
+    try:
+        file_name = str(file_field.name or '').strip()
+        if not file_name:
+            return ''
+        storage = file_field.storage
+        if not storage.exists(file_name):
+            if auto_clear_missing:
+                try:
+                    instance = getattr(file_field, 'instance', None)
+                    field = getattr(file_field, 'field', None)
+                    field_name = getattr(field, 'name', '')
+                    if instance is not None and field_name:
+                        setattr(instance, field_name, None)
+                        update_fields = [field_name]
+                        if hasattr(instance, 'updated_at'):
+                            update_fields.append('updated_at')
+                        instance.save(update_fields=update_fields)
+                except Exception:
+                    logger.exception('Failed to auto-clear missing media file reference=%s', file_name)
+            return ''
+        return file_field.url
+    except Exception:
+        return ''
 
 RU_WEEKDAY = {
     0: '\u041f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a',
@@ -154,6 +182,37 @@ def format_admin_training_volume(exercise):
     return f'{exercise.exercise_name} {sets}x{reps}'
 
 
+def format_admin_training_volume_by_name(exercise_name, sets, reps):
+    if sets is None and reps is None:
+        return exercise_name
+    if sets is None or reps is None:
+        return exercise_name
+    return f'{exercise_name} {sets}x{reps}'
+
+
+def split_manual_description_lines(text_ru, text_en):
+    source = text_ru if str(text_ru or '').strip() else text_en
+    normalized = normalize_mojibake_text(str(source or ''))
+    return [line.strip() for line in normalized.splitlines() if line.strip()]
+
+
+def split_library_description_lines(text_ru, text_en):
+    source = text_ru if str(text_ru or '').strip() else text_en
+    normalized = normalize_mojibake_text(str(source or ''))
+    return [line.strip() for line in normalized.splitlines() if line.strip()]
+
+
+def resolve_manual_block_label(training):
+    block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
+    if block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+        custom_name = normalize_mojibake_text(getattr(training, 'manual_block_custom_name', '') or '').strip()
+        if custom_name:
+            return custom_name
+    if block_type in TRAINING_BLOCK_LABELS:
+        return normalize_mojibake_text(TRAINING_BLOCK_LABELS[block_type])
+    return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'Силовая'))
+
+
 def normalize_mojibake_text(value):
     if not isinstance(value, str):
         return value
@@ -225,11 +284,51 @@ def serialize_admin_training(training):
         )
         block_label = normalize_mojibake_text(block_label)
         exercise_name = normalize_mojibake_text(item.exercise_name or '')
+        exercise_name_en = normalize_mojibake_text(
+            (getattr(item.library_item, 'name_en', '') or item.exercise_name or '')
+        )
         volume = normalize_mojibake_text(format_admin_training_volume(item))
+        volume_en = normalize_mojibake_text(
+            format_admin_training_volume_by_name(exercise_name_en, item.sets, item.reps)
+        )
+        volume_ru_lines = [volume] if volume else []
+        volume_en_lines = [volume_en] if volume_en else []
+        if (
+            str(item.exercise_kind or '').strip().lower() == AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS
+            and item.library_item_id
+            and item.library_item
+        ):
+            benchmark_ru_lines = split_library_description_lines(
+                getattr(item.library_item, 'desc_ru', ''),
+                getattr(item.library_item, 'desc_en', ''),
+            )
+            benchmark_en_lines = split_library_description_lines(
+                getattr(item.library_item, 'desc_en', ''),
+                getattr(item.library_item, 'desc_ru', ''),
+            )
+            if benchmark_ru_lines:
+                volume_ru_lines = benchmark_ru_lines
+            if benchmark_en_lines:
+                volume_en_lines = benchmark_en_lines
 
         exercise_payload = {
             'id': item.id,
             'library_item_id': item.library_item_id,
+            'library_section': (
+                str(getattr(item.library_item, 'section', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
+            'library_movement_group': (
+                str(getattr(item.library_item, 'movement_group', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
+            'library_category': (
+                str(getattr(item.library_item, 'benchmark_category', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
             'block_type': item.block_type,
             'block_custom_name': normalize_mojibake_text(item.block_custom_name or ''),
             'block_label': block_label,
@@ -252,8 +351,32 @@ def serialize_admin_training(training):
 
         if block_label not in section_index:
             section_index[block_label] = len(grouped_sections)
-            grouped_sections.append({'title': block_label, 'items': []})
-        grouped_sections[section_index[block_label]]['items'].append(exercise_payload['volume'])
+            grouped_sections.append({'title': block_label, 'items': [], 'items_ru': [], 'items_en': []})
+        grouped_sections[section_index[block_label]]['items'].extend(volume_ru_lines or [exercise_payload['volume']])
+        grouped_sections[section_index[block_label]]['items_ru'].extend(volume_ru_lines or [volume])
+        grouped_sections[section_index[block_label]]['items_en'].extend(volume_en_lines or [volume_en])
+
+    if training.source_type == AdminTraining.SOURCE_MANUAL and not grouped_sections:
+        manual_items_ru = [
+            normalize_mojibake_text(line.strip())
+            for line in str(training.manual_description_ru or '').splitlines()
+            if str(line).strip()
+        ]
+        manual_items_en = [
+            normalize_mojibake_text(line.strip())
+            for line in str(training.manual_description_en or '').splitlines()
+            if str(line).strip()
+        ]
+        fallback_items = split_manual_description_lines(training.manual_description_ru, training.manual_description_en)
+        if fallback_items:
+            grouped_sections.append(
+                {
+                    'title': resolve_manual_block_label(training),
+                    'items': fallback_items,
+                    'items_ru': manual_items_ru or fallback_items,
+                    'items_en': manual_items_en or fallback_items,
+                }
+            )
 
     first_exercise = exercises_payload[0] if exercises_payload else None
     training_title = normalize_mojibake_text(
@@ -283,6 +406,8 @@ def serialize_admin_training(training):
         'source_type': training.source_type,
         'manual_description_ru': normalize_mojibake_text(training.manual_description_ru or ''),
         'manual_description_en': normalize_mojibake_text(training.manual_description_en or ''),
+        'manual_block_type': (training.manual_block_type or ''),
+        'manual_block_custom_name': normalize_mojibake_text(training.manual_block_custom_name or ''),
         'manual_sets': training.manual_sets,
         'manual_result_type': training.manual_result_type or '',
         'ready_workout_type': training.ready_workout_type,
@@ -290,8 +415,16 @@ def serialize_admin_training(training):
         'ready_complex_name': normalize_mojibake_text(training.ready_complex_name or ''),
         'ready_plan_title': normalize_mojibake_text(training.ready_plan_title or ''),
         'created_by_id': training.created_by_id,
-        'block_name': first_exercise['block_label'] if first_exercise else 'Р вЂР В»Р С•Р С”',
-        'volume': first_exercise['volume'] if first_exercise else '',
+        'block_name': (
+            first_exercise['block_label']
+            if first_exercise
+            else (grouped_sections[0]['title'] if grouped_sections else 'Р вЂР В»Р С•Р С”')
+        ),
+        'volume': (
+            first_exercise['volume']
+            if first_exercise
+            else (grouped_sections[0]['items'][0] if grouped_sections and grouped_sections[0].get('items') else '')
+        ),
         'sections': grouped_sections,
         'exercises': exercises_payload,
     }
@@ -2123,12 +2256,7 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
 
     @staticmethod
     def _serialize_item(item):
-        video_url = ''
-        if item.video_file:
-            try:
-                video_url = item.video_file.url
-            except ValueError:
-                video_url = ''
+        video_url = _get_existing_media_file_url(item.video_file, auto_clear_missing=True)
         return {
             'id': item.id,
             'section': item.section,
@@ -2140,7 +2268,7 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
             'desc_en': item.desc_en,
             'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
             'video_url': video_url,
-            'video_count': 1 if item.video_file else 0,
+            'video_count': 1 if video_url else 0,
         }
 
     def get_context_data(self, **kwargs):
@@ -3084,6 +3212,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         comment_for_athletes = str(payload.get('comment_for_athletes') or '').strip()
         manual_description_ru = str(payload.get('manual_description_ru') or '').strip()
         manual_description_en = str(payload.get('manual_description_en') or '').strip()
+        manual_block_type = str(payload.get('training_block') or AdminTrainingExercise.BLOCK_STRENGTH).strip().lower()
+        manual_block_custom_name = str(payload.get('training_block_custom') or '').strip()
         manual_sets = self._parse_positive_int(payload.get('manual_sets'))
         manual_result_type = str(payload.get('manual_result_type') or '').strip().lower()
         ready_workout_type = str(payload.get('ready_workout_type') or '').strip()
@@ -3123,6 +3253,11 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             field_errors['ready_plan_title'] = 'ready_plan_title_required'
 
         if source_type == AdminTraining.SOURCE_MANUAL:
+            valid_block_values = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
+            if manual_block_type not in valid_block_values:
+                field_errors['training_block'] = 'invalid_block_type'
+            if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM and not manual_block_custom_name:
+                field_errors['training_block_custom'] = 'block_custom_name_required'
             if not manual_description_ru:
                 field_errors['manual_description_ru'] = 'manual_description_ru_required'
             if not manual_description_en:
@@ -3139,6 +3274,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         else:
             manual_description_ru = ''
             manual_description_en = ''
+            manual_block_type = ''
+            manual_block_custom_name = ''
             manual_sets = None
             manual_result_type = ''
 
@@ -3175,6 +3312,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             'source_type': source_type,
             'manual_description_ru': manual_description_ru,
             'manual_description_en': manual_description_en,
+            'manual_block_type': manual_block_type,
+            'manual_block_custom_name': manual_block_custom_name,
             'manual_sets': manual_sets,
             'manual_result_type': manual_result_type,
             'ready_workout_type': ready_workout_type,
@@ -3231,6 +3370,8 @@ class AdminTrainingCreateView(AdminTrainingBaseView):
                 source_type=parsed_payload['source_type'],
                 manual_description_ru=parsed_payload['manual_description_ru'],
                 manual_description_en=parsed_payload['manual_description_en'],
+                manual_block_type=parsed_payload['manual_block_type'],
+                manual_block_custom_name=parsed_payload['manual_block_custom_name'],
                 manual_sets=parsed_payload['manual_sets'],
                 manual_result_type=parsed_payload['manual_result_type'],
                 ready_workout_type=parsed_payload['ready_workout_type'],
@@ -3273,6 +3414,8 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
             training.source_type = parsed_payload['source_type']
             training.manual_description_ru = parsed_payload['manual_description_ru']
             training.manual_description_en = parsed_payload['manual_description_en']
+            training.manual_block_type = parsed_payload['manual_block_type']
+            training.manual_block_custom_name = parsed_payload['manual_block_custom_name']
             training.manual_sets = parsed_payload['manual_sets']
             training.manual_result_type = parsed_payload['manual_result_type']
             training.ready_workout_type = parsed_payload['ready_workout_type']
@@ -3291,6 +3434,8 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
                     'source_type',
                     'manual_description_ru',
                     'manual_description_en',
+                    'manual_block_type',
+                    'manual_block_custom_name',
                     'manual_sets',
                     'manual_result_type',
                     'ready_workout_type',
@@ -3313,7 +3458,26 @@ class AdminTrainingDeleteView(AdminProtectedMixin, View):
         training = AdminTraining.objects.filter(id=training_id).first()
         if training is None:
             return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
-        training.delete()
+        with transaction.atomic():
+            linked_results = list(
+                TrainingResult.objects
+                .select_for_update()
+                .filter(training=training)
+                .order_by('id')
+            )
+            for result in linked_results:
+                legacy_exists = TrainingResult.objects.filter(
+                    user_id=result.user_id,
+                    training_date=result.training_date,
+                    section=result.section,
+                    training__isnull=True,
+                ).exclude(pk=result.pk).exists()
+                if legacy_exists:
+                    result.delete()
+                else:
+                    result.training = None
+                    result.save(update_fields=['training', 'updated_at'])
+            training.delete()
         return JsonResponse({'ok': True, 'training_id': training_id})
 
 
@@ -4039,7 +4203,10 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 'show_video': bool(
                     exercise.library_item_id
                     and exercise.library_item
-                    and exercise.library_item.video_file
+                    and _get_existing_media_file_url(
+                        exercise.library_item.video_file,
+                        auto_clear_missing=True,
+                    )
                 ),
             }
             for idx, exercise in enumerate(ordered_exercises)
@@ -4277,20 +4444,51 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
         video_url='',
         video_search_name_ru='',
         video_search_name_en='',
+        details_ru='',
+        details_en='',
+        kind='default',
     ):
         normalized_ru = cls._normalized_text(text_ru)
         normalized_en = cls._normalized_text(text_en) or normalized_ru
         normalized_search_ru = cls._normalized_text(video_search_name_ru) or normalized_ru
         normalized_search_en = cls._normalized_text(video_search_name_en) or normalized_en or normalized_ru
+        normalized_details_ru = normalize_mojibake_text(str(details_ru or '').strip())
+        normalized_details_en = normalize_mojibake_text(str(details_en or '').strip()) or normalized_details_ru
         return {
             'text': normalized_ru,
             'text_ru': normalized_ru,
             'text_en': normalized_en,
+            'details_ru': normalized_details_ru,
+            'details_en': normalized_details_en,
+            'kind': kind,
             'show_video': bool(video_url),
             'video_url': video_url,
             'video_search_name_ru': normalized_search_ru,
             'video_search_name_en': normalized_search_en,
         }
+
+    @classmethod
+    def _split_manual_description_lines(cls, text_ru, text_en):
+        ru_lines = [cls._normalized_text(line) for line in str(text_ru or '').splitlines()]
+        en_lines = [cls._normalized_text(line) for line in str(text_en or '').splitlines()]
+        ru_lines = [line for line in ru_lines if line]
+        en_lines = [line for line in en_lines if line]
+        max_len = max(len(ru_lines), len(en_lines))
+        if max_len == 0:
+            return []
+
+        lines = []
+        for index in range(max_len):
+            ru_line = ru_lines[index] if index < len(ru_lines) else ''
+            en_line = en_lines[index] if index < len(en_lines) else ''
+            if not ru_line and not en_line:
+                continue
+            if not ru_line:
+                ru_line = en_line
+            if not en_line:
+                en_line = ru_line
+            lines.append((ru_line, en_line))
+        return lines
 
     def get(self, request, *args, **kwargs):
         role = get_user_role(request.user)
@@ -4347,19 +4545,29 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
 
             if training.source_type == AdminTraining.SOURCE_MANUAL:
                 default_title = 'Тренировка'
-                if exercises:
+                manual_block_type = str(training.manual_block_type or '').strip().lower()
+                manual_block_custom_name = str(training.manual_block_custom_name or '').strip()
+                if manual_block_type:
+                    if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM and manual_block_custom_name:
+                        default_title = manual_block_custom_name
+                    else:
+                        default_title = self.PLAN_BLOCK_TITLES_RU.get(manual_block_type, default_title)
+                elif exercises:
                     first_exercise = exercises[0]
                     default_title = (
                         first_exercise.block_custom_name.strip()
                         if first_exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
                         else self.PLAN_BLOCK_TITLES_RU.get(first_exercise.block_type, default_title)
                     )
-                manual_line = self._build_plan_line_payload(
-                    text_ru=training.manual_description_ru,
-                    text_en=training.manual_description_en,
-                )
-                if manual_line['text_ru'] or manual_line['text_en']:
-                    sections.append({'title': normalize_mojibake_text(default_title), 'lines': [manual_line]})
+                manual_lines = [
+                    self._build_plan_line_payload(text_ru=text_ru_line, text_en=text_en_line)
+                    for text_ru_line, text_en_line in self._split_manual_description_lines(
+                        training.manual_description_ru,
+                        training.manual_description_en,
+                    )
+                ]
+                if manual_lines:
+                    sections.append({'title': normalize_mojibake_text(default_title), 'lines': manual_lines})
             else:
                 for exercise in exercises:
                     section_title = (
@@ -4373,19 +4581,35 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                         sections.append({'title': section_title, 'lines': []})
 
                     video_url = ''
-                    if exercise.library_item_id and exercise.library_item and exercise.library_item.video_file:
-                        video_url = exercise.library_item.video_file.url
+                    if exercise.library_item_id and exercise.library_item:
+                        video_url = _get_existing_media_file_url(
+                            exercise.library_item.video_file,
+                            auto_clear_missing=True,
+                        )
 
                     if training.source_type == AdminTraining.SOURCE_LIBRARY:
                         library_item = exercise.library_item if exercise.library_item_id else None
                         fallback_text = format_admin_training_volume(exercise)
-                        line_payload = self._build_plan_line_payload(
-                            text_ru=(library_item.desc_ru if library_item else '') or fallback_text,
-                            text_en=library_item.desc_en if library_item else '',
-                            video_url=video_url,
-                            video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
-                            video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
-                        )
+                        exercise_kind = str(exercise.exercise_kind or '').strip().lower()
+                        if exercise_kind == AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS and library_item:
+                            line_payload = self._build_plan_line_payload(
+                                text_ru=(library_item.name_ru or exercise.exercise_name or '').strip(),
+                                text_en=(library_item.name_en or exercise.exercise_name or '').strip(),
+                                details_ru=(library_item.desc_ru or '').strip(),
+                                details_en=(library_item.desc_en or '').strip(),
+                                kind='benchmark',
+                                video_url=video_url,
+                                video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
+                                video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
+                            )
+                        else:
+                            line_payload = self._build_plan_line_payload(
+                                text_ru=(library_item.desc_ru if library_item else '') or fallback_text,
+                                text_en=library_item.desc_en if library_item else '',
+                                video_url=video_url,
+                                video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
+                                video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
+                            )
                     else:
                         fallback_text = format_admin_training_volume(exercise)
                         line_payload = self._build_plan_line_payload(
@@ -4686,4 +4910,3 @@ class AchievementExerciseUpdateView(View):
                 ],
             }
         )
-

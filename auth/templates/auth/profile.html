@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Профиль{% endblock %}
@@ -44,10 +44,10 @@
     </section>
 
     <section class="card">
-        <h2 class="card__title">Статистика участия</h2>
+        <h2 class="card__title card__title--center">Статистика реакций</h2>
         <div class="stats">
-            <div><strong data-stats="given">0</strong><span>Поставленных реакций</span></div>
-            <div><strong data-stats="received">0</strong><span>Полученных реакций</span></div>
+            <div><strong data-stats="given">0</strong><span>Поставленных</span></div>
+            <div><strong data-stats="received">0</strong><span>Полученных</span></div>
         </div>
         <div class="tabs" data-tabs="stats">
             <button type="button" class="tabs__item tabs__item--active" data-period="week">За неделю</button>

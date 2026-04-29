@@ -53,11 +53,11 @@
                         <div class="leaderboard-item__cell leaderboard-item__cell--time">{{ entry.result_label }}</div>
                         <div class="leaderboard-item__cell leaderboard-item__cell--award">
                             {% if entry.medal == 'gold' %}
-                            <img src="{% static 'auth/img/award-first.svg' %}" alt="1 место">
+                            <img src="{% static 'auth/img/cup1.png' %}" alt="1 место">
                             {% elif entry.medal == 'silver' %}
-                            <img src="{% static 'auth/img/award-second.svg' %}" alt="2 место">
+                            <img src="{% static 'auth/img/cup2.png' %}" alt="2 место">
                             {% elif entry.medal == 'bronze' %}
-                            <img src="{% static 'auth/img/award-third.svg' %}" alt="3 место">
+                            <img src="{% static 'auth/img/cup3.png' %}" alt="3 место">
                             {% else %}
                             {{ entry.place_label }}
                             {% endif %}
@@ -75,7 +75,7 @@
                                 <span data-reaction-count>{{ entry.reactions_count }}</span>
                             </button>
                             {% else %}
-                            <span>—</span>
+                            <span><img src="{% static 'auth/img/reaction.svg' %}" alt=""></span>
                             {% endif %}
                         </div>
                     </article>
@@ -84,7 +84,7 @@
                         <div class="leaderboard-item__cell leaderboard-item__cell--name">Нет результатов</div>
                         <div class="leaderboard-item__cell leaderboard-item__cell--time">--</div>
                         <div class="leaderboard-item__cell leaderboard-item__cell--award">--</div>
-                        <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span>—</span></div>
+                        <div class="leaderboard-item__cell leaderboard-item__cell--icon"><span><img src="{% static 'auth/img/reaction.svg' %}" alt=""></span></div>
                     </article>
                     {% endfor %}
                 </div>

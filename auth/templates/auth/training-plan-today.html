@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}План тренировок на сегодня{% endblock %}
@@ -44,23 +44,35 @@
                     {% for line in section.lines %}
                     <div class="plan-card__line">
                         <i></i>
-                        <span
-                            data-plan-line-text
-                            data-text-ru="{{ line.text_ru|default:'' }}"
-                            data-text-en="{{ line.text_en|default:'' }}"
-                        >{{ line.text_ru }}</span>
-                        {% if line.show_video %}
-                        <button
-                            type="button"
-                            data-open-exercise-video
-                            data-video-url="{{ line.video_url|default:'' }}"
-                            data-exercise-name="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
-                            data-exercise-name-ru="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
-                            data-exercise-name-en="{{ line.video_search_name_en|default:line.text_en|default:line.text_ru|default:'' }}"
-                        >
-                            <img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="">
-                        </button>
-                        {% endif %}
+                        <div class="plan-card__line-content">
+                            <div class="plan-card__line-main">
+                                <span
+                                    data-plan-line-text
+                                    data-text-ru="{{ line.text_ru|default:'' }}"
+                                    data-text-en="{{ line.text_en|default:'' }}"
+                                >{{ line.text_ru }}</span>
+                                {% if line.show_video %}
+                                <button
+                                    type="button"
+                                    data-open-exercise-video
+                                    data-video-url="{{ line.video_url|default:'' }}"
+                                    data-exercise-name="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
+                                    data-exercise-name-ru="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
+                                    data-exercise-name-en="{{ line.video_search_name_en|default:line.text_en|default:line.text_ru|default:'' }}"
+                                >
+                                    <img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="">
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% if line.kind == 'benchmark' and line.details_ru %}
+                            <p
+                                class="plan-card__line-details"
+                                data-plan-line-text
+                                data-text-ru="{{ line.details_ru|default:'' }}"
+                                data-text-en="{{ line.details_en|default:'' }}"
+                            >{{ line.details_ru }}</p>
+                            {% endif %}
+                        </div>
                     </div>
                     {% endfor %}
                 </div>

@@ -4,6 +4,7 @@ import json
 import re
 import hmac
 import hashlib
+import smtplib
 from errno import ENOSPC
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -1279,6 +1280,18 @@ class RegisterPasswordView(FormView):
             return redirect('auth:register')
 
         email = signup_data['email']
+        logger.info(
+            'Register step2 email_send_start email=%s ip=%s backend=%s host=%s port=%s tls=%s ssl=%s timeout=%s from=%s',
+            email,
+            get_client_ip(self.request),
+            getattr(settings, 'EMAIL_BACKEND', ''),
+            getattr(settings, 'EMAIL_HOST', ''),
+            getattr(settings, 'EMAIL_PORT', ''),
+            getattr(settings, 'EMAIL_USE_TLS', False),
+            getattr(settings, 'EMAIL_USE_SSL', False),
+            getattr(settings, 'EMAIL_TIMEOUT', None),
+            getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
+        )
         try:
             with transaction.atomic():
                 user = User.objects.create_user(
@@ -1289,7 +1302,48 @@ class RegisterPasswordView(FormView):
                     last_name=signup_data['last_name'],
                     is_active=True,
                 )
+                logger.info(
+                    'Register step2 email_send_attempt email=%s user_id=%s ip=%s',
+                    email,
+                    user.id,
+                    get_client_ip(self.request),
+                )
                 EmailAddress.objects.add_email(self.request, user, email, confirm=True)
+                logger.info(
+                    'Register step2 email_send_success email=%s user_id=%s ip=%s',
+                    email,
+                    user.id,
+                    get_client_ip(self.request),
+                )
+        except smtplib.SMTPException as exc:
+            logger.warning(
+                'Register step2 smtp_error email=%s ip=%s smtp_code=%s smtp_error=%s error=%r',
+                email,
+                get_client_ip(self.request),
+                getattr(exc, 'smtp_code', None),
+                getattr(exc, 'smtp_error', None),
+                exc,
+                exc_info=True,
+            )
+            messages.error(
+                self.request,
+                'Не удалось отправить письмо подтверждения. Проверьте SMTP-настройки и повторите попытку.',
+            )
+            return self.render_to_response(self.get_context_data(form=form))
+        except OSError as exc:
+            logger.warning(
+                'Register step2 smtp_network_error email=%s ip=%s errno=%s error=%r',
+                email,
+                get_client_ip(self.request),
+                getattr(exc, 'errno', None),
+                exc,
+                exc_info=True,
+            )
+            messages.error(
+                self.request,
+                'Не удалось подключиться к почтовому серверу. Проверьте сеть и SMTP-настройки.',
+            )
+            return self.render_to_response(self.get_context_data(form=form))
         except Exception:
             logger.warning(
                 'Register step2 email confirmation send failed email=%s ip=%s',
@@ -2564,10 +2618,10 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _result_unit_label(result_type):
         if result_type == TrainingResult.RESULT_WEIGHT:
-            return 'Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚вЂњ'
+            return 'кг'
         if result_type == TrainingResult.RESULT_REPS:
-            return 'Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р Р‹Р Р†Р вЂљРЎв„ў'
-        return 'Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚ВР В Р’В Р В РІР‚В¦'
+            return 'повторений'
+        return 'мин'
 
     @staticmethod
     def _result_value_label(result_type, minutes, seconds):
@@ -2615,6 +2669,16 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         }
 
         grouped_exercises = {}
+        trainings_by_date = {}
+        trainings_in_period = (
+            AdminTraining.objects
+            .filter(training_date__range=(period_start, period_end))
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        for training in trainings_in_period:
+            trainings_by_date.setdefault(training.training_date, []).append(training)
+
         exercise_entries = (
             AdminTrainingExercise.objects
             .select_related('training')
@@ -2652,6 +2716,48 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             for training_date in training_dates:
                 for rate in rates_by_date.get(training_date, []):
                     full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+                    date_trainings = trainings_by_date.get(training_date, [])
+                    selected_training = None
+                    if date_trainings:
+                        current_direction = normalize_mojibake_text(str(key[1] or '')).strip()
+                        matched_by_direction = [
+                            item for item in date_trainings
+                            if normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(item.direction, '')).strip() == current_direction
+                        ]
+                        selected_training = matched_by_direction[0] if matched_by_direction else date_trainings[0]
+
+                    training_view = None
+                    if selected_training:
+                        training_exercises = []
+                        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
+                        for exercise in ordered_exercises:
+                            exercise_name = normalize_mojibake_text(str(exercise.exercise_name or '').strip())
+                            if not exercise_name:
+                                continue
+                            block_label = (
+                                normalize_mojibake_text(str(exercise.block_custom_name or '').strip())
+                                if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and str(exercise.block_custom_name or '').strip()
+                                else normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок'))
+                            )
+                            training_exercises.append(
+                                {
+                                    'block': block_label,
+                                    'text': normalize_mojibake_text(format_admin_training_volume(exercise)),
+                                }
+                            )
+                        training_view = {
+                            'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(selected_training.direction, 'Тренировка')),
+                            'date_label': selected_training.training_date.strftime('%d.%m.%Y'),
+                            'comment': normalize_mojibake_text(str(selected_training.comment or '').strip()),
+                            'visibility': (
+                                'Только для тренеров'
+                                if selected_training.visibility == AdminTraining.VISIBILITY_COACHES
+                                else 'Для всех'
+                            ),
+                            'color': selected_training.color or AdminTraining.COLOR_BLUE,
+                            'exercises': training_exercises,
+                        }
+
                     review_cards.append(
                         {
                             'training_title': key[1],
@@ -2664,6 +2770,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                             'cardio_value': self._rating_label(rate.cardio),
                             'metabolic_stars': self._stars(rate.metabolic),
                             'metabolic_value': self._rating_label(rate.metabolic),
+                            'training_view': training_view,
                             'overall': float(rate.overall),
                         }
                     )
@@ -4285,7 +4392,7 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             f'{self.request.user.first_name} {self.request.user.last_name}'.strip()
             or self.request.user.email
         )
-        context['community_experience'] = context.get('shared_profile_experience') or '8 Р»РµС‚'
+        context['community_experience'] = context.get('shared_profile_experience') or '8 лет'
 
         raw_date = str(self.request.GET.get('date') or '').strip()
         if raw_date:
@@ -4297,9 +4404,9 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             selected_date = timezone.localdate()
 
         section_meta = [
-            (TrainingResult.SECTION_STRENGTH, 'Р РЋР С‘Р В»Р С•Р Р†Р В°РЎРЏ'),
-            (TrainingResult.SECTION_CARDIO, 'Р С™Р В°РЎР‚Р Т‘Р С‘Р С•'),
-            (TrainingResult.SECTION_METABOLIC, 'Р СљР ВµРЎвЂљР В°Р В±Р С•Р В»Р С‘РЎвЂЎР ВµРЎРѓР С”Р В°РЎРЏ'),
+            (TrainingResult.SECTION_STRENGTH, 'Силовая'),
+            (TrainingResult.SECTION_CARDIO, 'Кардио'),
+            (TrainingResult.SECTION_METABOLIC, 'Метаболическая'),
         ]
         section_titles = dict(section_meta)
         reaction_counts = dict(

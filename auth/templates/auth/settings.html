@@ -48,9 +48,33 @@
 
     <section class="settings-block">
         <h2>Сменить пароль</h2>
-        <label class="settings-field"><span>Введите старый пароль</span><input type="password" placeholder=""></label>
-        <label class="settings-field"><span>Введите новый пароль</span><input type="password" placeholder=""></label>
-        <label class="settings-field"><span>Повторите новый пароль</span><input type="password" placeholder=""></label>
+        <label class="settings-field">
+            <span>Введите старый пароль</span>
+            <span class="settings-password-wrap">
+                <input type="password" placeholder="" id="settings-old-password">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-old-password" aria-label="Показать пароль" aria-pressed="false">
+                    <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                </button>
+            </span>
+        </label>
+        <label class="settings-field">
+            <span>Введите новый пароль</span>
+            <span class="settings-password-wrap">
+                <input type="password" placeholder="" id="settings-new-password">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-new-password" aria-label="Показать пароль" aria-pressed="false">
+                    <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                </button>
+            </span>
+        </label>
+        <label class="settings-field">
+            <span>Повторите новый пароль</span>
+            <span class="settings-password-wrap">
+                <input type="password" placeholder="" id="settings-repeat-password">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-repeat-password" aria-label="Показать пароль" aria-pressed="false">
+                    <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                </button>
+            </span>
+        </label>
         <button type="button" class="settings-save">Сохранить</button>
     </section>
 
@@ -226,6 +250,18 @@
                 }
             });
         }
+
+        document.querySelectorAll("[data-settings-password-toggle]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const inputId = button.getAttribute("data-settings-password-toggle") || "";
+                const input = inputId ? document.getElementById(inputId) : null;
+                if (!(input instanceof HTMLInputElement)) return;
+                const isHidden = input.type === "password";
+                input.type = isHidden ? "text" : "password";
+                button.setAttribute("aria-pressed", String(isHidden));
+                button.setAttribute("aria-label", isHidden ? "Скрыть пароль" : "Показать пароль");
+            });
+        });
     })();
 </script>
 {% endblock %}

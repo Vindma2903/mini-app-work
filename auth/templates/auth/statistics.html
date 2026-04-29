@@ -367,12 +367,7 @@
         let currentMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
         let selectedDate = new Date(rangeEnd);
         let selectingBoundary = "start";
-        const trainingViewExercises = [
-            { block: "Силовые", text: "Смит x 2 подхода по 10" },
-            { block: "Силовые", text: "Болгарские выпады x 3 подхода по 12" },
-            { block: "Кардио", text: "Гребля x 4 подхода по 250м" },
-            { block: "Метаболическая", text: "Бёрпи x 3 подхода по 15" },
-        ];
+        const trainingViewExercises = [];
         const CHART_LEFT = 40;
         const CHART_RIGHT = 280;
         const CHART_TOP = 20;
@@ -660,18 +655,30 @@
             return "#8ec5ff";
         }
 
-        function renderTrainingViewExistingExercises(colorKey = "blue") {
+        function renderTrainingViewExistingExercises(colorKey = "blue", exercises = trainingViewExercises) {
             if (!trainingViewExisting) return;
             const grouped = new Map();
             const normalizedColor = String(colorKey || "blue").trim().toLowerCase();
             const accentColor = getTrainingColorAccent(normalizedColor);
-            trainingViewExercises.forEach((item) => {
-                const groupName = String(item.block || "Раздел");
+            const source = Array.isArray(exercises) ? exercises : [];
+            source.forEach((item) => {
+                const groupName = String(item.block || "Section");
                 if (!grouped.has(groupName)) {
                     grouped.set(groupName, []);
                 }
                 grouped.get(groupName).push(item);
             });
+
+            if (!grouped.size) {
+                trainingViewExisting.innerHTML = `
+                    <section class="calendar-create-modal__existing-group">
+                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--${escapeHtml(normalizedColor)}" style="--exercise-accent:${escapeHtml(accentColor)};">
+                            <span class="calendar-create-modal__existing-text">No exercises provided</span>
+                        </article>
+                    </section>
+                `;
+                return;
+            }
 
             trainingViewExisting.innerHTML = Array.from(grouped.entries()).map(([title, items]) => `
                 <section class="calendar-create-modal__existing-group">
@@ -701,14 +708,16 @@
                 return;
             }
 
-            reviewsGrid.innerHTML = reviews.map((review) => `
+            reviewsGrid.innerHTML = reviews.map((review, index) => `
                 <article class="statistics-review-card">
                     <div class="statistics-review-card__head">
                         <div>
                             <h4>${escapeHtml(review.training_title || payload.title || "")}</h4>
                             <p>${escapeHtml(review.date_label || "")}</p>
                         </div>
-                        <span class="statistics-review-card__eye">?</span>
+                        <button type="button" class="statistics-review-card__eye" data-open-review-training data-review-index="${Number(index)}" aria-label="Показать тренировку">
+                            <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                        </button>
                     </div>
                     <div class="statistics-review-card__ratings">
                         <div><span>Силовая</span><b>${escapeHtml(review.strength_stars || "—")}</b><strong>${escapeHtml(review.strength_value || "—")}</strong></div>
@@ -718,6 +727,32 @@
                     <div class="statistics-review-card__text">${escapeHtml(review.comment || "")}</div>
                 </article>
             `).join("");
+
+            reviewsGrid.querySelectorAll("[data-open-review-training]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const reviewIndex = Number.parseInt(button.getAttribute("data-review-index") || "", 10);
+                    const review = Number.isFinite(reviewIndex) ? reviews[reviewIndex] : null;
+                    const trainingView = review?.training_view || null;
+                    if (!trainingView || !trainingViewModal) return;
+
+                    if (reviewsModal) {
+                        reviewsModal.hidden = true;
+                    }
+
+                    if (trainingViewName) {
+                        trainingViewName.textContent = trainingView.title || review?.training_title || "На все тело";
+                    }
+                    if (trainingViewDate) {
+                        trainingViewDate.textContent = trainingView.date_label || review?.date_label || formatNumericDate(rangeEnd);
+                    }
+                    if (trainingViewComment) {
+                        trainingViewComment.value = trainingView.comment || "";
+                    }
+                    renderTrainingViewExistingExercises(trainingView.color || "blue", trainingView.exercises || []);
+                    trainingViewModal.hidden = false;
+                    document.body.style.overflow = "hidden";
+                });
+            });
         }
 
         function initActivityTableSorting() {
@@ -1038,6 +1073,5 @@
     })();
 </script>
 {% endblock %}
-
 
 

@@ -780,6 +780,13 @@ class LoginView(FormView):
     form_class = LoginForm
     success_url = reverse_lazy('auth:profile')
 
+    def dispatch(self, request, *args, **kwargs):
+        user, _ = resolve_request_user(request)
+        if user is not None and user.is_active:
+            redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
+            return redirect(redirect_url)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request

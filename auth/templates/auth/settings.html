@@ -1,7 +1,7 @@
 ﻿{% extends 'auth/base.html' %}
 {% load static %}
 
-{% block title %}РќР°СЃС‚СЂРѕР№РєРё{% endblock %}
+{% block title %}Настройки{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/settings.css' %}">
@@ -10,10 +10,10 @@
 {% block content %}
 <main class="settings-screen">
     <header class="settings-topbar">
-        <a href="{% url 'auth:profile' %}" class="settings-topbar__icon-link settings-topbar__back" aria-label="РќР°Р·Р°Рґ">
+        <a href="{% url 'auth:profile' %}" class="settings-topbar__icon-link settings-topbar__back" aria-label="Назад">
             <img src="{% static 'auth/img/settings-back.svg' %}" alt="">
         </a>
-        <a href="{% url 'auth:logout' %}" class="settings-topbar__icon-link settings-topbar__logout" aria-label="Р’С‹Р№С‚Рё">
+        <a href="{% url 'auth:logout' %}" class="settings-topbar__icon-link settings-topbar__logout" aria-label="Выйти">
             <img src="{% static 'auth/img/settings-logout.svg' %}" alt="">
         </a>
     </header>
@@ -42,55 +42,55 @@
             </button>
         {% endif %}
         <p class="settings-user__link-status" data-telegram-link-msg>
-            {% if telegram_linked %}РџРѕРґРєР»СЋС‡РµРЅ {{ telegram_display|default:"Telegram Р°РєРєР°СѓРЅС‚" }}{% endif %}
+            {% if telegram_linked %}Подключен {{ telegram_display|default:"Telegram аккаунт" }}{% endif %}
         </p>
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ</h2>
-        <label class="settings-field"><span>РРјСЏ</span><input type="text" value="{{ settings_first_name }}" data-profile-first-name></label>
-        <label class="settings-field"><span>Р¤Р°РјРёР»РёСЏ</span><input type="text" value="{{ settings_last_name }}" data-profile-last-name></label>
-        <label class="settings-field"><span>Р”Р°С‚Р° СЂРѕР¶РґРµРЅРёСЏ</span><input type="text" value="{{ settings_birth_date }}" placeholder="Р”Р”.РњРњ.Р“Р“Р“Р“" data-profile-birth-date></label>
-        <button type="button" class="settings-save" data-save-profile-data>РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <h2>Сменить данные профиля</h2>
+        <label class="settings-field"><span>Имя</span><input type="text" value="{{ settings_first_name }}" data-profile-first-name></label>
+        <label class="settings-field"><span>Фамилия</span><input type="text" value="{{ settings_last_name }}" data-profile-last-name></label>
+        <label class="settings-field"><span>Дата рождения</span><input type="text" value="{{ settings_birth_date }}" placeholder="ДД.ММ.ГГГГ" data-profile-birth-date></label>
+        <button type="button" class="settings-save" data-save-profile-data>Сохранить</button>
         <p class="settings-block__msg" data-profile-save-msg hidden></p>
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РїРѕС‡С‚Сѓ</h2>
-        <label class="settings-field"><span>РџРѕС‡С‚Р°</span><input type="email" placeholder=""></label>
-        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <h2>Сменить почту</h2>
+        <label class="settings-field"><span>Почта</span><input type="email" placeholder=""></label>
+        <button type="button" class="settings-save">Сохранить</button>
     </section>
 
     <section class="settings-block">
-        <h2>РЎРјРµРЅРёС‚СЊ РїР°СЂРѕР»СЊ</h2>
+        <h2>Сменить пароль</h2>
         <label class="settings-field">
-            <span>Р’РІРµРґРёС‚Рµ СЃС‚Р°СЂС‹Р№ РїР°СЂРѕР»СЊ</span>
+            <span>Введите старый пароль</span>
             <span class="settings-password-wrap">
                 <input type="password" placeholder="" id="settings-old-password">
-                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-old-password" aria-label="РџРѕРєР°Р·Р°С‚СЊ РїР°СЂРѕР»СЊ" aria-pressed="false">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-old-password" aria-label="Показать пароль" aria-pressed="false">
                     <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
                 </button>
             </span>
         </label>
         <label class="settings-field">
-            <span>Р’РІРµРґРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span>
+            <span>Введите новый пароль</span>
             <span class="settings-password-wrap">
                 <input type="password" placeholder="" id="settings-new-password">
-                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-new-password" aria-label="РџРѕРєР°Р·Р°С‚СЊ РїР°СЂРѕР»СЊ" aria-pressed="false">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-new-password" aria-label="Показать пароль" aria-pressed="false">
                     <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
                 </button>
             </span>
         </label>
         <label class="settings-field">
-            <span>РџРѕРІС‚РѕСЂРёС‚Рµ РЅРѕРІС‹Р№ РїР°СЂРѕР»СЊ</span>
+            <span>Повторите новый пароль</span>
             <span class="settings-password-wrap">
                 <input type="password" placeholder="" id="settings-repeat-password">
-                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-repeat-password" aria-label="РџРѕРєР°Р·Р°С‚СЊ РїР°СЂРѕР»СЊ" aria-pressed="false">
+                <button type="button" class="settings-password-toggle" data-settings-password-toggle="settings-repeat-password" aria-label="Показать пароль" aria-pressed="false">
                     <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
                 </button>
             </span>
         </label>
-        <button type="button" class="settings-save">РЎРѕС…СЂР°РЅРёС‚СЊ</button>
+        <button type="button" class="settings-save">Сохранить</button>
     </section>
 
     {% include 'auth/components/bottom_nav.html' with active='profile' nav_block='settings-bottom-nav' %}
@@ -155,7 +155,7 @@
                 });
                 const data = await response.json().catch(() => ({}));
                 if (!response.ok || !data.ok) {
-                    showMessage("РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕС…СЂР°РЅРёС‚СЊ РґР°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ.", true);
+                    showMessage("Не удалось сохранить данные профиля.", true);
                     return;
                 }
 
@@ -163,9 +163,9 @@
                 if (data.birth_date) {
                     birthDateInput.value = data.birth_date;
                 }
-                showMessage("Р”Р°РЅРЅС‹Рµ РїСЂРѕС„РёР»СЏ СЃРѕС…СЂР°РЅРµРЅС‹.", false);
+                showMessage("Данные профиля сохранены.", false);
             } catch (error) {
-                showMessage("РћС€РёР±РєР° СЃРµС‚Рё. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·.", true);
+                showMessage("Ошибка сети. Попробуйте еще раз.", true);
             } finally {
                 saveBtn.disabled = false;
             }
@@ -187,10 +187,10 @@
             if (!tgBtn) return;
             tgBtn.disabled = true;
             if (tgBtnText) {
-                tgBtnText.textContent = "Telegram РїСЂРёРІСЏР·Р°РЅ";
+                tgBtnText.textContent = "Telegram привязан";
             }
-            const shownName = username ? `@${username}` : "Telegram Р°РєРєР°СѓРЅС‚";
-            showTelegramMessage(`РџРѕРґРєР»СЋС‡РµРЅ ${shownName}`, false);
+            const shownName = username ? `@${username}` : "Telegram аккаунт";
+            showTelegramMessage(`Подключен ${shownName}`, false);
         }
 
         async function fetchTelegramStatus() {
@@ -224,7 +224,7 @@
         if (tgBtn) {
             tgBtn.addEventListener("click", async () => {
                 tgBtn.disabled = true;
-                showTelegramMessage("РЎРѕР·РґР°РµРј СЃСЃС‹Р»РєСѓ РґР»СЏ РїСЂРёРІСЏР·РєРё...");
+                showTelegramMessage("Создаем ссылку для привязки...");
                 try {
                     const response = await fetch(tgStartUrl, {
                         method: "POST",
@@ -236,7 +236,7 @@
                     });
                     const data = await response.json().catch(() => ({}));
                     if (!response.ok || !data.ok) {
-                        showTelegramMessage("РќРµ СѓРґР°Р»РѕСЃСЊ РЅР°С‡Р°С‚СЊ РїСЂРёРІСЏР·РєСѓ Telegram.", true);
+                        showTelegramMessage("Не удалось начать привязку Telegram.", true);
                         tgBtn.disabled = false;
                         return;
                     }
@@ -247,20 +247,20 @@
                     }
 
                     if (!data.deep_link) {
-                        showTelegramMessage("РќРµ Р·Р°РґР°РЅ TELEGRAM_BOT_USERNAME РІ РЅР°СЃС‚СЂРѕР№РєР°С….", true);
+                        showTelegramMessage("Не задан TELEGRAM_BOT_USERNAME в настройках.", true);
                         tgBtn.disabled = false;
                         return;
                     }
 
                     window.open(data.deep_link, "_blank", "noopener,noreferrer");
-                    showTelegramMessage("РћС‚РєСЂРѕР№С‚Рµ Telegram Рё РЅР°Р¶РјРёС‚Рµ Start РІ Р±РѕС‚Рµ. Р–РґРµРј РїРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ...");
+                    showTelegramMessage("Откройте Telegram и нажмите Start в боте. Ждем подтверждение...");
                     const linked = await waitTelegramLinked();
                     if (!linked) {
-                        showTelegramMessage("РџРѕРґС‚РІРµСЂР¶РґРµРЅРёРµ РЅРµ РїРѕР»СѓС‡РµРЅРѕ. РќР°Р¶РјРёС‚Рµ РєРЅРѕРїРєСѓ Рё РїРѕРїСЂРѕР±СѓР№С‚Рµ СЃРЅРѕРІР°.", true);
+                        showTelegramMessage("Подтверждение не получено. Нажмите кнопку и попробуйте снова.", true);
                         tgBtn.disabled = false;
                     }
                 } catch (error) {
-                    showTelegramMessage("РћС€РёР±РєР° СЃРµС‚Рё. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰Рµ СЂР°Р·.", true);
+                    showTelegramMessage("Ошибка сети. Попробуйте еще раз.", true);
                     tgBtn.disabled = false;
                 }
             });
@@ -274,7 +274,7 @@
                 const isHidden = input.type === "password";
                 input.type = isHidden ? "text" : "password";
                 button.setAttribute("aria-pressed", String(isHidden));
-                button.setAttribute("aria-label", isHidden ? "РЎРєСЂС‹С‚СЊ РїР°СЂРѕР»СЊ" : "РџРѕРєР°Р·Р°С‚СЊ РїР°СЂРѕР»СЊ");
+                button.setAttribute("aria-label", isHidden ? "Скрыть пароль" : "Показать пароль");
             });
         });
     })();

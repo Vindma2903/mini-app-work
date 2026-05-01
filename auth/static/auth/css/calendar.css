@@ -49,7 +49,17 @@ flex-shrink:0;
 .calendar-open-picker{border:0;background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}
 .calendar-card .calendar-open-picker{height:auto;border:0;background:transparent;padding:0}
 .calendar-card button{height:36px;border:0;border-radius:8px;background:var(--blue);color:#fff;padding:0 16px;display:flex;align-items:center;gap:8px;font-size:14px;line-height:24px;cursor:pointer}
-.calendar-create-menu-wrap{position:relative;display:flex;align-items:center;gap:12px}
+.calendar-create-menu-wrap{position:relative;display:flex;align-items:center;gap:12px;overflow:visible}
+.calendar-direction-filter{position:relative;width:213px;flex:0 0 213px}
+.calendar-direction-filter__trigger{width:213px;justify-content:space-between}
+.calendar-card .calendar-direction-filter__trigger{height:36px;border:1px solid #b2bac5;background:#fff;color:#364153;padding:0 12px;font:500 14px/24px Inter,Arial,sans-serif;box-shadow:none}
+.calendar-direction-filter__trigger em{font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:173px;text-align:left}
+.calendar-direction-filter__trigger img{width:16px;height:16px;display:block;opacity:.7;flex:0 0 auto}
+.calendar-direction-filter__menu{position:absolute;top:44px;left:0;width:213px;background:#fff;border:1px solid #d0d5dd;border-radius:8px;padding:6px;display:grid;gap:4px;z-index:20;box-shadow:0 12px 24px rgba(16,24,40,.12);max-height:260px;overflow:auto}
+.calendar-direction-filter__menu[hidden]{display:none!important}
+.calendar-direction-filter__option{height:36px;border:0;border-radius:6px;background:transparent;color:#101828;font:500 13px/18px Inter,Arial,sans-serif;padding:0 10px;text-align:left;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.calendar-card .calendar-direction-filter__option{height:36px;border:0;background:transparent;color:#101828}
+.calendar-direction-filter__option.is-active{background:#155dfc;color:#fff}
 .calendar-create-menu{position:absolute;top:48px;left:0;width:141px;height:66px;border:1px solid #e5e7eb;border-radius:8px;background:#fff;display:grid;grid-template-rows:33px 33px;z-index:12;overflow:hidden}
 .calendar-create-menu[hidden]{display:none!important}
 .calendar-create-menu button{height:33px;border:0;border-radius:0;background:#fff;color:#101828;font:400 12px/20px Inter,Arial,sans-serif;justify-content:flex-start;padding:6px 16px}
@@ -60,9 +70,10 @@ flex-shrink:0;
 .calendar-language-toggle__flag::before{content:"";position:absolute;left:7px;top:7px;width:30px;height:30px;border-radius:999px;background:linear-gradient(to bottom,#ffffff 0 33.33%,#2563eb 33.33% 66.66%,#ef4444 66.66% 100%)}
 .calendar-language-toggle:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
 .calendar-list-desktop{display:grid;grid-template-columns:repeat(7,minmax(170px,1fr));column-gap:10px;flex:1;min-height:0;overflow:hidden;padding-right:8px}
-.calendar-list-desktop__column{min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:16px;padding-right:6px}
+.calendar-list-desktop__column{min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable;display:flex;flex-direction:column;gap:16px;padding-right:6px}
 .calendar-list-desktop__column{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
 .calendar-list-desktop__column::-webkit-scrollbar{width:6px}
+.calendar-list-desktop__column::-webkit-scrollbar-button{display:none;width:0;height:0}
 .calendar-list-desktop__column::-webkit-scrollbar-track{background:transparent}
 .calendar-list-desktop__column::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:999px}
 .calendar-list-desktop__column::-webkit-scrollbar-thumb:hover{background:#94a3b8}

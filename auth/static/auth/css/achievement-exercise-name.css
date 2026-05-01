@@ -42,7 +42,9 @@ body {
     font-weight: 400;
     transform: scale(0.5);
     transform-origin: center;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .achievement-name-top__icon {
@@ -78,16 +80,16 @@ body {
 
 .achievement-name-card--description p {
     margin: 0;
-    font-size: 24px;
-    line-height: 13px;
-    transform: scale(0.5);
-    transform-origin: left top;
+    font-size: 12px;
+    line-height: 18px;
     color: #111;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: break-word;
 }
 
 .achievement-name-card--description p + p {
-    margin-top: 13px;
+    margin-top: 8px;
 }
 
 .achievement-name-video {
@@ -124,6 +126,21 @@ body {
     line-height: 11px;
     font-weight: 400;
     letter-spacing: 0.3px;
+}
+
+.achievement-name-result__input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    text-align: right;
+    font: 400 9px/11px "Montserrat", Arial, sans-serif;
+    letter-spacing: 0.3px;
+    color: #101828;
+}
+
+.achievement-name-result__input::placeholder {
+    color: #c8ced8;
 }
 
 .achievement-name-result__cell--muted span {

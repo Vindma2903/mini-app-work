@@ -2,6 +2,7 @@
 
 from auth.views import (
     AchievementExerciseNameView,
+    AchievementExerciseNameUpdateView,
     AchievementExerciseView,
     AchievementExerciseUpdateView,
     AchievementsView,
@@ -18,6 +19,7 @@ from auth.views import (
 
 __all__ = [
     "AchievementExerciseNameView",
+    "AchievementExerciseNameUpdateView",
     "AchievementExerciseView",
     "AchievementExerciseUpdateView",
     "AchievementsView",

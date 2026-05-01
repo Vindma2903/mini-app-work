@@ -46,23 +46,136 @@
         <h2>Результат</h2>
         <div class="achievement-name-result">
             <div class="achievement-name-result__cell achievement-name-result__cell--muted">
-                <span class="achievement-name-result__hint">МИН.</span>
+                <input
+                    id="achievement-name-minutes"
+                    class="achievement-name-result__input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="МИН."
+                    value="{{ exercise_name_result.minutes|default_if_none:'' }}"
+                >
             </div>
             <div class="achievement-name-result__cell achievement-name-result__cell--muted">
-                <span class="achievement-name-result__hint">СЕК.</span>
+                <input
+                    id="achievement-name-seconds"
+                    class="achievement-name-result__input"
+                    type="text"
+                    inputmode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="СЕК."
+                    value="{{ exercise_name_result.seconds|default_if_none:'' }}"
+                >
             </div>
-            <button type="button" class="achievement-name-result__cell achievement-name-result__cell--active">
-                <span>✓ RX</span>
+            <button type="button" class="achievement-name-result__cell {% if exercise_name_result.mode == 'scaled' %}achievement-name-result__cell--ghost{% else %}achievement-name-result__cell--active{% endif %}" data-mode="rx">
+                <span data-mode-label="rx">RX</span>
             </button>
-            <button type="button" class="achievement-name-result__cell achievement-name-result__cell--ghost">
-                <span>SCALED</span>
+            <button type="button" class="achievement-name-result__cell {% if exercise_name_result.mode == 'scaled' %}achievement-name-result__cell--active{% else %}achievement-name-result__cell--ghost{% endif %}" data-mode="scaled">
+                <span data-mode-label="scaled">SCALED</span>
             </button>
         </div>
     </section>
 
-    <button type="button" class="achievement-name-save">Сохранить</button>
+    <button type="button" class="achievement-name-save" id="achievement-name-save-btn">Сохранить</button>
 
     {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
 </main>
+<script>
+    (function () {
+        const saveUrl = "{{ exercise_name_update_url }}";
+        const csrfFallback = "{{ csrf_token }}";
+        const minutesInput = document.getElementById("achievement-name-minutes");
+        const secondsInput = document.getElementById("achievement-name-seconds");
+        const saveButton = document.getElementById("achievement-name-save-btn");
+        const modeButtons = Array.from(document.querySelectorAll("[data-mode]"));
+        const modeLabels = {
+            rx: document.querySelector("[data-mode-label='rx']"),
+            scaled: document.querySelector("[data-mode-label='scaled']"),
+        };
+        let selectedMode = "{{ exercise_name_result.mode|default:'rx' }}";
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length !== 2) return "";
+            return parts.pop().split(";").shift();
+        }
+
+        function onlyDigits(node) {
+            if (!node) return;
+            node.addEventListener("input", () => {
+                node.value = String(node.value || "").replace(/\D/g, "");
+            });
+        }
+
+        function applyModeUi() {
+            modeButtons.forEach((button) => {
+                const isActive = (button.getAttribute("data-mode") || "") === selectedMode;
+                button.classList.toggle("achievement-name-result__cell--active", isActive);
+                button.classList.toggle("achievement-name-result__cell--ghost", !isActive);
+            });
+            if (modeLabels.rx) modeLabels.rx.textContent = selectedMode === "rx" ? "✓ RX" : "RX";
+            if (modeLabels.scaled) modeLabels.scaled.textContent = selectedMode === "scaled" ? "✓ SCALED" : "SCALED";
+        }
+
+        function parseOptionalInt(rawValue) {
+            const cleaned = String(rawValue || "").trim();
+            if (!cleaned) return null;
+            const parsed = Number.parseInt(cleaned, 10);
+            if (!Number.isFinite(parsed) || parsed < 0) return null;
+            return parsed;
+        }
+
+        onlyDigits(minutesInput);
+        onlyDigits(secondsInput);
+        applyModeUi();
+
+        modeButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+                selectedMode = button.getAttribute("data-mode") || "rx";
+                applyModeUi();
+            });
+        });
+
+        saveButton?.addEventListener("click", async () => {
+            const minutes = parseOptionalInt(minutesInput?.value);
+            const seconds = parseOptionalInt(secondsInput?.value);
+            if (minutes === null && seconds === null) {
+                alert("Укажите минуты или секунды.");
+                return;
+            }
+            if (seconds !== null && seconds > 59) {
+                alert("Секунды должны быть от 0 до 59.");
+                return;
+            }
+            const payload = {
+                minutes,
+                seconds,
+                mode: selectedMode,
+            };
+            saveButton.disabled = true;
+            try {
+                const response = await fetch(saveUrl, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken") || csrfFallback,
+                    },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.ok) {
+                    alert("Не удалось сохранить результат.");
+                    return;
+                }
+                window.location.href = "{% url 'auth:achievements' %}";
+            } catch (_error) {
+                alert("Ошибка сети. Попробуйте еще раз.");
+            } finally {
+                saveButton.disabled = false;
+            }
+        });
+    })();
+</script>
 {% endblock %}
 

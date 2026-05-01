@@ -56,6 +56,7 @@ from .models import (
     CommunityReaction,
     TrainingRate,
     TrainingResult,
+    UserBenchmarkResultProfile,
     UserExerciseRepProfile,
     UserProfile,
 )
@@ -5311,7 +5312,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
         context = super().get_context_data(**kwargs)
         barbell_items = list(
             AdminLibraryItem.objects
-            .filter(section=AdminLibraryItem.SECTION_BARBELL)
+            .filter(section__in=[AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BARBELL])
             .only('id', 'name_ru', 'name_en')
             .order_by('name_ru', 'name_en', 'id')
         )
@@ -5344,7 +5345,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
         benchmark_slug_map = {self._build_library_exercise_slug(item.id): item for item in benchmark_items}
         benchmark_profiles = {
             profile.exercise_slug: profile
-            for profile in UserExerciseRepProfile.objects.filter(
+            for profile in UserBenchmarkResultProfile.objects.filter(
                 user=self.request.user,
                 exercise_slug__in=list(benchmark_slug_map.keys()),
             )
@@ -5352,10 +5353,15 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
 
         def serialize_benchmark(item):
             slug = self._build_library_exercise_slug(item.id)
+            profile = benchmark_profiles.get(slug)
+            value = format_training_duration_ru(
+                profile.minutes if profile else None,
+                profile.seconds if profile else None,
+            )
             return {
                 'slug': slug,
                 'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В¶Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’Вµ {item.id}',
-                'value': benchmark_profiles[slug].rep_1 if slug in benchmark_profiles else None,
+                'value': value,
             }
 
         context['benchmark_exercises'] = {
@@ -5443,7 +5449,11 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
                     AdminLibraryItem.objects
                     .filter(
                         id=int(library_match.group(1)),
-                        section__in=[AdminLibraryItem.SECTION_BARBELL, AdminLibraryItem.SECTION_BENCHMARKS],
+                        section__in=[
+                            AdminLibraryItem.SECTION_EXERCISES,
+                            AdminLibraryItem.SECTION_BARBELL,
+                            AdminLibraryItem.SECTION_BENCHMARKS,
+                        ],
                     )
                     .only('id', 'name_ru', 'name_en', 'desc_ru', 'desc_en')
                     .first()
@@ -5497,6 +5507,24 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
 class AchievementExerciseNameView(AchievementExerciseView):
     template_name = 'auth/achievement-exercise-name.html'
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        slug = str(self.kwargs.get('exercise_slug', '') or '').strip().lower()
+        profile = UserBenchmarkResultProfile.objects.filter(
+            user=self.request.user,
+            exercise_slug=slug,
+        ).first()
+        context['exercise_name_result'] = {
+            'minutes': profile.minutes if profile else None,
+            'seconds': profile.seconds if profile else None,
+            'mode': profile.mode if profile else UserBenchmarkResultProfile.MODE_RX,
+        }
+        context['exercise_name_update_url'] = reverse_lazy(
+            'auth:achievement_exercise_name_update',
+            kwargs={'exercise_slug': slug},
+        )
+        return context
+
 
 class AchievementExerciseUpdateView(View):
     http_method_names = ['post']
@@ -5548,6 +5576,66 @@ class AchievementExerciseUpdateView(View):
                     [{'value': value, 'percent': percent} for value, percent in row]
                     for row in percent_rows
                 ],
+            }
+        )
+
+
+class AchievementExerciseNameUpdateView(View):
+    http_method_names = ['post']
+
+    @staticmethod
+    def _to_non_negative_int(value):
+        try:
+            parsed = int(str(value).strip())
+        except (TypeError, ValueError):
+            return None
+        if parsed < 0:
+            return None
+        return parsed
+
+    def post(self, request, *args, **kwargs):
+        user, _ = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        try:
+            payload = json.loads(request.body.decode('utf-8') or '{}')
+        except json.JSONDecodeError:
+            return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
+
+        slug = str(kwargs.get('exercise_slug') or '').strip().lower()
+        if not slug:
+            return JsonResponse({'ok': False, 'error': 'invalid_exercise_slug'}, status=400)
+
+        minutes_raw = payload.get('minutes')
+        seconds_raw = payload.get('seconds')
+        minutes = self._to_non_negative_int(minutes_raw) if minutes_raw not in (None, '') else None
+        seconds = self._to_non_negative_int(seconds_raw) if seconds_raw not in (None, '') else None
+        mode = str(payload.get('mode') or UserBenchmarkResultProfile.MODE_RX).strip().lower()
+        if mode not in (UserBenchmarkResultProfile.MODE_RX, UserBenchmarkResultProfile.MODE_SCALED):
+            return JsonResponse({'ok': False, 'error': 'invalid_mode'}, status=400)
+        if minutes is None and seconds is None:
+            return JsonResponse({'ok': False, 'error': 'empty_result'}, status=400)
+        if seconds is not None and seconds > 59:
+            return JsonResponse({'ok': False, 'error': 'invalid_seconds'}, status=400)
+
+        profile, _ = UserBenchmarkResultProfile.objects.update_or_create(
+            user=user,
+            exercise_slug=slug,
+            defaults={
+                'minutes': minutes,
+                'seconds': seconds,
+                'mode': mode,
+            },
+        )
+        value = format_training_duration_ru(profile.minutes, profile.seconds)
+        return JsonResponse(
+            {
+                'ok': True,
+                'minutes': profile.minutes,
+                'seconds': profile.seconds,
+                'mode': profile.mode,
+                'value': value,
             }
         )
 

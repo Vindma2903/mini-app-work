@@ -2,6 +2,7 @@ from django.urls import path
 
 from .views import (
     AchievementExerciseNameView,
+    AchievementExerciseNameUpdateView,
     AchievementExerciseView,
     AchievementExerciseUpdateView,
     AchievementsView,
@@ -19,6 +20,7 @@ from .views import (
 urlpatterns = [
     path("achievements/", AchievementsView.as_view(), name="achievements"),
     path("achievements/exercise/<slug:exercise_slug>/name/", AchievementExerciseNameView.as_view(), name="achievement_exercise_name"),
+    path("achievements/exercise/<slug:exercise_slug>/name/update/", AchievementExerciseNameUpdateView.as_view(), name="achievement_exercise_name_update"),
     path("achievements/exercise/<slug:exercise_slug>/", AchievementExerciseView.as_view(), name="achievement_exercise"),
     path("achievements/exercise/<slug:exercise_slug>/update/", AchievementExerciseUpdateView.as_view(), name="achievement_exercise_update"),
     path("leaderboard/day/", LeaderboardDayView.as_view(), name="leaderboard_day"),

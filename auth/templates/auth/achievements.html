@@ -31,13 +31,13 @@
             <h2>Упражнения</h2>
             <div class="achievements-card">
                 {% for exercise in barbell_exercises %}
-                    <article class="achievements-row achievements-row--link">
-                        <a class="achievements-row__name" href="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                    <article class="achievements-row achievements-row--link" data-achievement-row-url="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        <span class="achievements-row__name">
                             {{ exercise.title }}
-                        </a>
-                        <a class="achievements-row__value-link" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        </span>
+                        <span class="achievements-row__value-link">
                             {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
-                        </a>
+                        </span>
                     </article>
                 {% empty %}
                     <article class="achievements-row achievements-row--bench">
@@ -59,13 +59,13 @@
 
             <div class="achievements-card achievements-card--bench" data-bench-panel="girls">
                 {% for exercise in benchmark_exercises.girls %}
-                    <article class="achievements-row achievements-row--link achievements-row--bench">
-                        <a class="achievements-row__name" href="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                    <article class="achievements-row achievements-row--link achievements-row--bench" data-achievement-row-url="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                        <span class="achievements-row__name">
                             {{ exercise.title }}
-                        </a>
-                        <a class="achievements-row__value-link" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        </span>
+                        <span class="achievements-row__value-link">
                             {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
-                        </a>
+                        </span>
                     </article>
                 {% empty %}
                     <article class="achievements-row achievements-row--bench">
@@ -77,13 +77,13 @@
 
             <div class="achievements-card achievements-card--bench" data-bench-panel="heroes">
                 {% for exercise in benchmark_exercises.heroes %}
-                    <article class="achievements-row achievements-row--link achievements-row--bench">
-                        <a class="achievements-row__name" href="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                    <article class="achievements-row achievements-row--link achievements-row--bench" data-achievement-row-url="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                        <span class="achievements-row__name">
                             {{ exercise.title }}
-                        </a>
-                        <a class="achievements-row__value-link" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        </span>
+                        <span class="achievements-row__value-link">
                             {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
-                        </a>
+                        </span>
                     </article>
                 {% empty %}
                     <article class="achievements-row achievements-row--bench">
@@ -95,13 +95,13 @@
 
             <div class="achievements-card achievements-card--bench" data-bench-panel="gymnastics" hidden>
                 {% for exercise in benchmark_exercises.gymnastics %}
-                    <article class="achievements-row achievements-row--link achievements-row--bench">
-                        <a class="achievements-row__name" href="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                    <article class="achievements-row achievements-row--link achievements-row--bench" data-achievement-row-url="{% url 'auth:achievement_exercise_name' exercise_slug=exercise.slug %}">
+                        <span class="achievements-row__name">
                             {{ exercise.title }}
-                        </a>
-                        <a class="achievements-row__value-link" href="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                        </span>
+                        <span class="achievements-row__value-link">
                             {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
-                        </a>
+                        </span>
                     </article>
                 {% empty %}
                     <article class="achievements-row achievements-row--bench">
@@ -138,7 +138,7 @@
 
         const tabs = document.querySelectorAll("[data-achievements-tab]");
         const panels = document.querySelectorAll("[data-achievements-panel]");
-        const valueLinks = document.querySelectorAll(".achievements-row__value-link");
+        const clickableRows = document.querySelectorAll("[data-achievement-row-url]");
 
         function activateTab(tabName) {
             tabs.forEach((tab) => {
@@ -177,14 +177,18 @@
             tab.addEventListener("click", () => activateBenchTab(tab.dataset.benchTab));
         });
 
-        valueLinks.forEach((link) => {
-            link.addEventListener("click", () => {
+        clickableRows.forEach((row) => {
+            row.addEventListener("click", () => {
                 const activeMainTab = document.querySelector("[data-achievements-tab].achievements-tabs__item--active")?.dataset.achievementsTab || "barbell";
                 const activeBenchTab = document.querySelector("[data-bench-tab].achievements-bench-tabs__item--active")?.dataset.benchTab || "girls";
                 try {
                     window.sessionStorage.setItem(STORAGE_KEY_MAIN_TAB, activeMainTab);
                     window.sessionStorage.setItem(STORAGE_KEY_BENCH_TAB, activeBenchTab);
                 } catch (_error) {}
+                const targetUrl = row.getAttribute("data-achievement-row-url");
+                if (targetUrl) {
+                    window.location.href = targetUrl;
+                }
             });
         });
 

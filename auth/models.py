@@ -180,6 +180,34 @@ class UserExerciseRepProfile(models.Model):
         return f'{self.user.email}: {self.exercise_slug}'
 
 
+class UserBenchmarkResultProfile(models.Model):
+    MODE_RX = 'rx'
+    MODE_SCALED = 'scaled'
+    MODE_CHOICES = (
+        (MODE_RX, 'RX'),
+        (MODE_SCALED, 'SCALED'),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='benchmark_result_profiles',
+    )
+    exercise_slug = models.SlugField(max_length=120)
+    minutes = models.PositiveSmallIntegerField(null=True, blank=True)
+    seconds = models.PositiveSmallIntegerField(null=True, blank=True)
+    mode = models.CharField(max_length=16, choices=MODE_CHOICES, default=MODE_RX)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+        unique_together = ('user', 'exercise_slug')
+
+    def __str__(self):
+        return f'{self.user.email}: {self.exercise_slug} {self.minutes}:{self.seconds} {self.mode}'
+
+
 class AdminTraining(models.Model):
     VISIBILITY_COACHES = 'coaches'
     VISIBILITY_ALL = 'all'

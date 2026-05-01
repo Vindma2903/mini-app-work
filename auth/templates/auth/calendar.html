@@ -1419,7 +1419,8 @@
 
             const rows = Array.from(selectedLibraryItems.values());
             return rows.map((item) => {
-                const title = String(item?.title || "").trim();
+                const rawTitle = String(item?.title || "").trim();
+                const title = stripLibraryMovementPrefix(rawTitle);
                 const params = libraryExerciseParamsById[item?.id] || {};
                 const sets = String(params.sets || "").trim();
                 const reps = String(params.reps || "").trim();
@@ -1715,7 +1716,11 @@
                 const exerciseParams = libraryExerciseParamsById[selectedEntryKey || item.id] || { sets: "", reps: "", result_type: "time" };
                 const metaMarkup = item.section === "exercises" && isActive
                     ? `<div class="calendar-create-modal__library-item-meta">
-                            <span>Подходов по Повторений</span>
+                            <div class="calendar-create-modal__reps-head">
+                                <span class="calendar-create-modal__reps-head-label calendar-create-modal__reps-head-label--sets">Подходов</span>
+                                <span class="calendar-create-modal__reps-head-spacer" aria-hidden="true"></span>
+                                <span class="calendar-create-modal__reps-head-label calendar-create-modal__reps-head-label--reps">Повторений</span>
+                            </div>
                             <div class="calendar-create-modal__result-row">
                                 <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов" value="${exerciseParams.sets || ""}" data-library-item-sets="${item.id}">
                                 <small>по</small>

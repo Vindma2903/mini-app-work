@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Календарь{% endblock %}
@@ -168,8 +168,8 @@
                 </div>
             </label>
 
-            <div class="calendar-create-modal__source-toggle" role="group" aria-label="сточник блока">
-                <button type="button" class="calendar-create-modal__source-btn is-active" aria-pressed="true" data-create-source="library">з библиотеки</button>
+            <div class="calendar-create-modal__source-toggle" role="group" aria-label="Источник блока">
+                <button type="button" class="calendar-create-modal__source-btn is-active" aria-pressed="true" data-create-source="library">Из библиотеки</button>
                 <button type="button" class="calendar-create-modal__source-btn" aria-pressed="false" data-create-source="manual">Свободный ввод</button>
             </div>
 
@@ -205,8 +205,7 @@
                     <textarea class="calendar-create-modal__textarea calendar-create-modal__textarea--lg" id="calendar-manual-description-en-input"></textarea>
                 </label>
 
-                <label class="calendar-create-modal__field">
-                    <span>Подходов по Результат</span>
+                <label class="calendar-create-modal__field calendar-create-modal__field--manual-result">
                     <div class="calendar-create-modal__result-row">
                         <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -230,6 +229,8 @@
                         <input class="calendar-create-modal__text-input" id="calendar-manual-weight-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Кг">
                     </div>
                     <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields" hidden>
+                        <span class="calendar-create-modal__reps-label calendar-create-modal__reps-label--sets">Подходов</span>
+                        <span class="calendar-create-modal__reps-label calendar-create-modal__reps-label--result">Результат</span>
                         <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
                         <small>по</small>
                         <input class="calendar-create-modal__text-input" id="calendar-manual-reps-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
@@ -878,7 +879,7 @@
             existingExercisesWrap.innerHTML = html;
         }
 
-        const months = ["Января","Февраля","Марта","Апреля","Мая","юня","юля","Августа","Сентября","Октября","Ноября","Декабря"];
+        const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
         function getWeekStart(dateValue) {
             const base = normalize(dateValue);
             const weekday = (base.getDay() + 6) % 7; // Monday=0 ... Sunday=6
@@ -1700,17 +1701,7 @@
 
         function renderLibraryList() {
             if (!libraryListContainer) return;
-            let items = getCategoryFilteredLibraryItems();
-            if (activeLibraryTab === "benchmark" && !items.length) {
-                const fallbackCategory = chipToBenchmarkCategory(getActiveLibraryChip());
-                items = [
-                    { id: `${fallbackCategory}-anna-1`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
-                    { id: `${fallbackCategory}-anna-2`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
-                    { id: `${fallbackCategory}-anna-3`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
-                    { id: `${fallbackCategory}-anna-4`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
-                    { id: `${fallbackCategory}-anna-5`, title: "Анна / Anna", section: "benchmarks", category: fallbackCategory },
-                ];
-            }
+            const items = getCategoryFilteredLibraryItems();
             if (!items.length) {
                 libraryListContainer.innerHTML = `<p>Ничего не найдено</p>`;
                 updateCreatePreviewContent();
@@ -3076,7 +3067,7 @@
 
             const headRow = document.createElement("tr");
             const nameHead = document.createElement("th");
-            nameHead.textContent = "мя";
+            nameHead.textContent = "Имя";
             headRow.appendChild(nameHead);
 
             safeColumns.forEach((column) => {
@@ -3504,7 +3495,7 @@
                 invalid_visibility: "Выберите видимость",
                 invalid_block_type: "Выберите блок тренировки",
                 block_custom_name_required: "Введите свое название блока",
-                at_least_one_exercise_required: "Выберите минимум один элемент из библиотеки",
+                at_least_one_exercise_required: "Выберите минимум один элемент иИз библиотеки",
                 sets_and_reps_must_be_together: "Для упражнения обязательны подходы и повторения",
                 manual_description_ru_required: "Заполните описание на русском",
                 manual_description_en_required: "Заполните описание на английском",
@@ -3756,3 +3747,4 @@
     })();
 </script>
 {% endblock %}
+

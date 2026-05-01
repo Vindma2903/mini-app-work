@@ -2962,6 +2962,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             if not bucket.get('result_type') and entry.result_type:
                 bucket['result_type'] = entry.result_type
         exercise_rows = []
+        training_view_payload = {}
         exercise_reviews_payload = {}
         exercise_results_payload = {}
         sorted_exercises = sorted(
@@ -2973,6 +2974,40 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             result_key = f'result_{index}'
             review_cards = []
             training_dates = sorted(data.get('dates') or [], reverse=True)
+            selected_training_view = None
+
+            def build_training_view_payload(training_obj):
+                training_exercises = []
+                ordered_exercises = sorted(training_obj.exercises.all(), key=lambda item: (item.order, item.id))
+                for exercise in ordered_exercises:
+                    exercise_name = normalize_mojibake_text(str(exercise.exercise_name or '').strip())
+                    if not exercise_name:
+                        continue
+                    block_label = (
+                        normalize_mojibake_text(str(exercise.block_custom_name or '').strip())
+                        if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and str(exercise.block_custom_name or '').strip()
+                        else normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Р‘Р»РѕРє'))
+                    )
+                    training_exercises.append(
+                        {
+                            'block': block_label,
+                            'text': normalize_mojibake_text(format_admin_training_volume(exercise)),
+                        }
+                    )
+
+                return {
+                    'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training_obj.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
+                    'date_label': training_obj.training_date.strftime('%d.%m.%Y'),
+                    'direction': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training_obj.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
+                    'comment': normalize_mojibake_text(str(training_obj.comment or '').strip()),
+                    'visibility': (
+                        'РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ'
+                        if training_obj.visibility == AdminTraining.VISIBILITY_COACHES
+                        else 'Р”Р»СЏ РІСЃРµС…'
+                    ),
+                    'color': training_obj.color or AdminTraining.COLOR_BLUE,
+                    'exercises': training_exercises,
+                }
             for training_date in training_dates:
                 for rate in rates_by_date.get(training_date, []):
                     full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
@@ -2988,35 +3023,9 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
 
                     training_view = None
                     if selected_training:
-                        training_exercises = []
-                        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
-                        for exercise in ordered_exercises:
-                            exercise_name = normalize_mojibake_text(str(exercise.exercise_name or '').strip())
-                            if not exercise_name:
-                                continue
-                            block_label = (
-                                normalize_mojibake_text(str(exercise.block_custom_name or '').strip())
-                                if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and str(exercise.block_custom_name or '').strip()
-                                else normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Р‘Р»РѕРє'))
-                            )
-                            training_exercises.append(
-                                {
-                                    'block': block_label,
-                                    'text': normalize_mojibake_text(format_admin_training_volume(exercise)),
-                                }
-                            )
-                        training_view = {
-                            'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(selected_training.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
-                            'date_label': selected_training.training_date.strftime('%d.%m.%Y'),
-                            'comment': normalize_mojibake_text(str(selected_training.comment or '').strip()),
-                            'visibility': (
-                                'РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ'
-                                if selected_training.visibility == AdminTraining.VISIBILITY_COACHES
-                                else 'Р”Р»СЏ РІСЃРµС…'
-                            ),
-                            'color': selected_training.color or AdminTraining.COLOR_BLUE,
-                            'exercises': training_exercises,
-                        }
+                        training_view = build_training_view_payload(selected_training)
+                        if selected_training_view is None:
+                            selected_training_view = training_view
 
                     review_cards.append(
                         {
@@ -3064,6 +3073,25 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                     }
                 result_rows = sorted(user_latest_results.values(), key=lambda row: row['name'])
 
+            if selected_training_view is None:
+                current_direction = normalize_mojibake_text(str(key[1] or '')).strip()
+                for training_date in training_dates:
+                    date_trainings = trainings_by_date.get(training_date, [])
+                    if not date_trainings:
+                        continue
+                    matched_by_direction = [
+                        item for item in date_trainings
+                        if normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(item.direction, '')).strip() == current_direction
+                    ]
+                    fallback_training = matched_by_direction[0] if matched_by_direction else date_trainings[0]
+                    if fallback_training:
+                        selected_training_view = build_training_view_payload(fallback_training)
+                        break
+
+            training_key = f'training_{index}'
+            if selected_training_view is not None:
+                training_view_payload[training_key] = selected_training_view
+
             exercise_rows.append(
                 {
                     'exercise': key[0],
@@ -3072,6 +3100,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                     'reviews': len(review_cards),
                     'rating': self._rating_label(avg_review_score) if avg_review_score is not None else '0',
                     'training_color': data.get('color') or AdminTraining.COLOR_BLUE,
+                    'training_key': training_key,
                     'review_key': review_key,
                     'result_key': result_key,
                 }
@@ -3092,6 +3121,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         context['exercise_rows'] = exercise_rows[:12]
         context['exercise_reviews_payload'] = exercise_reviews_payload
         context['exercise_results_payload'] = exercise_results_payload
+        context['statistics_training_view_payload'] = training_view_payload
 
         training_counts = {
             row['user_id']: row['total']

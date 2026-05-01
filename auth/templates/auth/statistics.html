@@ -52,7 +52,6 @@
                             <table class="statistics-table">
                                 <thead>
                                     <tr>
-                                        <th>Упражнение</th>
                                         <th>Тренировка</th>
                                         <th>Результаты</th>
                                         <th>Отзывы</th>
@@ -62,8 +61,7 @@
                                 <tbody>
                                     {% for row in exercise_rows %}
                                     <tr>
-                                        <td>{{ row.exercise }}</td>
-                                        <td><a href="#" data-open-training-view data-training-color="{{ row.training_color|default:'blue' }}">{{ row.training }}</a></td>
+                                        <td><a href="#" data-open-training-view data-training-key="{{ row.training_key }}" data-training-color="{{ row.training_color|default:'blue' }}">{{ row.training }}</a></td>
                                         <td><a href="#" data-open-results data-result-key="{{ row.result_key }}">{{ row.results }}</a></td>
                                         <td><a href="#" data-open-reviews data-review-key="{{ row.review_key }}">{{ row.reviews }}</a></td>
                                         <td>{{ row.rating }}</td>
@@ -83,17 +81,17 @@
                                         <th>Имя</th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="trainings" aria-label="Сортировать по количеству тренировок">
-                                                Кол-во тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
+                                                Кол-во тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/arrow-up-filter.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="received" aria-label="Сортировать по полученным реакциям">
-                                                Получено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
+                                                Получено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/arrow-up-filter.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-activity-sort="sent" aria-label="Сортировать по поставленным реакциям">
-                                                Поставлено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
+                                                Поставлено реакций <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/arrow-up-filter.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                     </tr>
@@ -156,12 +154,12 @@
                                         <th>Имя</th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-achievement-sort="visited" aria-label="Сортировать по посещенным тренировкам">
-                                                Посещено тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
+                                                Посещено тренировок <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/arrow-up-filter.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                         <th>
                                             <button type="button" class="statistics-table__sort" data-achievement-sort="goal" aria-label="Сортировать по цели посещений">
-                                                Цель по посещениям <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/admin/arrow-up.svg' %}" alt="" aria-hidden="true"></span>
+                                                Цель по посещениям <span class="statistics-table__sort-icon"><img src="{% static 'auth/img/arrow-up-filter.svg' %}" alt="" aria-hidden="true"></span>
                                             </button>
                                         </th>
                                     </tr>
@@ -213,23 +211,23 @@
 
 <div class="calendar-create-modal statistics-training-view" id="statistics-training-view-modal" hidden>
     <div class="calendar-create-modal__overlay" data-close-training-view></div>
-    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="Просмотр тренировки">
+    <section class="calendar-create-modal__card" role="dialog" aria-modal="true" aria-label="�������� ����������">
         <header class="calendar-create-modal__head">
-            <h3>Просмотр тренировки</h3>
-            <button type="button" class="calendar-create-modal__close" data-close-training-view aria-label="Закрыть">
+            <h3>�������� ����������</h3>
+            <button type="button" class="calendar-create-modal__close" data-close-training-view aria-label="�������">
                 <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
             </button>
         </header>
         <div class="calendar-create-modal__body">
             <label class="calendar-create-modal__field">
-                <span>Дата</span>
+                <span>����</span>
                 <div class="calendar-create-modal__input statistics-training-view__input">
                     <em id="statistics-training-view-date">23.02.2026</em>
                 </div>
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>Направление</span>
+                <span>�����������</span>
                 <div class="calendar-create-modal__input statistics-training-view__input">
                     <em id="statistics-training-view-direction">FBB</em>
                     <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
@@ -237,19 +235,19 @@
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>Видимость</span>
+                <span>���������</span>
                 <div class="calendar-create-modal__input statistics-training-view__input">
-                    <em id="statistics-training-view-visibility">Для всех</em>
+                    <em id="statistics-training-view-visibility">��� ����</em>
                 </div>
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>Комментарий</span>
+                <span>�����������</span>
                 <textarea class="calendar-create-modal__textarea statistics-training-view__textarea" id="statistics-training-view-comment" readonly></textarea>
             </label>
 
             <div class="calendar-create-modal__exercise-card">
-                <p class="calendar-create-modal__exercise-name" id="statistics-training-view-name">На все тело</p>
+                <p class="calendar-create-modal__exercise-name" id="statistics-training-view-name">�� ��� ����</p>
                 <div class="calendar-create-modal__existing statistics-training-view__existing" id="statistics-training-view-existing"></div>
             </div>
         </div>
@@ -295,6 +293,7 @@
 {{ exercise_reviews_payload|json_script:"statistics-reviews-payload" }}
 {{ exercise_results_payload|json_script:"statistics-results-payload" }}
 {{ statistics_charts_json|json_script:"statistics-charts-payload" }}
+{{ statistics_training_view_payload|json_script:"statistics-training-view-payload" }}
 
 <div class="statistics-results-modal" id="statistics-results-modal" hidden>
     <div class="statistics-results-modal__overlay" data-close-results></div>
@@ -333,6 +332,8 @@
         const trainingViewModal = document.getElementById("statistics-training-view-modal");
         const trainingViewName = document.getElementById("statistics-training-view-name");
         const trainingViewDate = document.getElementById("statistics-training-view-date");
+        const trainingViewDirection = document.getElementById("statistics-training-view-direction");
+        const trainingViewVisibility = document.getElementById("statistics-training-view-visibility");
         const trainingViewComment = document.getElementById("statistics-training-view-comment");
         const trainingViewExisting = document.getElementById("statistics-training-view-existing");
         const rangeLabel = document.getElementById("statistics-range-label");
@@ -344,9 +345,11 @@
         const reviewsPayloadEl = document.getElementById("statistics-reviews-payload");
         const resultsPayloadEl = document.getElementById("statistics-results-payload");
         const chartsPayloadEl = document.getElementById("statistics-charts-payload");
+        const trainingViewPayloadEl = document.getElementById("statistics-training-view-payload");
         const reviewsPayload = reviewsPayloadEl ? JSON.parse(reviewsPayloadEl.textContent || "{}") : {};
         const resultsPayload = resultsPayloadEl ? JSON.parse(resultsPayloadEl.textContent || "{}") : {};
         const chartsPayload = chartsPayloadEl ? JSON.parse(chartsPayloadEl.textContent || "{}") : {};
+        const trainingViewPayload = trainingViewPayloadEl ? JSON.parse(trainingViewPayloadEl.textContent || "{}") : {};
 
         if (!openBtn || !modal || !monthLabel || !grid) return;
 
@@ -748,6 +751,12 @@
                     if (trainingViewComment) {
                         trainingViewComment.value = trainingView.comment || "";
                     }
+                    if (trainingViewDirection) {
+                        trainingViewDirection.textContent = trainingView.direction || trainingView.title || review?.training_title || "—";
+                    }
+                    if (trainingViewVisibility) {
+                        trainingViewVisibility.textContent = trainingView.visibility || "Для всех";
+                    }
                     renderTrainingViewExistingExercises(trainingView.color || "blue", trainingView.exercises || []);
                     trainingViewModal.hidden = false;
                     document.body.style.overflow = "hidden";
@@ -1003,16 +1012,27 @@
             if (target.closest("[data-open-training-view]")) {
                 event.preventDefault();
                 const trainingLink = target.closest("[data-open-training-view]");
+                const trainingKey = trainingLink?.getAttribute("data-training-key") || "";
+                const payload = trainingViewPayload[trainingKey] || null;
                 if (trainingLink && trainingViewName) {
-                    trainingViewName.textContent = trainingLink.textContent?.trim() || "На все тело";
+                    trainingViewName.textContent = payload?.title || trainingLink.textContent?.trim() || "-";
                 }
                 if (trainingViewComment) {
-                    trainingViewComment.value = trainingLink?.getAttribute("data-training-comment") || "";
+                    trainingViewComment.value = payload?.comment || trainingLink?.getAttribute("data-training-comment") || "";
                 }
                 if (trainingViewDate) {
-                    trainingViewDate.textContent = formatNumericDate(rangeEnd);
+                    trainingViewDate.textContent = payload?.date_label || formatNumericDate(rangeEnd);
                 }
-                renderTrainingViewExistingExercises(trainingLink?.getAttribute("data-training-color") || "blue");
+                if (trainingViewDirection) {
+                    trainingViewDirection.textContent = payload?.direction || payload?.title || trainingLink?.textContent?.trim() || "-";
+                }
+                if (trainingViewVisibility) {
+                    trainingViewVisibility.textContent = payload?.visibility || "-";
+                }
+                renderTrainingViewExistingExercises(
+                    payload?.color || trainingLink?.getAttribute("data-training-color") || "blue",
+                    payload?.exercises || []
+                );
                 if (trainingViewModal) {
                     trainingViewModal.hidden = false;
                     document.body.style.overflow = "hidden";
@@ -1073,5 +1093,8 @@
     })();
 </script>
 {% endblock %}
+
+
+
 
 

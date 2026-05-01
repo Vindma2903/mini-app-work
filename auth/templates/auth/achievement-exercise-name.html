@@ -1,0 +1,68 @@
+﻿{% extends 'auth/base.html' %}
+{% load static %}
+
+{% block title %}{{ exercise.title }}{% endblock %}
+
+{% block styles %}
+<link rel="stylesheet" href="{% static 'auth/css/achievement-exercise-name.css' %}">
+{% endblock %}
+
+{% block content %}
+<main class="achievement-name-screen">
+    <header class="achievement-name-top">
+        <a class="achievement-name-top__icon" href="{% url 'auth:achievements' %}" aria-label="Назад">
+            <img src="{% static 'auth/img/arrow-right.svg' %}" alt="">
+        </a>
+        <h1>{{ exercise.title }}</h1>
+        <a class="achievement-name-top__icon achievement-name-top__icon--close" href="{% url 'auth:achievements' %}" aria-label="Закрыть">
+            <img src="{% static 'auth/img/close.svg' %}" alt="">
+        </a>
+    </header>
+
+    <section class="achievement-name-section">
+        <h2>Описание</h2>
+        <div class="achievement-name-card achievement-name-card--description">
+            {% if exercise.description_lines %}
+                {% for line in exercise.description_lines %}
+                    <p>{{ line }}</p>
+                {% endfor %}
+            {% else %}
+                <p>Описание пока не заполнено</p>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if exercise.video_url %}
+    <section class="achievement-name-section">
+        <h2>Видео</h2>
+        <a class="achievement-name-video" href="{{ exercise.video_url }}" target="_blank" rel="noopener noreferrer" aria-label="Открыть видео упражнения">
+            <img class="achievement-name-video__play" src="{% static 'auth/img/play-circle.svg' %}" alt="">
+            <span class="achievement-name-video__title">{{ exercise.title }}</span>
+        </a>
+    </section>
+    {% endif %}
+
+    <section class="achievement-name-section">
+        <h2>Результат</h2>
+        <div class="achievement-name-result">
+            <div class="achievement-name-result__cell achievement-name-result__cell--muted">
+                <span class="achievement-name-result__hint">МИН.</span>
+            </div>
+            <div class="achievement-name-result__cell achievement-name-result__cell--muted">
+                <span class="achievement-name-result__hint">СЕК.</span>
+            </div>
+            <button type="button" class="achievement-name-result__cell achievement-name-result__cell--active">
+                <span>✓ RX</span>
+            </button>
+            <button type="button" class="achievement-name-result__cell achievement-name-result__cell--ghost">
+                <span>SCALED</span>
+            </button>
+        </div>
+    </section>
+
+    <button type="button" class="achievement-name-save">Сохранить</button>
+
+    {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
+</main>
+{% endblock %}
+

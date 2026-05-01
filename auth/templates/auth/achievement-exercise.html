@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<main class="achievement-exercise-screen">
+<main class="achievement-exercise-screen{% if request.GET.embed == '1' %} achievement-exercise-screen--embed{% endif %}">
     <header class="achievement-exercise-top">
         <a class="achievement-exercise-top__back" href="{% url 'auth:achievements' %}" aria-label="Назад">←</a>
         <h1>{{ exercise.title }}</h1>
@@ -48,7 +48,9 @@
 
     <button type="button" class="exercise-btn exercise-btn--primary" id="exercise-save-db">Сохранить</button>
 
-    {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
+    {% if request.GET.embed != '1' %}
+        {% include 'auth/components/bottom_nav.html' with active='achievements' nav_block='achievements-bottom-nav' %}
+    {% endif %}
 </main>
 
 <div class="exercise-edit-modal" id="exercise-edit-modal" hidden>

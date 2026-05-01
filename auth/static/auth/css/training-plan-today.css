@@ -330,7 +330,7 @@ body {
     gap: 12px;
 }
 
-.plan-card--collapsed .plan-card__head img {
+.plan-card--expanded .plan-card__head img {
     transform: rotate(180deg);
 }
 

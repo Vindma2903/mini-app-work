@@ -1,6 +1,7 @@
 """Leaderboard and awards view exports."""
 
 from auth.views import (
+    AchievementExerciseNameView,
     AchievementExerciseView,
     AchievementExerciseUpdateView,
     AchievementsView,
@@ -16,6 +17,7 @@ from auth.views import (
 )
 
 __all__ = [
+    "AchievementExerciseNameView",
     "AchievementExerciseView",
     "AchievementExerciseUpdateView",
     "AchievementsView",

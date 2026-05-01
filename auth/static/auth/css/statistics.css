@@ -1,10 +1,10 @@
 .statistics-page{background:#eef3f9;min-height:100vh;height:auto;overflow:visible}
 .statistics-page .calendar-sidebar{position:fixed;left:0;top:0;bottom:0;height:100vh}
 .statistics-page .calendar-content{position:relative;left:265px;top:0;right:auto;height:auto;min-height:100vh;overflow:visible;padding:0 24px 24px 0;width:calc(100% - 265px)}
-.statistics-page .calendar-content__header{position:sticky;top:0;z-index:5}
+.statistics-page .calendar-content__header{position:sticky;top:0;z-index:5;border-radius:1px}
 html,body{overflow-y:auto!important;overflow-x:hidden}
 .statistics-content{width:auto;max-width:none}
-.statistics-card{margin-top:20px;background:#fff;border:1px solid #dbe2ea;border-radius:12px;padding:16px 16px 20px;box-shadow:0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.08)}
+.statistics-card{margin-top:20px;background:#fff;border:1px solid #dbe2ea;border-radius:1px;padding:16px 16px 20px;box-shadow:0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.08)}
 .statistics-card__range{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding:0 0 8px}
 .statistics-card__range strong{font:600 14px/20px Inter,Arial,sans-serif;color:#1f2937}
 .statistics-card__range-button{border:0;background:transparent;padding:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer}

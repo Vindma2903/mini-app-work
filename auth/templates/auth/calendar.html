@@ -46,6 +46,21 @@
                     </button>
                 </div>
                 <div class="calendar-create-menu-wrap">
+                    <div class="calendar-top-filter" id="calendar-top-direction-filter">
+                        <button type="button" class="calendar-top-filter__trigger" id="calendar-top-direction-trigger" aria-haspopup="listbox" aria-expanded="false">
+                            <em id="calendar-top-direction-value">Все направления</em>
+                            <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                        </button>
+                        <div class="calendar-top-filter__menu" id="calendar-top-direction-menu" role="listbox" hidden>
+                            <button type="button" class="calendar-top-filter__option is-active" data-top-direction-option="all" data-top-direction-label="Все направления">Все направления</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="fbb" data-top-direction-label="FBB">FBB</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="crossfit" data-top-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="gymnastics" data-top-direction-label="Гимнастика">Гимнастика</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="workout" data-top-direction-label="Тренировка дня">Тренировка дня</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="functional" data-top-direction-label="Функциональная тренировка">Функциональная тренировка</button>
+                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="strength" data-top-direction-label="Силовая тренировка">Силовая тренировка</button>
+                        </div>
+                    </div>
                     <button type="button" id="calendar-open-create"><img src="{% static 'auth/img/calendar-add-plus-desktop.svg' %}" alt="">Добавить</button>
                     <button type="button" class="calendar-language-toggle" id="calendar-language-toggle" aria-label="Переключить язык" title="Переключить язык">
                         <span class="calendar-language-toggle__flag" aria-hidden="true"></span>
@@ -552,12 +567,18 @@
         const adminLibraryListUrl = "{% url 'auth:admin_library_list' %}";
         const languageToggleButton = document.getElementById("calendar-language-toggle");
         const languageToggleFlag = languageToggleButton?.querySelector(".calendar-language-toggle__flag");
+        const topDirectionFilter = document.getElementById("calendar-top-direction-filter");
+        const topDirectionTrigger = document.getElementById("calendar-top-direction-trigger");
+        const topDirectionMenu = document.getElementById("calendar-top-direction-menu");
+        const topDirectionValue = document.getElementById("calendar-top-direction-value");
+        const topDirectionOptions = topDirectionMenu?.querySelectorAll("[data-top-direction-option]") || [];
         const calendarTrainingsScript = document.getElementById("calendar-trainings-json");
         const parsedTrainingsPayload = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
         const initialTrainings = typeof parsedTrainingsPayload === "string"
             ? JSON.parse(parsedTrainingsPayload)
             : parsedTrainingsPayload;
         let trainingsStore = Array.isArray(initialTrainings) ? initialTrainings : [];
+        let activeCalendarDirectionFilter = "all";
         let activeCalendarLanguage = (window.localStorage.getItem("calendar_language") || "ru").toLowerCase() === "en" ? "en" : "ru";
         let editingTrainingId = null;
         let deletingTrainingId = null;
@@ -989,6 +1010,7 @@
             render();
         });
         updateRangeLabel();
+        selectTopDirectionOption("all", "Все направления");
         renderCalendarList();
         updateLanguageToggleUi();
         languageToggleButton?.addEventListener("click", () => {
@@ -2248,6 +2270,49 @@
             });
         });
 
+        function closeTopDirectionMenu() {
+            if (!topDirectionMenu || !topDirectionTrigger) return;
+            topDirectionMenu.hidden = true;
+            topDirectionTrigger.setAttribute("aria-expanded", "false");
+        }
+
+        function openTopDirectionMenu() {
+            if (!topDirectionMenu || !topDirectionTrigger) return;
+            topDirectionMenu.hidden = false;
+            topDirectionTrigger.setAttribute("aria-expanded", "true");
+        }
+
+        function selectTopDirectionOption(nextValue, nextLabel) {
+            const normalizedValue = String(nextValue || "all").trim().toLowerCase();
+            activeCalendarDirectionFilter = normalizedValue || "all";
+            if (topDirectionValue) topDirectionValue.textContent = nextLabel || "Все направления";
+            topDirectionOptions.forEach((btn) => {
+                if (!(btn instanceof HTMLElement)) return;
+                const btnValue = String(btn.getAttribute("data-top-direction-option") || "").trim().toLowerCase();
+                btn.classList.toggle("is-active", btnValue === activeCalendarDirectionFilter);
+            });
+            renderCalendarList();
+        }
+
+        topDirectionTrigger?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (topDirectionMenu?.hidden) {
+                openTopDirectionMenu();
+            } else {
+                closeTopDirectionMenu();
+            }
+        });
+
+        topDirectionOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const nextValue = optionButton.getAttribute("data-top-direction-option") || "all";
+                const nextLabel = optionButton.getAttribute("data-top-direction-label") || "Все направления";
+                selectTopDirectionOption(nextValue, nextLabel);
+                closeTopDirectionMenu();
+            });
+        });
+
         trainingBlockTrigger?.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -2559,6 +2624,14 @@
             if (!(target instanceof Element)) return;
             if (directionDropdown.contains(target)) return;
             closeDirectionMenu();
+        });
+
+        document.addEventListener("click", (event) => {
+            if (!topDirectionFilter) return;
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (topDirectionFilter.contains(target)) return;
+            closeTopDirectionMenu();
         });
 
         document.addEventListener("click", (event) => {
@@ -3138,7 +3211,9 @@
             const filtered = trainingsStore.filter((item) => {
                 const itemDate = String(item.date || "").trim();
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(itemDate)) return false;
-                return itemDate >= rangeStartIso && itemDate <= rangeEndIso;
+                if (!(itemDate >= rangeStartIso && itemDate <= rangeEndIso)) return false;
+                if (activeCalendarDirectionFilter === "all") return true;
+                return String(item.direction || "").trim().toLowerCase() === activeCalendarDirectionFilter;
             });
             const sorted = [...filtered].sort((a, b) => {
                 if (a.date === b.date) {

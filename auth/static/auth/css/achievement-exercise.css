@@ -19,6 +19,11 @@ body {
     padding: 24px 12px 96px;
 }
 
+.achievement-exercise-screen--embed {
+    width: 100%;
+    padding: 16px 12px 20px;
+}
+
 .achievement-exercise-top {
     width: 366px;
     display: grid;

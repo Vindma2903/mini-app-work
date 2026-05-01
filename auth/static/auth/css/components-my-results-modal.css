@@ -77,6 +77,7 @@
     border-radius: 12px;
     background: #fafafa;
     padding: 10px;
+    min-width: 0;
 }
 
 .my-results-modal__section-title {
@@ -92,6 +93,7 @@
     grid-template-columns: 1fr 1fr;
     gap: 8px;
     margin-bottom: 10px;
+    min-width: 0;
 }
 
 .my-results-modal__inputs--single {
@@ -105,6 +107,7 @@
 .my-results-modal__field {
     display: grid;
     gap: 6px;
+    min-width: 0;
 }
 
 .my-results-modal__field span {
@@ -145,6 +148,7 @@
     gap: 8px;
     margin-bottom: 0;
     margin-top: 8px;
+    min-width: 0;
 }
 
 .my-results-chip {
@@ -192,4 +196,27 @@
     border: 0;
     background: #1f64e5;
     color: #fff;
+}
+
+@media (max-width: 420px) {
+    .my-results-modal__sheet {
+        width: calc(100vw - 16px);
+        padding: 22px 14px 16px;
+        max-height: 90vh;
+    }
+
+    .my-results-modal__sections {
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .my-results-modal__section {
+        padding: 9px;
+    }
+
+    .my-results-modal__inputs,
+    .my-results-modal__chips {
+        grid-template-columns: 1fr;
+        gap: 7px;
+    }
 }

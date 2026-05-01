@@ -23,11 +23,11 @@ body {
 
 .achievements-header {
     margin-top: 36px;
-    margin-bottom: 10px;
+    margin-bottom: 33px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
 }
 
 .achievements-header h1 {
@@ -39,39 +39,67 @@ body {
 }
 
 .achievements-tabs {
-    width: 189px;
-    height: 24px;
-    border-radius: 8px;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    width: 230px;
+    height: 32px;
+    padding: 3px;
+    border-radius: 10px;
     background: #d9d9d9;
-    box-shadow: 0 0 4px rgba(52, 52, 52, 0.1);
-    display: grid;
-    grid-template-columns: 99px 90px;
+    box-shadow:
+        inset 0 1px 2px rgba(0, 0, 0, 0.06),
+        0 1px 2px rgba(52, 52, 52, 0.08);
+    gap: 2px;
 }
 
 .achievements-tabs__item {
+    flex: 1 1 0;
+    min-width: 0;
+    height: auto;
     border: 0;
+    border-radius: 8px;
     background: transparent;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 3px;
-    padding: 0;
+    gap: 7px;
+    padding: 0 4px;
     color: #8c9093;
-    font-size: 12px;
+    font-size: 11px;
     line-height: 14px;
+    font-weight: 500;
     cursor: pointer;
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
 }
 
 .achievements-tabs__item img {
     width: 14px;
     height: 16px;
+    flex-shrink: 0;
+}
+
+.achievements-tabs__item span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.achievements-tabs__item:focus-visible {
+    outline: 2px solid var(--ach-blue);
+    outline-offset: 2px;
 }
 
 .achievements-tabs__item--active {
-    background: #fffdfd;
+    background: #fff;
     border-radius: 8px;
     color: var(--ach-blue);
-    box-shadow: 0 0 12px rgba(52, 52, 52, 0.2);
+    box-shadow:
+        0 1px 4px rgba(16, 24, 40, 0.1),
+        0 0 0 1px rgba(255, 255, 255, 0.8);
 }
 
 .achievements-block {
@@ -87,7 +115,7 @@ body {
 }
 
 .achievements-card {
-    width: 366px;
+    width: 100%;
     border-radius: 12px;
     background: var(--ach-white);
     box-shadow: 0 10px 40px rgba(29, 22, 23, 0.07);
@@ -106,6 +134,24 @@ body {
     text-decoration: none;
 }
 
+.achievements-row__name {
+    padding: 0;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+    color: #000;
+    text-decoration: none;
+    text-align: left;
+}
+
+.achievements-row__value-link {
+    text-decoration: none;
+    font-size: 12px;
+    line-height: 16px;
+    font-weight: 400;
+    color: #000;
+}
+
 .achievements-row:last-child {
     border-bottom: 0;
 }
@@ -121,26 +167,33 @@ body {
 
 .achievements-bench {
     margin-top: 8px;
+    width: 366px;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .achievements-bench-tabs {
-    width: 366px;
-    height: 34px;
-    border-radius: 10px;
+    width: 100%;
+    height: 39px;
+    border-radius: 0;
     background: #d9d9d9;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     align-items: center;
     margin-top: 10px;
-    margin-bottom: 10px;
+    margin-bottom: 32px;
+    gap: 0;
 }
 
 .achievements-bench-tabs__item {
+    position: relative;
+    z-index: 0;
     border: 0;
     background: transparent;
-    height: 30px;
-    margin: 2px;
-    border-radius: 10px;
+    width: 100%;
+    height: 39px;
+    margin: 0;
+    border-radius: 0;
     font-size: 14px;
     line-height: 17px;
     color: #9b9b9b;
@@ -148,12 +201,17 @@ body {
 }
 
 .achievements-bench-tabs__item--active {
+    z-index: 2;
     background: #fffdfd;
     color: #1f64e5;
+    border-radius: 12px;
     box-shadow: 0 0 10px rgba(52, 52, 52, 0.16);
 }
 
 .achievements-card--bench {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
     padding: 0 12px;
 }
 
@@ -168,7 +226,18 @@ body {
     color: #2a2f34;
 }
 
+.achievements-row--bench .achievements-row__name,
+.achievements-row--bench .achievements-row__value-link {
+    font-size: 14px;
+    line-height: 17px;
+    color: #2a2f34;
+}
+
 .achievements-row--bench span {
+    color: #565e67;
+}
+
+.achievements-row--bench .achievements-row__value-link {
     color: #565e67;
 }
 
@@ -214,3 +283,4 @@ body {
 .achievements-bottom-nav__item--active {
     color: #0f4bcc;
 }
+

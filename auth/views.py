@@ -1458,7 +1458,7 @@ class SharedProfileHeaderMixin:
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['shared_profile_name'] = self._build_profile_name(self.request.user)
-        context['shared_profile_experience'] = '8 Р»РµС‚'
+        context['shared_profile_experience'] = '8 лет'
         return context
 
 
@@ -1484,11 +1484,11 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
         remainder_ten = value % 10
         remainder_hundred = value % 100
         if remainder_ten == 1 and remainder_hundred != 11:
-            word = 'С‚СЂРµРЅРёСЂРѕРІРєР°'
+            word = 'тренировка'
         elif remainder_ten in (2, 3, 4) and remainder_hundred not in (12, 13, 14):
-            word = 'С‚СЂРµРЅРёСЂРѕРІРєРё'
+            word = 'тренировки'
         else:
-            word = 'С‚СЂРµРЅРёСЂРѕРІРѕРє'
+            word = 'тренировок'
         return f'{value} {word}'
 
     def get_context_data(self, **kwargs):
@@ -4795,7 +4795,7 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             f'{self.request.user.first_name} {self.request.user.last_name}'.strip()
             or self.request.user.email
         )
-        context['community_experience'] = context.get('shared_profile_experience') or '8 Р»РµС‚'
+        context['community_experience'] = context.get('shared_profile_experience') or '8 лет'
 
         raw_date = str(self.request.GET.get('date') or '').strip()
         if raw_date:
@@ -4807,9 +4807,9 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             selected_date = timezone.localdate()
 
         section_meta = [
-            (TrainingResult.SECTION_STRENGTH, 'РЎРёР»РѕРІР°СЏ'),
-            (TrainingResult.SECTION_CARDIO, 'РљР°СЂРґРёРѕ'),
-            (TrainingResult.SECTION_METABOLIC, 'РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ'),
+            (TrainingResult.SECTION_STRENGTH, 'Силовая'),
+            (TrainingResult.SECTION_CARDIO, 'Кардио'),
+            (TrainingResult.SECTION_METABOLIC, 'Метаболическая'),
         ]
         section_titles = dict(section_meta)
         reaction_counts = dict(
@@ -5452,7 +5452,7 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
                     description_lines = split_library_description_lines(item.desc_ru, item.desc_en)
                     video_url = _get_existing_media_file_url(item.video_file, auto_clear_missing=True) or ''
                     data = {
-                        'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В¶Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’Вµ {item.id}',
+                        'title': (item.name_ru or item.name_en or '').strip() or f'Упражнение {item.id}',
                         'max': [10, 10, 10, 10],
                     }
         if data is None:

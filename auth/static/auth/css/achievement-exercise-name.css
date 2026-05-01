@@ -91,48 +91,13 @@ body {
 }
 
 .achievement-name-video {
-    position: relative;
     display: block;
+    width: 100%;
     height: 198px;
     border-radius: 12px;
-    overflow: hidden;
-    background:
-        linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0.32) 100%),
-        linear-gradient(120deg, #b9cedf 0%, #839fb6 45%, #627d91 100%);
-    text-decoration: none;
+    object-fit: cover;
+    background: #000;
     box-shadow: 0 4px 10px rgba(16, 24, 40, 0.06);
-}
-
-.achievement-name-video::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background:
-        linear-gradient(90deg, rgba(255, 255, 255, 0.22) 0 31%, transparent 31% 34%, rgba(255, 255, 255, 0.18) 34% 65%, transparent 65% 68%, rgba(255, 255, 255, 0.16) 68% 100%);
-}
-
-.achievement-name-video__play {
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    width: 50px;
-    height: 50px;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-}
-
-.achievement-name-video__title {
-    position: absolute;
-    right: 12px;
-    bottom: 20px;
-    text-align: right;
-    color: #fff;
-    text-transform: uppercase;
-    font-size: 11px;
-    line-height: 14px;
-    font-weight: 700;
-    letter-spacing: 0.6px;
-    z-index: 1;
 }
 
 .achievement-name-result {

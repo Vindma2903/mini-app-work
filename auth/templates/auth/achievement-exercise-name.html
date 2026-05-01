@@ -33,13 +33,13 @@
     </section>
 
     {% if exercise.video_url %}
-    <section class="achievement-name-section">
-        <h2>Видео</h2>
-        <a class="achievement-name-video" href="{{ exercise.video_url }}" target="_blank" rel="noopener noreferrer" aria-label="Открыть видео упражнения">
-            <img class="achievement-name-video__play" src="{% static 'auth/img/play-circle.svg' %}" alt="">
-            <span class="achievement-name-video__title">{{ exercise.title }}</span>
-        </a>
-    </section>
+        <section class="achievement-name-section">
+            <h2>Видео</h2>
+            <video class="achievement-name-video" controls preload="metadata" playsinline>
+                <source src="{{ exercise.video_url }}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+            </video>
+        </section>
     {% endif %}
 
     <section class="achievement-name-section">

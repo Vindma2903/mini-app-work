@@ -283,7 +283,7 @@ def serialize_admin_training(training):
         block_label = (
             item.block_custom_name.strip()
             if item.block_type == AdminTrainingExercise.BLOCK_CUSTOM
-            else TRAINING_BLOCK_LABELS.get(item.block_type, 'Р В РІР‚ВР В Р’В»Р В РЎвЂўР В РЎвЂќ')
+            else TRAINING_BLOCK_LABELS.get(item.block_type, 'Блок')
         )
         block_label = normalize_mojibake_text(block_label)
         exercise_name = normalize_mojibake_text(item.exercise_name or '')
@@ -296,11 +296,19 @@ def serialize_admin_training(training):
         )
         volume_ru_lines = [volume] if volume else []
         volume_en_lines = [volume_en] if volume_en else []
+        volume_ru_kinds = ['default'] * len(volume_ru_lines)
+        volume_en_kinds = ['default'] * len(volume_en_lines)
         if (
             str(item.exercise_kind or '').strip().lower() == AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS
             and item.library_item_id
             and item.library_item
         ):
+            benchmark_name_ru = normalize_mojibake_text(
+                str(getattr(item.library_item, 'name_ru', '') or item.exercise_name or '').strip()
+            )
+            benchmark_name_en = normalize_mojibake_text(
+                str(getattr(item.library_item, 'name_en', '') or item.exercise_name or '').strip()
+            )
             benchmark_ru_lines = split_library_description_lines(
                 getattr(item.library_item, 'desc_ru', ''),
                 getattr(item.library_item, 'desc_en', ''),
@@ -309,10 +317,10 @@ def serialize_admin_training(training):
                 getattr(item.library_item, 'desc_en', ''),
                 getattr(item.library_item, 'desc_ru', ''),
             )
-            if benchmark_ru_lines:
-                volume_ru_lines = benchmark_ru_lines
-            if benchmark_en_lines:
-                volume_en_lines = benchmark_en_lines
+            volume_ru_lines = ([benchmark_name_ru] if benchmark_name_ru else []) + benchmark_ru_lines
+            volume_en_lines = ([benchmark_name_en] if benchmark_name_en else []) + benchmark_en_lines
+            volume_ru_kinds = (['benchmark_title'] if benchmark_name_ru else []) + (['benchmark_desc'] * len(benchmark_ru_lines))
+            volume_en_kinds = (['benchmark_title'] if benchmark_name_en else []) + (['benchmark_desc'] * len(benchmark_en_lines))
 
         exercise_payload = {
             'id': item.id,
@@ -345,7 +353,7 @@ def serialize_admin_training(training):
             'reps': item.reps,
             'result_type': item.result_type,
             'result_type_label': normalize_mojibake_text(
-                TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Р В РІР‚в„ўР РЋР вЂљР В Р’ВµР В РЎВР РЋР РЏ')
+                TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Время')
             ),
             'order': item.order,
             'volume': volume,
@@ -354,10 +362,23 @@ def serialize_admin_training(training):
 
         if block_label not in section_index:
             section_index[block_label] = len(grouped_sections)
-            grouped_sections.append({'title': block_label, 'items': [], 'items_ru': [], 'items_en': []})
+            grouped_sections.append(
+                {
+                    'title': block_label,
+                    'items': [],
+                    'items_ru': [],
+                    'items_en': [],
+                    'items_kind': [],
+                    'items_kind_ru': [],
+                    'items_kind_en': [],
+                }
+            )
         grouped_sections[section_index[block_label]]['items'].extend(volume_ru_lines or [exercise_payload['volume']])
         grouped_sections[section_index[block_label]]['items_ru'].extend(volume_ru_lines or [volume])
         grouped_sections[section_index[block_label]]['items_en'].extend(volume_en_lines or [volume_en])
+        grouped_sections[section_index[block_label]]['items_kind'].extend(volume_ru_kinds or ['default'])
+        grouped_sections[section_index[block_label]]['items_kind_ru'].extend(volume_ru_kinds or ['default'])
+        grouped_sections[section_index[block_label]]['items_kind_en'].extend(volume_en_kinds or ['default'])
 
     if training.source_type == AdminTraining.SOURCE_MANUAL and not grouped_sections:
         manual_items_ru = [
@@ -378,6 +399,9 @@ def serialize_admin_training(training):
                     'items': fallback_items,
                     'items_ru': manual_items_ru or fallback_items,
                     'items_en': manual_items_en or fallback_items,
+                    'items_kind': ['default'] * len(fallback_items),
+                    'items_kind_ru': ['default'] * len(manual_items_ru or fallback_items),
+                    'items_kind_en': ['default'] * len(manual_items_en or fallback_items),
                 }
             )
 
@@ -421,7 +445,7 @@ def serialize_admin_training(training):
         'block_name': (
             first_exercise['block_label']
             if first_exercise
-            else (grouped_sections[0]['title'] if grouped_sections else 'Р В РІР‚ВР В Р’В»Р В РЎвЂўР В РЎвЂќ')
+            else (grouped_sections[0]['title'] if grouped_sections else 'Блок')
         ),
         'volume': (
             first_exercise['volume']
@@ -441,9 +465,9 @@ def build_admin_training_results_payload(training):
         AdminTrainingExercise.BLOCK_CUSTOM: TrainingResult.SECTION_METABOLIC,
     }
     default_titles = {
-        TrainingResult.SECTION_STRENGTH: 'Р В Р Р‹Р В РЎвЂР В Р’В»Р В РЎвЂўР В Р вЂ Р В Р’В°Р РЋР РЏ',
-        TrainingResult.SECTION_CARDIO: 'Р В РЎв„ўР В Р’В°Р РЋР вЂљР В РўвЂР В РЎвЂР В РЎвЂў',
-        TrainingResult.SECTION_METABOLIC: 'Р В РІР‚СљР В РЎвЂР В РЎВР В Р вЂ¦Р В Р’В°Р РЋР С“Р РЋРІР‚С™Р В РЎвЂР В РЎвЂќР В Р’В°',
+        TrainingResult.SECTION_STRENGTH: 'Силовая',
+        TrainingResult.SECTION_CARDIO: 'Кардио',
+        TrainingResult.SECTION_METABOLIC: 'Метаболическая',
     }
 
     columns = []
@@ -458,7 +482,7 @@ def build_admin_training_results_payload(training):
         if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip():
             section_title = exercise.block_custom_name.strip()
         else:
-            section_title = TRAINING_BLOCK_LABELS.get(exercise.block_type) or default_titles.get(section_key, 'Р В Р’В Р В Р’В°Р В Р’В·Р В РўвЂР В Р’ВµР В Р’В»')
+            section_title = TRAINING_BLOCK_LABELS.get(exercise.block_type) or default_titles.get(section_key, 'Раздел')
 
         result_type = exercise.result_type or TrainingResult.RESULT_TIME
         section_index[section_key] = len(columns)
@@ -473,9 +497,9 @@ def build_admin_training_results_payload(training):
 
     if not columns:
         columns = [
-            {'section_key': TrainingResult.SECTION_STRENGTH, 'title': 'Р В Р Р‹Р В РЎвЂР В Р’В»Р В РЎвЂўР В Р вЂ Р В Р’В°Р РЋР РЏ', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
-            {'section_key': TrainingResult.SECTION_CARDIO, 'title': 'Р В РЎв„ўР В Р’В°Р РЋР вЂљР В РўвЂР В РЎвЂР В РЎвЂў', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
-            {'section_key': TrainingResult.SECTION_METABOLIC, 'title': 'Р В РІР‚СљР В РЎвЂР В РЎВР В Р вЂ¦Р В Р’В°Р РЋР С“Р РЋРІР‚С™Р В РЎвЂР В РЎвЂќР В Р’В°', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_STRENGTH, 'title': 'Силовая', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_CARDIO, 'title': 'Кардио', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_METABOLIC, 'title': 'Метаболическая', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
         ]
         section_index = {col['section_key']: idx for idx, col in enumerate(columns)}
 
@@ -526,9 +550,9 @@ def build_admin_training_results_payload(training):
 
 
 LEADERBOARD_SECTION_META = [
-    (TrainingResult.SECTION_STRENGTH, 'РЎРёР»РѕРІР°СЏ'),
-    (TrainingResult.SECTION_CARDIO, 'РљР°СЂРґРёРѕ'),
-    (TrainingResult.SECTION_METABOLIC, 'РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ'),
+    (TrainingResult.SECTION_STRENGTH, 'Силовая'),
+    (TrainingResult.SECTION_CARDIO, 'Кардио'),
+    (TrainingResult.SECTION_METABOLIC, 'Метаболическая'),
 ]
 
 
@@ -5003,11 +5027,13 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
             grouped_trainings[direction_key].append(training)
 
         plan_cards = []
+        primary_training_ids = []
         for direction_key in grouped_order:
             direction_trainings = grouped_trainings.get(direction_key, [])
             if not direction_trainings:
                 continue
             primary_training = direction_trainings[0]
+            primary_training_ids.append(primary_training.id)
 
             merged_sections = []
             merged_section_index = {}
@@ -5053,6 +5079,19 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                     'result_sections': result_sections,
                 }
             )
+
+        completed_training_ids = set()
+        if primary_training_ids and self.request.user.is_authenticated:
+            completed_training_ids = set(
+                TrainingResult.objects.filter(
+                    user=self.request.user,
+                    training_date=selected_date,
+                    training_id__in=primary_training_ids,
+                ).values_list('training_id', flat=True)
+            )
+
+        for card in plan_cards:
+            card['has_result'] = card.get('id') in completed_training_ids
 
         context['plan_cards'] = plan_cards
         result_type_map = get_plan_result_type_map(trainings)

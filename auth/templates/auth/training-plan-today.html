@@ -107,7 +107,8 @@
                     data-result-type-cardio="{{ card.result_types.cardio|default:'time' }}"
                     data-result-type-metabolic="{{ card.result_types.metabolic|default:'time' }}"
                     data-result-sections="{{ card.result_sections|join:',' }}"
-                >Добавить результат</button>
+                    {% if card.has_result %}disabled aria-disabled="true"{% endif %}
+                >{% if card.has_result %}Результат добавлен{% else %}Добавить результат{% endif %}</button>
             </div>
         </section>
         {% empty %}
@@ -729,6 +730,7 @@
         document.addEventListener("click", (event) => {
             const button = event.target.closest(".plan-card__add");
             if (!button) return;
+            if (button.disabled) return;
             const card = button.closest("[data-plan-card]");
             activeTrainingId = String(card?.getAttribute("data-training-id") || "").trim();
             const defaults = getCurrentDefaultSectionResultTypes();
@@ -766,6 +768,17 @@
             rememberAllSectionInputs();
             try {
                 await saveResultsToServer();
+                if (activeTrainingId) {
+                    Array.from(document.querySelectorAll("[data-plan-card][data-training-id]")).forEach((cardNode) => {
+                        const cardTrainingId = String(cardNode.getAttribute("data-training-id") || "").trim();
+                        if (cardTrainingId !== activeTrainingId) return;
+                        const addButton = cardNode.querySelector(".plan-card__add");
+                        if (!addButton) return;
+                        addButton.disabled = true;
+                        addButton.setAttribute("aria-disabled", "true");
+                        addButton.textContent = "Результат добавлен";
+                    });
+                }
                 applySharePreview();
                 setModalVisible(myResultsModal, false);
                 setModalVisible(resultSavedModal, true);

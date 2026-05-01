@@ -374,6 +374,13 @@ body {
     cursor: pointer;
 }
 
+.plan-card__add:disabled,
+.plan-card__add[aria-disabled="true"] {
+    background: #d1d5db;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
 .plan-card--collapsed {
     padding: 18px 24px;
     box-shadow: var(--pt-shadow-main);

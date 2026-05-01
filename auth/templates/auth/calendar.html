@@ -168,8 +168,8 @@
                 </div>
             </label>
 
-            <div class="calendar-create-modal__source-toggle" role="group" aria-label="Источник блока">
-                <button type="button" class="calendar-create-modal__source-btn is-active" aria-pressed="true" data-create-source="library">Из библиотеки</button>
+            <div class="calendar-create-modal__source-toggle" role="group" aria-label="сточник блока">
+                <button type="button" class="calendar-create-modal__source-btn is-active" aria-pressed="true" data-create-source="library">з библиотеки</button>
                 <button type="button" class="calendar-create-modal__source-btn" aria-pressed="false" data-create-source="manual">Свободный ввод</button>
             </div>
 
@@ -404,7 +404,7 @@
         <button type="button" class="calendar-comment-modal__close" data-close-comment aria-label="Закрыть">
             <img src="{% static 'auth/img/admin/x.svg' %}" alt="" aria-hidden="true">
         </button>
-        <h3 class="calendar-comment-modal__title" id="calendar-comment-modal-title">Комментарии к блоку “Силовая часть”</h3>
+        <h3 class="calendar-comment-modal__title" id="calendar-comment-modal-title">Комментарии к блоку "Силовая часть"</h3>
         <div class="calendar-comment-modal__group">
             <p class="calendar-comment-modal__label">Для тренеров:</p>
             <p class="calendar-comment-modal__bubble" id="calendar-comment-coaches">Без комментария</p>
@@ -878,7 +878,7 @@
             existingExercisesWrap.innerHTML = html;
         }
 
-        const months = ["Января","Февраля","Марта","Апреля","Мая","Июня","Июля","Августа","Сентября","Октября","Ноября","Декабря"];
+        const months = ["Января","Февраля","Марта","Апреля","Мая","юня","юля","Августа","Сентября","Октября","Ноября","Декабря"];
         function getWeekStart(dateValue) {
             const base = normalize(dateValue);
             const weekday = (base.getDay() + 6) % 7; // Monday=0 ... Sunday=6
@@ -1246,23 +1246,25 @@
             }
         }
 
-        function openCommentModal(trainingId) {
+        function openCommentModal(trainingId, cardNode = null) {
             if (!commentModal) return;
             const training = trainingsStore.find((item) => Number(item.id) === Number(trainingId));
-            if (!training) return;
+            if (!training && !(cardNode instanceof HTMLElement)) return;
 
-            const sections = Array.isArray(training.sections) ? training.sections : [];
-            const blockTitle = String(sections[0]?.title || "").trim() || "Силовая часть";
-            const coachesText = String(
-                training.comment_for_coaches
-                || ""
-            ).trim();
-            const athletesText = String(
-                training.comment_for_athletes
-                || ""
-            ).trim();
+            const sections = Array.isArray(training?.sections) ? training.sections : [];
+            const fallbackBlockTitle = String(sections[0]?.title || "").trim() || "Силовая часть";
+            const blockTitleFromCard = cardNode instanceof HTMLElement
+                ? String(cardNode.getAttribute("data-comment-title") || "").trim()
+                : "";
+            const blockTitle = blockTitleFromCard || fallbackBlockTitle;
+            const coachesText = cardNode instanceof HTMLElement
+                ? String(cardNode.getAttribute("data-comment-coaches") || "").trim()
+                : String(training?.comment_for_coaches || "").trim();
+            const athletesText = cardNode instanceof HTMLElement
+                ? String(cardNode.getAttribute("data-comment-athletes") || "").trim()
+                : String(training?.comment_for_athletes || "").trim();
 
-            if (commentModalTitle) commentModalTitle.textContent = `Комментарии к блоку “${blockTitle}”`;
+            if (commentModalTitle) commentModalTitle.textContent = `Комментарии к блоку "${blockTitle}"`;
             if (commentCoaches) commentCoaches.textContent = coachesText || "Без комментария";
             if (commentAthletes) commentAthletes.textContent = athletesText || "Без комментария";
 
@@ -2055,7 +2057,7 @@
                 const card = target.closest(".calendar-day");
                 const trainingId = card instanceof HTMLElement ? Number(card.getAttribute("data-training-id") || 0) : 0;
                 if (trainingId) {
-                    openCommentModal(trainingId);
+                    openCommentModal(trainingId, card instanceof HTMLElement ? card : null);
                 }
                 return;
             }
@@ -2076,16 +2078,21 @@
         document.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
-            const toggleButton = target.closest("[data-section-toggle]");
+            const toggleButton = target.closest("[data-benchmark-toggle]");
             if (!(toggleButton instanceof HTMLButtonElement)) return;
-            const section = toggleButton.closest(".calendar-event__section--compact");
+            const section = toggleButton.closest(".calendar-event__section");
             if (!(section instanceof HTMLElement)) return;
-            const items = section.querySelector("[data-section-items]");
-            if (!(items instanceof HTMLElement)) return;
+            const group = String(toggleButton.getAttribute("data-benchmark-group") || "").trim();
+            if (!group) return;
+
             const nextExpanded = toggleButton.getAttribute("aria-expanded") !== "true";
             toggleButton.setAttribute("aria-expanded", nextExpanded ? "true" : "false");
-            section.classList.toggle("is-open", nextExpanded);
-            items.hidden = !nextExpanded;
+            toggleButton.classList.toggle("is-open", nextExpanded);
+
+            const descNodes = section.querySelectorAll(`.calendar-event__item--benchmark-desc[data-benchmark-group="${group}"]`);
+            descNodes.forEach((node) => {
+                node.hidden = !nextExpanded;
+            });
         });
 
         document.addEventListener("keydown", (event) => {
@@ -3069,7 +3076,7 @@
 
             const headRow = document.createElement("tr");
             const nameHead = document.createElement("th");
-            nameHead.textContent = "Имя";
+            nameHead.textContent = "мя";
             headRow.appendChild(nameHead);
 
             safeColumns.forEach((column) => {
@@ -3122,6 +3129,10 @@
                 .replaceAll("'", "&#39;");
         }
 
+        function escapeHtmlAttr(value) {
+            return escapeHtml(value).replace(/\n/g, "&#10;");
+        }
+
         function normalizeLineBreaks(value) {
             return String(value || "")
                 .replace(/\r\n/g, "\n")
@@ -3149,44 +3160,107 @@
             }
         }
 
+        function getLibraryMovementLabels() {
+            return new Set([
+                "squat",
+                "push",
+                "pull",
+                "bend",
+                "lunge",
+                "olympic",
+                "plyometric",
+                "cardio",
+                "trx",
+            ]);
+        }
+
+        function isLibraryMovementHeading(value) {
+            const normalized = String(value || "")
+                .toLowerCase()
+                .replace(/[\s:/\|.,;()[\]{}'"`~!?+-]+/g, "");
+            return getLibraryMovementLabels().has(normalized);
+        }
+
+        function stripLibraryMovementPrefix(value) {
+            let source = String(value || "").trim();
+            if (!source) return "";
+            const labels = getLibraryMovementLabels();
+            // Remove one or multiple leading movement prefixes like "Push / " or "Squat / ".
+            while (source.includes("/")) {
+                const slashIndex = source.indexOf("/");
+                if (slashIndex <= 0) break;
+                const prefix = source.slice(0, slashIndex).trim().toLowerCase();
+                if (!labels.has(prefix)) break;
+                source = source.slice(slashIndex + 1).trim();
+            }
+            return source;
+        }
+
         function buildCalendarCardMarkup(training, options = {}) {
             const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
-            const isFull = (training.sections || []).length > 2;
             const sectionsHtml = (training.sections || []).map((section) => {
-                const sectionItems = activeCalendarLanguage === "en"
+                const rawSectionItems = activeCalendarLanguage === "en"
                     ? (section.items_en || section.items_ru || section.items || [])
                     : (section.items_ru || section.items || []);
-                if (isFull) {
-                    return `
-                        <div class="calendar-event__section">
-                            <h4>${escapeHtml(section.title)}</h4>
-                            <p>${sectionItems.map((item) => escapeHtml(item)).join("<br>")}</p>
-                        </div>
-                    `;
-                }
+                const rawSectionItemKinds = activeCalendarLanguage === "en"
+                    ? (section.items_kind_en || section.items_kind_ru || section.items_kind || [])
+                    : (section.items_kind_ru || section.items_kind || []);
+                const sectionItems = [];
+                const sectionItemKinds = [];
+                rawSectionItems.forEach((item, index) => {
+                    const kind = String(rawSectionItemKinds[index] || "default").trim().toLowerCase();
+                    if (kind === "default" && isLibraryMovementHeading(item)) {
+                        return;
+                    }
+                    const normalizedItem = kind === "default" ? stripLibraryMovementPrefix(item) : String(item || "").trim();
+                    if (!normalizedItem) {
+                        return;
+                    }
+                    sectionItems.push(normalizedItem);
+                    sectionItemKinds.push(rawSectionItemKinds[index] || "default");
+                });
+                let benchmarkGroupId = 0;
+                let activeBenchmarkGroup = "";
+                const sectionItemsMarkup = sectionItems.map((item, index) => {
+                    const kind = String(sectionItemKinds[index] || "default").trim().toLowerCase();
+                    if (kind === "benchmark_title") {
+                        benchmarkGroupId += 1;
+                        activeBenchmarkGroup = `benchmark-${benchmarkGroupId}`;
+                        return `
+                            <button type="button" class="calendar-event__item calendar-event__item--benchmark-title" data-benchmark-toggle data-benchmark-group="${activeBenchmarkGroup}" aria-expanded="false">
+                                <span>${escapeHtml(item)}</span>
+                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="" aria-hidden="true">
+                            </button>
+                        `;
+                    }
+                    if (kind === "benchmark_desc") {
+                        const descGroup = activeBenchmarkGroup || "benchmark-0";
+                        return `<span class="calendar-event__item calendar-event__item--benchmark-desc" data-benchmark-group="${descGroup}" hidden>${escapeHtml(item)}</span>`;
+                    }
+                    return `<span class="calendar-event__item">${escapeHtml(item)}</span>`;
+                }).join("");
                 return `
-                    <div class="calendar-event__section calendar-event__section--compact">
-                        <button type="button" class="calendar-event__section-toggle" data-section-toggle aria-expanded="false">
-                            <h4>${escapeHtml(section.title)} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4>
-                        </button>
-                        <p class="calendar-event__section-items" data-section-items hidden>${sectionItems.map((item) => escapeHtml(item)).join("<br>")}</p>
+                    <div class="calendar-event__section">
+                        <h4>
+                            <span>${escapeHtml(section.title)}</span>
+                            <button type="button" class="calendar-event__head-icon" data-open-comment aria-label="Открыть комментарии тренировки" title="Комментарии">
+                                <img src="{% static 'auth/img/admin/comment.svg' %}" alt="" aria-hidden="true">
+                            </button>
+                        </h4>
+                        <p class="calendar-event__section-lines">${sectionItemsMarkup}</p>
                     </div>
                 `;
             }).join("");
 
+            const firstSectionTitle = String((training.sections || [])[0]?.title || "").trim();
+            const commentForCoaches = String(training.comment_for_coaches || training.comment || "").trim();
+            const commentForAthletes = String(training.comment_for_athletes || training.comment || "").trim();
+
             return `
-                <article class="calendar-day ${colorClass} ${isFull ? "calendar-day--full" : "calendar-day--short"} ${showDayHead ? "" : "calendar-day--continuation"}" data-training-id="${training.id}">
+                <article class="calendar-day ${colorClass} calendar-day--full ${showDayHead ? "" : "calendar-day--continuation"}" data-training-id="${training.id}" data-comment-title="${escapeHtmlAttr(firstSectionTitle)}" data-comment-coaches="${escapeHtmlAttr(commentForCoaches)}" data-comment-athletes="${escapeHtmlAttr(commentForAthletes)}">
                     ${showDayHead ? `<div class="calendar-day__head"><span>${escapeHtml(training.day_name || "")}</span><b>${escapeHtml(training.day_number || "")}</b></div>` : ""}
                     <div class="calendar-event">
-                        <div class="calendar-event__head">
-                            <h3>${escapeHtml(training.title || training.direction_label || "FBB")}</h3>
-                            <div class="calendar-event__copy-wrap">
-                                <button type="button" class="calendar-event__head-icon" data-open-comment aria-label="Открыть комментарии тренировки" title="Комментарии">
-                                    <img src="{% static 'auth/img/admin/comment.svg' %}" alt="" aria-hidden="true">
-                                </button>
-                            </div>
-                        </div>
                         ${sectionsHtml}
                         <div class="calendar-event__result"><button type="button" class="calendar-event__results-link" data-open-results>Результаты</button> <span><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""><img src="{% static 'auth/img/admin/Trash_Full.svg' %}" alt=""></span></div>
                     </div>
@@ -3202,6 +3276,82 @@
                     <div class="calendar-day__head"><span>${escapeHtml(weekday)}</span><b>${escapeHtml(dayNumber)}</b></div>
                 </article>
             `;
+        }
+
+        function mergeTrainingsForCalendarList(trainings) {
+            const sectionOrder = new Map([
+                ["силовая", 0],
+                ["кардио", 1],
+                ["гимнастика", 2],
+            ]);
+            const grouped = new Map();
+            trainings.forEach((training) => {
+                const dateKey = String(training.date || "").trim();
+                const directionKey = String(training.direction || "").trim().toLowerCase();
+                if (!dateKey || !directionKey) return;
+                const groupingKey = `${dateKey}::${directionKey}`;
+                if (!grouped.has(groupingKey)) {
+                    grouped.set(groupingKey, {
+                        ...training,
+                        sections: [],
+                        _sectionIndex: new Map(),
+                        _commentsCoaches: [],
+                        _commentsAthletes: [],
+                    });
+                }
+                const aggregate = grouped.get(groupingKey);
+                const sections = Array.isArray(training.sections) ? training.sections : [];
+                sections.forEach((section) => {
+                    const sectionTitle = String(section?.title || "").trim() || "Блок";
+                    if (!aggregate._sectionIndex.has(sectionTitle)) {
+                        aggregate._sectionIndex.set(sectionTitle, aggregate.sections.length);
+                        aggregate.sections.push({
+                            title: sectionTitle,
+                            items: [],
+                            items_ru: [],
+                            items_en: [],
+                            items_kind: [],
+                            items_kind_ru: [],
+                            items_kind_en: [],
+                        });
+                    }
+                    const targetSection = aggregate.sections[aggregate._sectionIndex.get(sectionTitle)];
+                    targetSection.items = targetSection.items.concat(Array.isArray(section?.items) ? section.items : []);
+                    targetSection.items_ru = targetSection.items_ru.concat(Array.isArray(section?.items_ru) ? section.items_ru : []);
+                    targetSection.items_en = targetSection.items_en.concat(Array.isArray(section?.items_en) ? section.items_en : []);
+                    targetSection.items_kind = targetSection.items_kind.concat(Array.isArray(section?.items_kind) ? section.items_kind : []);
+                    targetSection.items_kind_ru = targetSection.items_kind_ru.concat(Array.isArray(section?.items_kind_ru) ? section.items_kind_ru : []);
+                    targetSection.items_kind_en = targetSection.items_kind_en.concat(Array.isArray(section?.items_kind_en) ? section.items_kind_en : []);
+                });
+
+                const coachesComment = String(training.comment_for_coaches || training.comment || "").trim();
+                const athletesComment = String(training.comment_for_athletes || training.comment || "").trim();
+                if (coachesComment && !aggregate._commentsCoaches.includes(coachesComment)) {
+                    aggregate._commentsCoaches.push(coachesComment);
+                }
+                if (athletesComment && !aggregate._commentsAthletes.includes(athletesComment)) {
+                    aggregate._commentsAthletes.push(athletesComment);
+                }
+            });
+
+            return Array.from(grouped.values()).map((item) => {
+                const { _sectionIndex, _commentsCoaches, _commentsAthletes, ...rest } = item;
+                const sortedSections = [...(rest.sections || [])].sort((left, right) => {
+                    const leftOrder = sectionOrder.has(String(left?.title || "").trim().toLowerCase())
+                        ? sectionOrder.get(String(left?.title || "").trim().toLowerCase())
+                        : 99;
+                    const rightOrder = sectionOrder.has(String(right?.title || "").trim().toLowerCase())
+                        ? sectionOrder.get(String(right?.title || "").trim().toLowerCase())
+                        : 99;
+                    return leftOrder - rightOrder;
+                });
+                return {
+                    ...rest,
+                    sections: sortedSections,
+                    comment_for_coaches: _commentsCoaches.join("\n"),
+                    comment_for_athletes: _commentsAthletes.join("\n"),
+                };
+            });
         }
 
         function renderCalendarList() {
@@ -3221,9 +3371,10 @@
                 }
                 return a.date > b.date ? 1 : -1;
             });
+            const mergedTrainings = mergeTrainingsForCalendarList(sorted);
             const columns = Array.from({ length: 7 }, () => []);
             const trainingsByDate = new Map();
-            sorted.forEach((item) => {
+            mergedTrainings.forEach((item) => {
                 const dateKey = String(item.date || "");
                 if (!trainingsByDate.has(dateKey)) {
                     trainingsByDate.set(dateKey, []);

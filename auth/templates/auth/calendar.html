@@ -39,7 +39,7 @@
             <div class="calendar-card__top">
                 <div class="calendar-card__title-row">
                     <img class="calendar-card__arrow" id="calendar-prev-week" src="{% static 'auth/img/calendar-chevron-left-desktop.svg' %}" alt="Предыдущая неделя" role="button" tabindex="0">
-                    <span class="calendar-card__range" id="calendar-range-label">23 Февраля - 1 Марта 2026</span>
+                    <span class="calendar-card__range" id="calendar-range-label"></span>
                     <img class="calendar-card__arrow" id="calendar-next-week" src="{% static 'auth/img/calendar-chevron-right-desktop.svg' %}" alt="Следующая неделя" role="button" tabindex="0">
                     <button type="button" class="calendar-open-picker" id="calendar-open-picker" aria-label="Выбрать диапазон дат">
                         <img class="calendar-card__days-icon" src="{% static 'auth/img/calendar-days-desktop.svg' %}" alt="">
@@ -176,6 +176,7 @@
                 <div class="calendar-create-modal__library-search">
                     <input type="text" id="calendar-library-search-input" placeholder="Найти комплекс">
                     <img src="{% static 'auth/img/admin/search.svg' %}" alt="" aria-hidden="true">
+                    <div class="calendar-create-modal__library-suggestions" id="calendar-library-search-suggestions" hidden></div>
                 </div>
                 <div class="calendar-create-modal__library-tabs" role="tablist" aria-label="Тип">
                     <button type="button" class="calendar-create-modal__library-tab is-active" role="tab" aria-selected="true" data-library-tab="exercise">Упражнения</button>
@@ -206,11 +207,9 @@
                 <label class="calendar-create-modal__field">
                     <span>Подходов по Результат</span>
                     <div class="calendar-create-modal__result-row">
-                        <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
-                        <small>по</small>
                         <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
                             <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-manual-result-type-value">Результат</em>
+                                <em id="calendar-manual-result-type-value">Время</em>
                                 <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                             </button>
                             <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
@@ -220,6 +219,19 @@
                             </div>
                             <input type="hidden" name="manual_result_type" id="calendar-manual-result-type-input" value="time">
                         </div>
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-time-fields">
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-minutes-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Минуты">
+                        <small>:</small>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-seconds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Секунды">
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-weight-fields" hidden>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-weight-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Кг">
+                    </div>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields" hidden>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
+                        <small>по</small>
+                        <input class="calendar-create-modal__text-input" id="calendar-manual-reps-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
                     </div>
                 </label>
             </div>
@@ -488,9 +500,17 @@
         const createLibraryBlock = document.getElementById("calendar-create-library-block");
         const createManualBlock = document.getElementById("calendar-create-manual-block");
         const librarySearchInput = document.getElementById("calendar-library-search-input");
+        const librarySearchSuggestions = document.getElementById("calendar-library-search-suggestions");
         const manualDescriptionRuInput = document.getElementById("calendar-manual-description-ru-input");
         const manualDescriptionEnInput = document.getElementById("calendar-manual-description-en-input");
         const manualSetsInput = document.getElementById("calendar-manual-sets-input");
+        const manualRepsInput = document.getElementById("calendar-manual-reps-input");
+        const manualMinutesInput = document.getElementById("calendar-manual-minutes-input");
+        const manualSecondsInput = document.getElementById("calendar-manual-seconds-input");
+        const manualWeightInput = document.getElementById("calendar-manual-weight-input");
+        const manualTimeFields = document.getElementById("calendar-manual-time-fields");
+        const manualWeightFields = document.getElementById("calendar-manual-weight-fields");
+        const manualRepsFields = document.getElementById("calendar-manual-reps-fields");
         const libraryListContainer = document.getElementById("calendar-create-library-list");
         const libraryTabs = createModal?.querySelectorAll("[data-library-tab]") || [];
         const libraryChipButtons = createModal?.querySelectorAll("[data-library-chip]") || [];
@@ -549,6 +569,8 @@
         const createExerciseDeleteIcon = "{% static 'auth/img/admin/Trash_Full.svg' %}";
         const byDateTrainingUrl = "{% url 'auth:calendar_admin_training_by_date' %}";
         const adminLibraryListUrl = "{% url 'auth:admin_library_list' %}";
+        const languageToggleButton = document.getElementById("calendar-language-toggle");
+        const languageToggleFlag = languageToggleButton?.querySelector(".calendar-language-toggle__flag");
         const calendarTrainingsScript = document.getElementById("calendar-trainings-json");
         const parsedTrainingsPayload = calendarTrainingsScript?.textContent ? JSON.parse(calendarTrainingsScript.textContent) : [];
         const initialTrainings = typeof parsedTrainingsPayload === "string"
@@ -556,6 +578,7 @@
             : parsedTrainingsPayload;
         let trainingsStore = Array.isArray(initialTrainings) ? initialTrainings : [];
         let activeCalendarDirectionFilter = "fbb";
+        let activeCalendarLanguage = (window.localStorage.getItem("calendar_language") || "ru").toLowerCase() === "en" ? "en" : "ru";
         let editingTrainingId = null;
         let deletingTrainingId = null;
         let activeResultsRequestId = 0;
@@ -573,6 +596,11 @@
         let editingExercisesBuffer = [];
         let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
+        enforceIntegerOnlyInput(manualSetsInput);
+        enforceIntegerOnlyInput(manualRepsInput);
+        enforceIntegerOnlyInput(manualMinutesInput);
+        enforceIntegerOnlyInput(manualSecondsInput);
+        enforceIntegerOnlyInput(manualWeightInput);
         function resolveExerciseBlockLabel(card) {
             if (!(card instanceof HTMLElement)) return "Не выбрано";
             const blockInputNode = card.querySelector("#calendar-block-input");
@@ -631,6 +659,36 @@
             return "Время";
         }
 
+        function toggleManualResultInputs(resultTypeValue) {
+            const normalized = String(resultTypeValue || "time").trim().toLowerCase();
+            const isTime = normalized === "time";
+            const isWeight = normalized === "weight";
+            const isReps = normalized === "reps";
+            if (manualTimeFields) {
+                manualTimeFields.hidden = !isTime;
+                manualTimeFields.style.display = isTime ? "grid" : "none";
+            }
+            if (manualWeightFields) {
+                manualWeightFields.hidden = !isWeight;
+                manualWeightFields.style.display = isWeight ? "grid" : "none";
+            }
+            if (manualRepsFields) {
+                manualRepsFields.hidden = !isReps;
+                manualRepsFields.style.display = isReps ? "grid" : "none";
+            }
+            if (!isTime) {
+                if (manualMinutesInput) manualMinutesInput.value = "";
+                if (manualSecondsInput) manualSecondsInput.value = "";
+            }
+            if (!isWeight && manualWeightInput) {
+                manualWeightInput.value = "";
+            }
+            if (!isReps) {
+                if (manualSetsInput) manualSetsInput.value = "";
+                if (manualRepsInput) manualRepsInput.value = "";
+            }
+        }
+
         function getTrainingColorAccent(colorKey) {
             const normalized = String(colorKey || "blue").trim().toLowerCase();
             if (normalized === "orange") return "#ffb86a";
@@ -646,11 +704,15 @@
             const normalizedBlockType = blockTypeRaw === "default" ? "strength" : blockTypeRaw;
             const exerciseKind = String(item.exercise_kind || resolveExerciseKindByName(item.exercise_name || "") || "exercise").trim().toLowerCase();
             const resultType = String(item.result_type || "time").trim().toLowerCase();
+            const parsedLibraryItemId = Number(item.library_item_id || item.id || 0);
             return {
                 exercise_kind: exerciseKind === "benchmarks" ? "benchmarks" : "exercise",
                 block_type: normalizedBlockType || "strength",
                 block_custom_name: String(item.block_custom_name || "").trim(),
                 exercise_name: String(item.exercise_name || "").trim(),
+                library_item_id: Number.isFinite(parsedLibraryItemId) && parsedLibraryItemId > 0 ? parsedLibraryItemId : null,
+                library_movement_group: String(item.library_movement_group || item.movement_group || "").trim().toLowerCase(),
+                library_category: String(item.library_category || item.category || "").trim().toLowerCase(),
                 sets: String(item.sets || "").trim(),
                 reps: String(item.reps || "").trim(),
                 result_type: resultType || "time",
@@ -948,6 +1010,13 @@
         });
         updateRangeLabel();
         renderCalendarList();
+        updateLanguageToggleUi();
+        languageToggleButton?.addEventListener("click", () => {
+            activeCalendarLanguage = activeCalendarLanguage === "ru" ? "en" : "ru";
+            window.localStorage.setItem("calendar_language", activeCalendarLanguage);
+            updateLanguageToggleUi();
+            renderCalendarList();
+        });
         bindWeekArrow(prevWeekArrow, -1);
         bindWeekArrow(nextWeekArrow, 1);
 
@@ -981,8 +1050,13 @@
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = "";
             if (manualSetsInput) manualSetsInput.value = "";
+            if (manualRepsInput) manualRepsInput.value = "";
+            if (manualMinutesInput) manualMinutesInput.value = "";
+            if (manualSecondsInput) manualSecondsInput.value = "";
+            if (manualWeightInput) manualWeightInput.value = "";
             if (resultTypeInput) resultTypeInput.value = "time";
-            if (resultTypeValue) resultTypeValue.textContent = "Результат";
+            if (resultTypeValue) resultTypeValue.textContent = "Время";
+            toggleManualResultInputs("time");
             selectedLibraryItems.clear();
             Object.keys(libraryExerciseParamsById).forEach((key) => delete libraryExerciseParamsById[key]);
             clearCreateFormErrors();
@@ -1303,6 +1377,20 @@
             trainingBlockTrigger.setAttribute("aria-expanded", "false");
         }
 
+        function closeAllTrainingDropdownMenus(exceptMenu = null) {
+            const menus = document.querySelectorAll(".calendar-create-modal__dropdown-menu, .calendar-ready-modal__dropdown-menu");
+            menus.forEach((menu) => {
+                if (!(menu instanceof HTMLElement)) return;
+                if (exceptMenu && menu === exceptMenu) return;
+                menu.hidden = true;
+                const dropdown = menu.closest(".calendar-create-modal__dropdown, .calendar-ready-modal__dropdown");
+                const trigger = dropdown?.querySelector("[aria-expanded]");
+                if (trigger instanceof HTMLElement) {
+                    trigger.setAttribute("aria-expanded", "false");
+                }
+            });
+        }
+
         function openTrainingBlockMenu() {
             if (!trainingBlockMenu || !trainingBlockTrigger) return;
             trainingBlockMenu.hidden = false;
@@ -1346,7 +1434,9 @@
 
         function buildCreatePreviewLines() {
             if (activeCreateSourceType === "manual") {
-                const text = String(manualDescriptionRuInput?.value || "").replace(/\r/g, "");
+                const manualRu = String(manualDescriptionRuInput?.value || "").replace(/\r/g, "").trim();
+                const manualEn = String(manualDescriptionEnInput?.value || "").replace(/\r/g, "").trim();
+                const text = manualRu || manualEn;
                 return text.split("\n").map((line) => line.trim()).filter(Boolean);
             }
 
@@ -1356,8 +1446,10 @@
                 const params = libraryExerciseParamsById[item?.id] || {};
                 const sets = String(params.sets || "").trim();
                 const reps = String(params.reps || "").trim();
-                if (item?.section === "exercises" && sets && reps) {
-                    return `${title} ${sets} повторений по ${reps} раз`;
+                if (item?.section === "exercises") {
+                    if (sets && reps) {
+                        return `${title} ${sets} повторений по ${reps} раз`;
+                    }
                 }
                 return title;
             }).filter(Boolean);
@@ -1369,17 +1461,22 @@
                 .slice(0, 8);
             return rows.map((item) => {
                 const isExpanded = expandedBenchmarkItems.has(item.id);
+                const detailLines = getBenchmarkDetailLines(item);
                 const details = isExpanded
-                    ? `<div class="calendar-create-modal__preview-benchmark-detail">
-                            <p>Squat 10 повторений по 5 раз</p>
-                            <p>Jerk 10 повторений по 5 раз</p>
-                            <p>Squat 5 повторений по 5 раз</p>
+                    ? `<div class="calendar-create-modal__preview-benchmark-lines">
+                            ${detailLines.length
+                                ? detailLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")
+                                : "<p>Нет описания в библиотеке</p>"
+                            }
                        </div>`
                     : "";
-                return `<div class="calendar-create-modal__preview-benchmark-row">
-                            <div class="calendar-create-modal__preview-benchmark-head">${escapeHtml(item.title)}<span>${isExpanded ? "&#9652;" : "&#9662;"}</span></div>
+                return `<li class="calendar-create-modal__preview-benchmark-row">
+                            <div class="calendar-create-modal__preview-benchmark-head">
+                                <span>${escapeHtml(item.title)}</span>
+                                <img src="{% static 'auth/img/chevron-down (1).svg' %}" alt="" class="calendar-create-modal__preview-benchmark-chevron${isExpanded ? " is-expanded" : ""}">
+                            </div>
                             ${details}
-                        </div>`;
+                        </li>`;
             }).join("");
         }
 
@@ -1393,7 +1490,7 @@
             titleNode.textContent = title;
             if (activeCreateSourceType === "library" && activeLibraryTab === "benchmark") {
                 const rowsMarkup = buildBenchmarkPreviewRows();
-                listNode.innerHTML = rowsMarkup || `<li>Выберите benchmark в списке</li>`;
+                listNode.innerHTML = rowsMarkup || `<li class="calendar-create-modal__preview-empty">Выберите benchmark в списке</li>`;
                 return;
             }
             const lines = buildCreatePreviewLines();
@@ -1456,6 +1553,22 @@
             return "girls";
         }
 
+        function movementGroupToChip(groupValue) {
+            const normalized = String(groupValue || "").trim().toLowerCase();
+            if (normalized === "push") return "Push";
+            if (normalized === "pull") return "Pull";
+            if (normalized === "bend") return "Bend";
+            return "Squat";
+        }
+
+        function benchmarkCategoryToChip(categoryValue) {
+            const normalized = String(categoryValue || "").trim().toLowerCase();
+            if (normalized === "heroes") return "Heroes";
+            if (normalized === "gymnastics") return "Gymnastics";
+            if (normalized === "total") return "Total";
+            return "Girls";
+        }
+
         function getActiveChipCatalog() {
             return activeLibraryTab === "benchmark" ? benchmarkChipCatalog : exerciseChipCatalog;
         }
@@ -1481,25 +1594,57 @@
         function normalizeLibraryRow(row) {
             const source = row && typeof row === "object" ? row : {};
             const id = String(source.id || "").trim();
-            const title = String(source.name_ru || source.name_en || "").trim();
+            const nameRu = String(source.name_ru || "").trim();
+            const nameEn = String(source.name_en || "").trim();
+            const section = String(source.section || "").trim().toLowerCase();
+            const movementGroup = String(source.movement_group || "").trim().toLowerCase();
+            const movementGroupLabel = movementGroup === "push"
+                ? "Push"
+                : movementGroup === "pull"
+                    ? "Pull"
+                    : movementGroup === "bend"
+                        ? "Bend"
+                        : "Squat";
+            const displayEn = section === "exercises" ? movementGroupLabel : nameEn;
+            const title = nameRu && nameEn
+                ? (nameRu.toLowerCase() === displayEn.toLowerCase() ? nameRu : `${displayEn} / ${nameRu}`)
+                : (nameRu || displayEn);
+            const parsedLibraryItemId = Number(source.id || 0);
             return {
                 id,
+                library_item_id: Number.isFinite(parsedLibraryItemId) && parsedLibraryItemId > 0 ? parsedLibraryItemId : null,
                 title: title || "Без названия",
-                movement_group: String(source.movement_group || "").trim().toLowerCase(),
-                section: String(source.section || "").trim().toLowerCase(),
+                movement_group: movementGroup,
+                section: section,
                 category: String(source.category || "").trim().toLowerCase(),
+                desc_ru: normalizeLineBreaks(source.desc_ru || ""),
+                desc_en: normalizeLineBreaks(source.desc_en || ""),
             };
+        }
+
+        function getBenchmarkDetailLines(item) {
+            const sourceText = normalizeLineBreaks(item?.desc_ru || item?.desc_en || "");
+            return sourceText
+                .split("\n")
+                .map((line) => String(line || "").trim())
+                .filter(Boolean)
+                .slice(0, 12);
         }
 
         async function loadLibraryItems() {
             if (!libraryListContainer) return;
             const params = new URLSearchParams();
+            const hasSearchQuery = String(librarySearchInput?.value || "").trim().length > 0;
             if (activeLibraryTab === "benchmark") {
                 params.set("section", "benchmarks");
-                params.set("category", chipToBenchmarkCategory(getActiveLibraryChip()));
+                if (!hasSearchQuery) {
+                    params.set("category", chipToBenchmarkCategory(getActiveLibraryChip()));
+                }
             } else {
                 params.set("section", "exercises");
-                params.set("movement_group", chipToMovementGroup(getActiveLibraryChip()));
+                if (!hasSearchQuery) {
+                    params.set("movement_group", chipToMovementGroup(getActiveLibraryChip()));
+                }
             }
             try {
                 const response = await fetch(`${adminLibraryListUrl}?${params.toString()}`, {
@@ -1521,24 +1666,65 @@
             }
         }
 
-        function getVisibleLibraryItems() {
+        function getCategoryFilteredLibraryItems() {
             const list = Array.isArray(libraryItemsCache[activeLibraryTab]) ? libraryItemsCache[activeLibraryTab] : [];
             const activeChip = getActiveLibraryChip();
-            const categoryFiltered = activeLibraryTab === "benchmark"
+            return activeLibraryTab === "benchmark"
                 ? list.filter((item) => {
                     const itemCategory = String(item.category || "").trim().toLowerCase();
                     const chipCategory = chipToBenchmarkCategory(activeChip);
                     return !itemCategory || itemCategory === chipCategory;
                 })
                 : list;
+        }
+
+        function getVisibleLibraryItems() {
+            const categoryFiltered = getCategoryFilteredLibraryItems();
             const search = String(librarySearchInput?.value || "").trim().toLowerCase();
             if (!search) return categoryFiltered;
             return categoryFiltered.filter((item) => item.title.toLowerCase().includes(search));
         }
 
+        function renderLibrarySearchSuggestions() {
+            if (!librarySearchSuggestions) return;
+            const query = String(librarySearchInput?.value || "").trim().toLowerCase();
+            if (!query) {
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+                return;
+            }
+            const matches = getVisibleLibraryItems().slice(0, 8);
+            if (!matches.length) {
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+                return;
+            }
+            librarySearchSuggestions.innerHTML = matches
+                .map((item) => `<button type="button" class="calendar-create-modal__library-suggestion" data-library-suggestion-id="${escapeHtml(item.id)}">${escapeHtml(item.title)}</button>`)
+                .join("");
+            librarySearchSuggestions.hidden = false;
+        }
+
+        function findSelectedLibraryEntryKeyByItemId(itemId) {
+            const normalized = String(itemId || "").trim();
+            if (!normalized) return "";
+            const direct = selectedLibraryItems.has(normalized) ? normalized : "";
+            if (direct) return direct;
+            for (const [key, value] of selectedLibraryItems.entries()) {
+                if (String(value?.library_item_id || "").trim() === normalized) {
+                    return key;
+                }
+            }
+            return "";
+        }
+
+        function isLibraryItemSelected(itemId) {
+            return Boolean(findSelectedLibraryEntryKeyByItemId(itemId));
+        }
+
         function renderLibraryList() {
             if (!libraryListContainer) return;
-            let items = getVisibleLibraryItems();
+            let items = getCategoryFilteredLibraryItems();
             if (activeLibraryTab === "benchmark" && !items.length) {
                 const fallbackCategory = chipToBenchmarkCategory(getActiveLibraryChip());
                 items = [
@@ -1554,14 +1740,12 @@
                 updateCreatePreviewContent();
                 return;
             }
-            if (activeLibraryTab === "benchmark" && !selectedLibraryItems.size && items[0]) {
-                selectedLibraryItems.set(items[0].id, items[0]);
-            }
             libraryListContainer.innerHTML = items.map((item) => {
-                const isActive = item.section === "benchmarks"
-                    ? expandedBenchmarkItems.has(item.id)
-                    : selectedLibraryItems.has(item.id);
-                const exerciseParams = libraryExerciseParamsById[item.id] || { sets: "", reps: "", result_type: "time" };
+                const selectedEntryKey = findSelectedLibraryEntryKeyByItemId(item.id);
+                const isSelected = Boolean(selectedEntryKey);
+                const isBenchmarkExpanded = item.section === "benchmarks" && (expandedBenchmarkItems.has(item.id) || isSelected);
+                const isActive = item.section === "benchmarks" ? isBenchmarkExpanded : isSelected;
+                const exerciseParams = libraryExerciseParamsById[selectedEntryKey || item.id] || { sets: "", reps: "", result_type: "time" };
                 const metaMarkup = item.section === "exercises" && isActive
                     ? `<div class="calendar-create-modal__library-item-meta">
                             <span>Подходов по Повторений</span>
@@ -1572,15 +1756,16 @@
                             </div>
                         </div>`
                     : "";
-                const isBenchmarkExpanded = item.section === "benchmarks" && expandedBenchmarkItems.has(item.id);
                 const chevronMarkup = item.section === "benchmarks"
                     ? `<span class="calendar-create-modal__library-item-chevron${isBenchmarkExpanded ? " is-expanded" : ""}" aria-hidden="true">&#9662;</span>`
                     : "";
+                const detailLines = getBenchmarkDetailLines(item);
                 const benchmarkStubMarkup = item.section === "benchmarks" && isBenchmarkExpanded
                     ? `<div class="calendar-create-modal__benchmark-stub">
-                            <p>Squat 10 повторений по 5 раз</p>
-                            <p>Jerk 10 повторений по 5 раз</p>
-                            <p>Squat 5 повторений по 5 раз</p>
+                            ${detailLines.length
+                                ? detailLines.map((line) => `<p>${escapeHtml(line)}</p>`).join("")
+                                : "<p>Нет описания в библиотеке</p>"
+                            }
                         </div>`
                     : "";
                 return `<div class="calendar-create-modal__library-item-group">
@@ -1659,27 +1844,33 @@
             const sourceItems = getVisibleLibraryItems();
             const row = sourceItems.find((item) => item.id === itemId) || {
                 id: itemId,
+                library_item_id: Number(itemId) > 0 ? Number(itemId) : null,
                 title: itemTitle,
                 section: activeLibraryTab === "benchmark" ? "benchmarks" : "exercises",
                 category: activeLibraryTab === "benchmark" ? chipToBenchmarkCategory(getActiveLibraryChip()) : "",
             };
             if (row.section === "benchmarks") {
-                if (expandedBenchmarkItems.has(itemId)) {
+                if (expandedBenchmarkItems.has(itemId) || isLibraryItemSelected(itemId)) {
                     expandedBenchmarkItems.delete(itemId);
-                    selectedLibraryItems.delete(itemId);
+                    const selectedKey = findSelectedLibraryEntryKeyByItemId(itemId);
+                    if (selectedKey) {
+                        selectedLibraryItems.delete(selectedKey);
+                    }
                 } else {
                     expandedBenchmarkItems.add(itemId);
                     selectedLibraryItems.set(itemId, row);
                 }
             } else {
-                if (selectedLibraryItems.has(itemId)) {
-                    selectedLibraryItems.delete(itemId);
+                const selectedKey = findSelectedLibraryEntryKeyByItemId(itemId);
+                if (selectedKey) {
+                    selectedLibraryItems.delete(selectedKey);
                 } else {
                     selectedLibraryItems.set(itemId, row);
                 }
             }
-            if (!libraryExerciseParamsById[itemId]) {
-                libraryExerciseParamsById[itemId] = { sets: "", reps: "", result_type: "time" };
+            const paramsKey = findSelectedLibraryEntryKeyByItemId(itemId) || itemId;
+            if (!libraryExerciseParamsById[paramsKey]) {
+                libraryExerciseParamsById[paramsKey] = { sets: "", reps: "", result_type: "time" };
             }
             renderLibraryList();
         });
@@ -1701,8 +1892,46 @@
             }
             updateCreatePreviewContent();
         });
-        librarySearchInput?.addEventListener("input", () => {
+        librarySearchSuggestions?.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const option = target.closest("[data-library-suggestion-id]");
+            if (!(option instanceof HTMLButtonElement)) return;
+            const itemId = option.getAttribute("data-library-suggestion-id") || "";
+            if (!itemId) return;
+            const sourceItems = getVisibleLibraryItems();
+            const row = sourceItems.find((item) => item.id === itemId);
+            if (!row) return;
+            if (row.section === "benchmarks") {
+                expandedBenchmarkItems.add(itemId);
+                selectedLibraryItems.set(itemId, row);
+            } else {
+                selectedLibraryItems.set(itemId, row);
+            }
+            if (!libraryExerciseParamsById[itemId]) {
+                libraryExerciseParamsById[itemId] = { sets: "", reps: "", result_type: "time" };
+            }
+            if (librarySearchInput) {
+                librarySearchInput.value = row.title;
+            }
+            librarySearchSuggestions.hidden = true;
+            librarySearchSuggestions.innerHTML = "";
             renderLibraryList();
+        });
+        librarySearchInput?.addEventListener("input", async () => {
+            await loadLibraryItems();
+            renderLibraryList();
+            renderLibrarySearchSuggestions();
+        });
+        librarySearchInput?.addEventListener("focus", () => {
+            renderLibrarySearchSuggestions();
+        });
+        librarySearchInput?.addEventListener("blur", () => {
+            setTimeout(() => {
+                if (!librarySearchSuggestions) return;
+                librarySearchSuggestions.hidden = true;
+                librarySearchSuggestions.innerHTML = "";
+            }, 120);
         });
         manualDescriptionRuInput?.addEventListener("input", () => updateCreatePreviewContent());
         trainingBlockCustomInput?.addEventListener("input", () => updateCreatePreviewContent());
@@ -1710,6 +1939,7 @@
         loadLibraryItems().then(() => renderLibraryList());
         applyLibraryTabMode();
         setCreateSourceMode("library");
+        toggleManualResultInputs(resultTypeInput?.value || "time");
         existingExercisesWrap?.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
@@ -2012,6 +2242,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (visibilityMenu?.hidden) {
+                closeAllTrainingDropdownMenus(visibilityMenu);
                 openVisibilityMenu();
             } else {
                 closeVisibilityMenu();
@@ -2049,6 +2280,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (directionMenu?.hidden) {
+                closeAllTrainingDropdownMenus(directionMenu);
                 openDirectionMenu();
             } else {
                 closeDirectionMenu();
@@ -2087,6 +2319,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (trainingBlockMenu?.hidden) {
+                closeAllTrainingDropdownMenus(trainingBlockMenu);
                 openTrainingBlockMenu();
             } else {
                 closeTrainingBlockMenu();
@@ -2117,6 +2350,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (readyPlanMenu?.hidden) {
+                closeAllTrainingDropdownMenus(readyPlanMenu);
                 openReadyPlanMenu();
             } else {
                 closeReadyPlanMenu();
@@ -2151,6 +2385,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (readyWorkoutMenu?.hidden) {
+                closeAllTrainingDropdownMenus(readyWorkoutMenu);
                 openReadyWorkoutMenu();
             } else {
                 closeReadyWorkoutMenu();
@@ -2185,6 +2420,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (readyComplexTypeMenu?.hidden) {
+                closeAllTrainingDropdownMenus(readyComplexTypeMenu);
                 openReadyComplexTypeMenu();
             } else {
                 closeReadyComplexTypeMenu();
@@ -2273,6 +2509,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (blockMenu?.hidden) {
+                closeAllTrainingDropdownMenus(blockMenu);
                 openBlockMenu();
             } else {
                 closeBlockMenu();
@@ -2316,6 +2553,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (resultTypeMenu?.hidden) {
+                closeAllTrainingDropdownMenus(resultTypeMenu);
                 openResultTypeMenu();
             } else {
                 closeResultTypeMenu();
@@ -2332,6 +2570,7 @@
 
                 if (resultTypeValue) resultTypeValue.textContent = nextLabel;
                 if (resultTypeInput) resultTypeInput.value = nextValue;
+                toggleManualResultInputs(nextValue);
 
                 closeResultTypeMenu();
             });
@@ -2353,6 +2592,7 @@
             event.preventDefault();
             event.stopPropagation();
             if (exerciseKindMenu?.hidden) {
+                closeAllTrainingDropdownMenus(exerciseKindMenu);
                 openExerciseKindMenu();
             } else {
                 closeExerciseKindMenu();
@@ -2646,6 +2886,9 @@
                 event.stopPropagation();
                 if (!localBlockMenu) return;
                 const isHidden = localBlockMenu.hidden;
+                if (isHidden) {
+                    closeAllTrainingDropdownMenus(localBlockMenu);
+                }
                 localBlockMenu.hidden = !isHidden;
                 localBlockTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
             });
@@ -2674,6 +2917,9 @@
                 event.stopPropagation();
                 if (!localResultTypeMenu) return;
                 const isHidden = localResultTypeMenu.hidden;
+                if (isHidden) {
+                    closeAllTrainingDropdownMenus(localResultTypeMenu);
+                }
                 localResultTypeMenu.hidden = !isHidden;
                 localResultTypeTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
             });
@@ -2696,6 +2942,9 @@
                 event.stopPropagation();
                 if (!localExerciseKindMenu) return;
                 const isHidden = localExerciseKindMenu.hidden;
+                if (isHidden) {
+                    closeAllTrainingDropdownMenus(localExerciseKindMenu);
+                }
                 localExerciseKindMenu.hidden = !isHidden;
                 localExerciseKindTrigger.setAttribute("aria-expanded", isHidden ? "true" : "false");
             });
@@ -2892,16 +3141,29 @@
             inputNode.dataset.integerOnlyReady = "true";
         }
 
+        function updateLanguageToggleUi() {
+            if (!languageToggleButton) return;
+            const nextLang = activeCalendarLanguage === "ru" ? "English" : "Русский";
+            languageToggleButton.setAttribute("aria-label", `Переключить язык (${nextLang})`);
+            languageToggleButton.setAttribute("title", `Переключить язык (${nextLang})`);
+            if (languageToggleFlag) {
+                languageToggleFlag.classList.toggle("is-en", activeCalendarLanguage === "en");
+            }
+        }
+
         function buildCalendarCardMarkup(training, options = {}) {
             const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
             const isFull = (training.sections || []).length > 2;
             const sectionsHtml = (training.sections || []).map((section) => {
+                const sectionItems = activeCalendarLanguage === "en"
+                    ? (section.items_en || section.items_ru || section.items || [])
+                    : (section.items_ru || section.items || []);
                 if (isFull) {
                     return `
                         <div class="calendar-event__section">
                             <h4>${escapeHtml(section.title)}</h4>
-                            <p>${(section.items || []).map((item) => escapeHtml(item)).join("<br>")}</p>
+                            <p>${sectionItems.map((item) => escapeHtml(item)).join("<br>")}</p>
                         </div>
                     `;
                 }
@@ -2910,7 +3172,7 @@
                         <button type="button" class="calendar-event__section-toggle" data-section-toggle aria-expanded="false">
                             <h4>${escapeHtml(section.title)} <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt=""></h4>
                         </button>
-                        <p class="calendar-event__section-items" data-section-items hidden>${(section.items || []).map((item) => escapeHtml(item)).join("<br>")}</p>
+                        <p class="calendar-event__section-items" data-section-items hidden>${sectionItems.map((item) => escapeHtml(item)).join("<br>")}</p>
                     </div>
                 `;
             }).join("");
@@ -3002,12 +3264,22 @@
             const selectedRows = Array.from(selectedLibraryItems.values());
             const selectedBlockType = trainingBlockInput?.value || "strength";
             const selectedBlockCustomName = (trainingBlockCustomInput?.value || "").trim();
+            const manualResultType = resultTypeInput?.value || "time";
+            let manualSetsValue = "";
+            if (manualResultType === "reps") {
+                manualSetsValue = (manualSetsInput?.value || "").trim();
+            } else if (manualResultType === "weight") {
+                manualSetsValue = (manualWeightInput?.value || "").trim();
+            } else {
+                manualSetsValue = (manualMinutesInput?.value || "").trim();
+            }
             const exercises = activeCreateSourceType === "library"
                 ? selectedRows.map((item, index) => {
                     const params = libraryExerciseParamsById[item.id] || {};
                     const isBenchmark = item.section === "benchmarks";
                     return {
                         exercise_kind: isBenchmark ? "benchmarks" : "exercise",
+                        library_item_id: item.library_item_id || "",
                         block_type: selectedBlockType,
                         block_custom_name: selectedBlockType === "custom" ? selectedBlockCustomName : "",
                         exercise_name: item.title,
@@ -3028,10 +3300,12 @@
                 comment_for_athletes: (createCommentForAthletesInput?.value || "").trim(),
                 color: selectedColorInput?.value || "blue",
                 source_type: activeCreateSourceType,
+                training_block: selectedBlockType,
+                training_block_custom: selectedBlockCustomName,
                 manual_description_ru: activeCreateSourceType === "manual" ? (manualDescriptionRuInput?.value || "").trim() : "",
                 manual_description_en: activeCreateSourceType === "manual" ? (manualDescriptionEnInput?.value || "").trim() : "",
-                manual_sets: activeCreateSourceType === "manual" ? (manualSetsInput?.value || "").trim() : "",
-                manual_result_type: activeCreateSourceType === "manual" ? (resultTypeInput?.value || "") : "",
+                manual_sets: activeCreateSourceType === "manual" ? manualSetsValue : "",
+                manual_result_type: activeCreateSourceType === "manual" ? manualResultType : "",
                 ready_workout_type: readyWorkoutInput?.value || "",
                 ready_complex_type: readyComplexTypeInput?.value || "",
                 ready_complex_name: (readyModal?.querySelector(".calendar-ready-modal__text-input")?.value || "").trim(),
@@ -3170,9 +3444,22 @@
             if (createCommentForAthletesInput) createCommentForAthletesInput.value = training.comment_for_athletes || "";
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = training.manual_description_ru || "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = training.manual_description_en || "";
-            if (manualSetsInput) manualSetsInput.value = training.manual_sets || "";
+            if (manualSetsInput) manualSetsInput.value = "";
+            if (manualRepsInput) manualRepsInput.value = "";
+            if (manualMinutesInput) manualMinutesInput.value = "";
+            if (manualSecondsInput) manualSecondsInput.value = "";
+            if (manualWeightInput) manualWeightInput.value = "";
             if (resultTypeInput && training.manual_result_type) resultTypeInput.value = training.manual_result_type;
             if (resultTypeValue && training.manual_result_type) resultTypeValue.textContent = getResultTypeLabel(training.manual_result_type);
+            const restoredManualResultType = training.manual_result_type || "time";
+            if (restoredManualResultType === "reps") {
+                if (manualSetsInput) manualSetsInput.value = training.manual_sets || "";
+            } else if (restoredManualResultType === "weight") {
+                if (manualWeightInput) manualWeightInput.value = training.manual_sets || "";
+            } else {
+                if (manualMinutesInput) manualMinutesInput.value = training.manual_sets || "";
+            }
+            toggleManualResultInputs(restoredManualResultType);
             setCreateColor(training.color || "blue");
             if (visibilityInput) visibilityInput.value = training.visibility || "all";
             if (visibilityValue) visibilityValue.textContent = training.visibility === "coaches" ? "Только для тренеров" : "Для всех";
@@ -3196,20 +3483,38 @@
                     trainingBlockCustomInput.value = String(firstExercise.block_custom_name || "").trim();
                 }
             } else {
-                setTrainingBlockOption("strength", "Силовая");
-                if (trainingBlockCustomInput) trainingBlockCustomInput.value = "";
+                const manualBlockType = String(training.manual_block_type || "strength").trim().toLowerCase();
+                const normalizedBlockType = manualBlockType === "cardio" || manualBlockType === "gymnastics" || manualBlockType === "custom"
+                    ? manualBlockType
+                    : "strength";
+                const manualBlockLabel = normalizedBlockType === "cardio"
+                    ? "Кардио"
+                    : normalizedBlockType === "gymnastics"
+                        ? "Гимнастика"
+                        : normalizedBlockType === "custom"
+                            ? "Свое название"
+                            : "Силовая";
+                setTrainingBlockOption(normalizedBlockType, manualBlockLabel);
+                if (trainingBlockCustomInput) {
+                    trainingBlockCustomInput.value = normalizedBlockType === "custom"
+                        ? String(training.manual_block_custom_name || "").trim()
+                        : "";
+                }
             }
             selectedLibraryItems.clear();
             Object.keys(libraryExerciseParamsById).forEach((key) => delete libraryExerciseParamsById[key]);
             editingExercisesBuffer.forEach((exercise, index) => {
-                const itemId = `${training.id}-${index}`;
+                const itemId = Number(exercise.library_item_id || 0) > 0
+                    ? String(exercise.library_item_id)
+                    : `${training.id}-${index}`;
                 const isBenchmark = exercise.exercise_kind === "benchmarks";
                 selectedLibraryItems.set(itemId, {
                     id: itemId,
+                    library_item_id: exercise.library_item_id || null,
                     title: exercise.exercise_name || `Упражнение ${index + 1}`,
                     section: isBenchmark ? "benchmarks" : "exercises",
-                    movement_group: "",
-                    category: "",
+                    movement_group: String(exercise.library_movement_group || "").trim().toLowerCase(),
+                    category: String(exercise.library_category || "").trim().toLowerCase(),
                 });
                 libraryExerciseParamsById[itemId] = {
                     sets: exercise.sets || "",
@@ -3221,6 +3526,25 @@
             resetExerciseEditorForm();
             renderExistingExercises();
 
+            if (training.source_type === "library" && editingExercisesBuffer.length) {
+                const firstExercise = editingExercisesBuffer[0];
+                const isBenchmark = firstExercise.exercise_kind === "benchmarks";
+                activeLibraryTab = isBenchmark ? "benchmark" : "exercise";
+                setActiveLibraryChip(
+                    isBenchmark
+                        ? benchmarkCategoryToChip(firstExercise.library_category)
+                        : movementGroupToChip(firstExercise.library_movement_group),
+                );
+                libraryChipStartIndex = 0;
+                libraryTabs.forEach((tabButton) => {
+                    const tabValue = tabButton.getAttribute("data-library-tab") || "exercise";
+                    const isActive = tabValue === activeLibraryTab;
+                    tabButton.classList.toggle("is-active", isActive);
+                    tabButton.setAttribute("aria-selected", isActive ? "true" : "false");
+                });
+                applyLibraryTabMode();
+                renderLibraryChips();
+            }
             setCreateSourceMode(training.source_type || "library");
             if (readyWorkoutInput) readyWorkoutInput.value = training.ready_workout_type || readyWorkoutInput.value;
             if (readyComplexTypeInput) readyComplexTypeInput.value = training.ready_complex_type || readyComplexTypeInput.value;

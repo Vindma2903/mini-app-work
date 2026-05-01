@@ -1,15 +1,51 @@
 import os
+from errno import ENOSPC
+import logging
 from threading import Lock
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from django.db.utils import OperationalError, ProgrammingError
+from django.http import JsonResponse
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.exceptions import InvalidToken, AuthenticationFailed, TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .jwt_utils import get_jwt_cookie_names
 from .seeds import ensure_default_users
+
+logger = logging.getLogger(__name__)
+
+
+class UploadStorageErrorMiddleware:
+    """Return a clear JSON error when disk is full during file upload parsing."""
+
+    LIBRARY_UPLOAD_PATHS = ("/admin/library/create/", "/admin/library/update/")
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    @classmethod
+    def _is_library_upload_request(cls, request) -> bool:
+        path = str(getattr(request, "path", "") or "")
+        if not any(path.startswith(prefix) for prefix in cls.LIBRARY_UPLOAD_PATHS):
+            return False
+        return str(getattr(request, "method", "") or "").upper() == "POST"
+
+    def __call__(self, request):
+        try:
+            return self.get_response(request)
+        except OSError as exc:
+            if getattr(exc, "errno", None) == ENOSPC and self._is_library_upload_request(request):
+                logger.warning("Upload failed: no disk space path=%s", request.path)
+                return JsonResponse(
+                    {
+                        "ok": False,
+                        "error": "storage_full",
+                    },
+                    status=507,
+                )
+            raise
 
 
 class EnsureDefaultAdminMiddleware:

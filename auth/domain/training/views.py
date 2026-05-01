@@ -11,6 +11,7 @@ from auth.views import (
     SaveTrainingRateView,
     SaveTrainingResultsView,
     TrainingPlanTodayView,
+    TrainingPlanVersionView,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "SaveTrainingRateView",
     "SaveTrainingResultsView",
     "TrainingPlanTodayView",
+    "TrainingPlanVersionView",
 ]

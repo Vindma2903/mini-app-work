@@ -196,10 +196,11 @@ body {
 }
 
 .plan-card__line {
-    height: 38px;
+    min-height: 38px;
+    height: auto;
     border-top: 1px solid var(--pt-line);
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 10px 0;
 }
@@ -210,16 +211,30 @@ body {
     height: 4px;
     border-radius: 50%;
     background: var(--pt-blue);
+    margin-top: 6px;
 }
 
+.plan-card__line-content { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.plan-card__line-main { display: flex; align-items: center; gap: 8px; }
 .plan-card__line span {
+    flex: 1;
+    display: block;
+    font-size: 12px;
+    line-height: 15px;
+    color: rgba(25, 33, 38, 0.8);
+    white-space: pre-line;
+}
+.plan-card__line-details {
+    margin: 0;
     font-size: 12px;
     line-height: 15px;
     color: rgba(25, 33, 38, 0.5);
+    white-space: pre-line;
 }
 
 .plan-card__line button {
     margin-left: auto;
+    align-self: center;
     border: 0;
     background: transparent;
     width: 18px;
@@ -253,6 +268,62 @@ body {
 .plan-card--collapsed {
     padding: 18px 24px;
     box-shadow: var(--pt-shadow-main);
+}
+
+.exercise-video-modal[hidden] { display: none !important; }
+.exercise-video-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+}
+.exercise-video-modal__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(16, 24, 40, 0.68);
+}
+.exercise-video-modal__sheet {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(880px, calc(100vw - 24px));
+    background: #0b0f14;
+    border-radius: 12px;
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+    padding: 12px 12px 10px;
+}
+.exercise-video-modal__close {
+    position: absolute;
+    right: 12px;
+    top: 12px;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 2;
+}
+.exercise-video-modal__close img {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+.exercise-video-modal__player-wrap {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+}
+.exercise-video-modal__player {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
 }
 
 .plan-card--collapsed .plan-card__head {

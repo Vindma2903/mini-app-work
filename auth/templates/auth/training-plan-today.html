@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}План тренировок на сегодня{% endblock %}
@@ -24,7 +24,7 @@
 
     <div id="plan-cards-container">
         {% for card in plan_cards %}
-        <section class="plan-card plan-card--collapsed" data-plan-card>
+        <section class="plan-card plan-card--collapsed" data-plan-card data-training-id="{{ card.id }}">
             <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
                 <span>{{ card.title }}</span>
                 <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
@@ -42,7 +42,38 @@
                 <div class="plan-card__block">
                     <h2>{{ section.title }}</h2>
                     {% for line in section.lines %}
-                    <div class="plan-card__line"><i></i><span>{{ line.text }}</span>{% if line.show_video %}<button type="button" data-open-exercise-video data-video-url="{{ line.video_url|default:'' }}" data-exercise-name="{{ line.text }}"><img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt=""></button>{% endif %}</div>
+                    <div class="plan-card__line">
+                        <i></i>
+                        <div class="plan-card__line-content">
+                            <div class="plan-card__line-main">
+                                <span
+                                    data-plan-line-text
+                                    data-text-ru="{{ line.text_ru|default:'' }}"
+                                    data-text-en="{{ line.text_en|default:'' }}"
+                                >{{ line.text_ru }}</span>
+                                {% if line.show_video %}
+                                <button
+                                    type="button"
+                                    data-open-exercise-video
+                                    data-video-url="{{ line.video_url|default:'' }}"
+                                    data-exercise-name="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
+                                    data-exercise-name-ru="{{ line.video_search_name_ru|default:line.text_ru|default:'' }}"
+                                    data-exercise-name-en="{{ line.video_search_name_en|default:line.text_en|default:line.text_ru|default:'' }}"
+                                >
+                                    <img src="{% static 'auth/img/calendar-watch-video.svg' %}" alt="">
+                                </button>
+                                {% endif %}
+                            </div>
+                            {% if line.kind == 'benchmark' and line.details_ru %}
+                            <p
+                                class="plan-card__line-details"
+                                data-plan-line-text
+                                data-text-ru="{{ line.details_ru|default:'' }}"
+                                data-text-en="{{ line.details_en|default:'' }}"
+                            >{{ line.details_ru }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
                     {% endfor %}
                 </div>
                 {% endfor %}
@@ -69,6 +100,28 @@
             </div>
         </section>
         {% endfor %}
+    </div>
+
+    <div class="exercise-video-modal" id="exercise-video-modal" hidden>
+        <div class="exercise-video-modal__overlay" data-close-exercise-video-modal></div>
+        <section class="exercise-video-modal__sheet" role="dialog" aria-modal="true" aria-label="Просмотр видео упражнения">
+            <button type="button" class="exercise-video-modal__close" data-close-exercise-video-modal aria-label="Закрыть">
+                <img src="{% static 'auth/img/admin/x.svg' %}" alt="">
+            </button>
+            <div class="exercise-video-modal__player-wrap">
+                <video id="exercise-video-player" class="exercise-video-modal__player" controls playsinline hidden></video>
+                <iframe
+                    id="exercise-video-iframe"
+                    class="exercise-video-modal__player"
+                    title="Видео упражнения"
+                    loading="lazy"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy="strict-origin-when-cross-origin"
+                    allowfullscreen
+                    hidden
+                ></iframe>
+            </div>
+        </section>
     </div>
 
 
@@ -104,6 +157,116 @@
 </script>
 <script>
     (function () {
+        const cardLanguageByTrainingId = window.__planCardLanguageByTrainingId || {};
+        window.__planCardLanguageByTrainingId = cardLanguageByTrainingId;
+        const videoModal = document.getElementById("exercise-video-modal");
+        const videoPlayer = document.getElementById("exercise-video-player");
+        const videoIframe = document.getElementById("exercise-video-iframe");
+
+        function isLikelyMediaFile(urlValue) {
+            return /\.(mp4|webm|ogg|mov|m4v|avi|wmv)(\?|#|$)/i.test(urlValue);
+        }
+
+        function setVideoModalVisible(visible) {
+            if (!videoModal || !videoPlayer || !videoIframe) return;
+            if (visible) {
+                videoModal.hidden = false;
+                document.body.style.overflow = "hidden";
+                return;
+            }
+            videoModal.hidden = true;
+            videoPlayer.pause();
+            videoPlayer.removeAttribute("src");
+            videoPlayer.load();
+            videoPlayer.hidden = true;
+            videoIframe.setAttribute("src", "");
+            videoIframe.hidden = true;
+            document.body.style.overflow = "";
+        }
+
+        function openExerciseVideo(urlValue) {
+            if (!videoModal || !videoPlayer || !videoIframe) {
+                window.open(urlValue, "_blank", "noopener,noreferrer");
+                return;
+            }
+            const normalizedUrl = String(urlValue || "").trim();
+            if (!normalizedUrl) return;
+
+            if (isLikelyMediaFile(normalizedUrl)) {
+                videoIframe.setAttribute("src", "");
+                videoIframe.hidden = true;
+                videoPlayer.src = normalizedUrl;
+                videoPlayer.hidden = false;
+            } else {
+                videoPlayer.pause();
+                videoPlayer.removeAttribute("src");
+                videoPlayer.load();
+                videoPlayer.hidden = true;
+                videoIframe.setAttribute("src", normalizedUrl);
+                videoIframe.hidden = false;
+            }
+            setVideoModalVisible(true);
+        }
+
+        function getCardTrainingId(card) {
+            return String(card?.getAttribute("data-training-id") || "").trim();
+        }
+
+        function resolveLineText(lineNode, lang) {
+            if (!(lineNode instanceof HTMLElement)) return "";
+            const value = lang === "en"
+                ? (lineNode.getAttribute("data-text-en") || "")
+                : (lineNode.getAttribute("data-text-ru") || "");
+            if (value) return value;
+            return lineNode.getAttribute("data-text-ru") || "";
+        }
+
+        function resolveVideoExerciseName(buttonNode, lang) {
+            if (!(buttonNode instanceof HTMLElement)) return "";
+            const value = lang === "en"
+                ? (buttonNode.getAttribute("data-exercise-name-en") || "")
+                : (buttonNode.getAttribute("data-exercise-name-ru") || "");
+            if (value) return value;
+            return buttonNode.getAttribute("data-exercise-name-ru") || "";
+        }
+
+        function setCardLanguage(card, nextLang) {
+            if (!(card instanceof HTMLElement)) return;
+            const lang = nextLang === "en" ? "en" : "ru";
+            const trainingId = getCardTrainingId(card);
+            if (trainingId) {
+                cardLanguageByTrainingId[trainingId] = lang;
+            }
+
+            const wrap = card.querySelector("[data-plan-lang-wrap]");
+            if (wrap) {
+                const langButtons = Array.from(wrap.querySelectorAll("[data-plan-lang]"));
+                langButtons.forEach((item) => {
+                    const itemLang = (item.getAttribute("data-plan-lang") || "ru").toLowerCase();
+                    item.classList.toggle("plan-card__lang-btn--active", itemLang === lang);
+                });
+            }
+
+            Array.from(card.querySelectorAll("[data-plan-line-text]")).forEach((lineNode) => {
+                lineNode.textContent = resolveLineText(lineNode, lang);
+            });
+            Array.from(card.querySelectorAll("[data-open-exercise-video]")).forEach((buttonNode) => {
+                buttonNode.setAttribute("data-exercise-name", resolveVideoExerciseName(buttonNode, lang));
+            });
+        }
+
+        function getCardLanguage(card) {
+            const trainingId = getCardTrainingId(card);
+            if (trainingId && cardLanguageByTrainingId[trainingId]) {
+                return cardLanguageByTrainingId[trainingId];
+            }
+            const activeButton = card?.querySelector("[data-plan-lang].plan-card__lang-btn--active");
+            const activeLang = (activeButton?.getAttribute("data-plan-lang") || "ru").toLowerCase();
+            return activeLang === "en" ? "en" : "ru";
+        }
+
+        window.__applyPlanCardLanguage = setCardLanguage;
+
         function setExpanded(card, expanded) {
             const toggle = card.querySelector("[data-plan-toggle]");
             const details = card.querySelector("[data-plan-details]");
@@ -122,7 +285,7 @@
                 event.stopPropagation();
                 const directUrl = (videoButton.getAttribute("data-video-url") || "").trim();
                 if (directUrl) {
-                    window.open(directUrl, "_blank", "noopener,noreferrer");
+                    openExerciseVideo(directUrl);
                     return;
                 }
                 const exerciseName = (videoButton.getAttribute("data-exercise-name") || "").trim();
@@ -132,16 +295,19 @@
                 return;
             }
 
+            if (event.target.closest("[data-close-exercise-video-modal]")) {
+                setVideoModalVisible(false);
+                return;
+            }
+
             const langButton = event.target.closest("[data-plan-lang]");
             if (langButton) {
                 event.preventDefault();
                 event.stopPropagation();
-                const wrap = langButton.closest("[data-plan-lang-wrap]");
-                if (!wrap) return;
-                const langButtons = Array.from(wrap.querySelectorAll("[data-plan-lang]"));
-                langButtons.forEach((item) => {
-                    item.classList.toggle("plan-card__lang-btn--active", item === langButton);
-                });
+                const card = langButton.closest("[data-plan-card]");
+                if (!card) return;
+                const nextLang = (langButton.getAttribute("data-plan-lang") || "ru").toLowerCase();
+                setCardLanguage(card, nextLang);
                 return;
             }
 
@@ -154,6 +320,10 @@
         });
 
         document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && videoModal && !videoModal.hidden) {
+                setVideoModalVisible(false);
+                return;
+            }
             if (event.key !== "Enter" && event.key !== " ") return;
             const toggle = event.target.closest("[data-plan-toggle]");
             if (!toggle) return;
@@ -162,6 +332,10 @@
             if (!card) return;
             const isExpanded = toggle.getAttribute("aria-expanded") === "true";
             setExpanded(card, !isExpanded);
+        });
+
+        Array.from(document.querySelectorAll("[data-plan-card][data-training-id]")).forEach((card) => {
+            setCardLanguage(card, getCardLanguage(card));
         });
     })();
 </script>
@@ -184,7 +358,7 @@
             { key: "metabolic", title: "Метаболическая" }
         ];
         const resultsDraft = {};
-        let currentSectionIndex = 0;
+        let activeTrainingId = "";
 
         const myResultsModal = document.getElementById("my-results-modal");
         const resultSavedModal = document.getElementById("result-saved-modal");
@@ -194,14 +368,7 @@
 
         if (!myResultsModal || !resultSavedModal || !trainingRateModal) return;
 
-        const sectionTitle = myResultsModal.querySelector("[data-results-section-title]");
-        const inputsWrap = myResultsModal.querySelector(".my-results-modal__inputs");
-        const primaryLabel = myResultsModal.querySelector("[data-results-primary-label]");
-        const secondaryWrap = myResultsModal.querySelector("[data-results-secondary-wrap]");
-        const secondaryLabel = myResultsModal.querySelector("[data-results-secondary-label]");
-        const minutesInput = myResultsModal.querySelector("[data-results-minutes]");
-        const secondsInput = myResultsModal.querySelector("[data-results-seconds]");
-        const modeButtons = Array.from(myResultsModal.querySelectorAll("[data-results-mode]"));
+        const sectionsWrap = myResultsModal.querySelector("[data-results-sections]");
         const nextButton = myResultsModal.querySelector("[data-results-next]");
         const skipButton = myResultsModal.querySelector("[data-results-skip]");
 
@@ -289,49 +456,82 @@
             };
         }
 
-        function getActiveMode() {
-            return modeButtons.find((button) => button.classList.contains("my-results-chip--active"))?.getAttribute("data-results-mode") || "rx";
-        }
-
-        function setActiveMode(nextMode) {
-            modeButtons.forEach((button) => {
-                button.classList.toggle("my-results-chip--active", (button.getAttribute("data-results-mode") || "rx") === nextMode);
-            });
-        }
-
-        function renderSectionStep() {
-            const section = sections[currentSectionIndex];
-            if (!section) return;
-            const config = getSectionConfig(section.key);
-            if (sectionTitle) sectionTitle.textContent = section.title;
-            const stored = resultsDraft[section.key] || {};
-            if (primaryLabel) primaryLabel.textContent = config.primaryLabel;
-            if (minutesInput) minutesInput.placeholder = config.primaryPlaceholder;
-            if (secondaryLabel) secondaryLabel.textContent = config.secondaryLabel;
-            if (secondsInput) secondsInput.placeholder = config.secondaryPlaceholder;
-            if (secondaryWrap) secondaryWrap.hidden = !config.showSecondary;
-            if (inputsWrap) inputsWrap.classList.toggle("my-results-modal__inputs--single", !config.showSecondary);
-            if (minutesInput) minutesInput.value = stored.minutes ?? "";
-            if (secondsInput) secondsInput.value = config.showSecondary ? (stored.seconds ?? "") : "";
-            setActiveMode(stored.mode || "rx");
-        }
-
-        function rememberSectionInput() {
-            const section = sections[currentSectionIndex];
-            if (!section) return;
-            const config = getSectionConfig(section.key);
-            const minutes = parsePositiveInt(minutesInput?.value);
-            const seconds = config.showSecondary ? parsePositiveInt(secondsInput?.value) : null;
-            if (minutes === null && seconds === null) {
-                delete resultsDraft[section.key];
-                return;
-            }
-            resultsDraft[section.key] = {
-                minutes,
-                seconds,
-                mode: getActiveMode(),
-                result_type: config.resultType
+        function getSectionState(sectionKey) {
+            const node = sectionsWrap?.querySelector(`[data-results-section="${sectionKey}"]`);
+            if (!node) return null;
+            return {
+                node,
+                minutesInput: node.querySelector("[data-results-minutes]"),
+                secondsInput: node.querySelector("[data-results-seconds]"),
+                secondaryWrap: node.querySelector("[data-results-secondary-wrap]"),
+                modeButtons: Array.from(node.querySelectorAll("[data-results-mode]"))
             };
+        }
+
+        function renderSections() {
+            if (!sectionsWrap) return;
+            sectionsWrap.innerHTML = sections.map((section) => {
+                const config = getSectionConfig(section.key);
+                const stored = resultsDraft[section.key] || {};
+                const rxActive = (stored.mode || "rx") === "rx";
+                return `
+                    <article class="my-results-modal__section" data-results-section="${section.key}">
+                        <h4 class="my-results-modal__section-title">${section.title}</h4>
+                        <div class="my-results-modal__inputs${config.showSecondary ? "" : " my-results-modal__inputs--single"}">
+                            <label class="my-results-modal__field">
+                                <span>${config.primaryLabel}</span>
+                                <input
+                                    type="text"
+                                    class="my-results-input"
+                                    placeholder="${config.primaryPlaceholder}"
+                                    inputmode="numeric"
+                                    data-results-minutes
+                                    value="${stored.minutes ?? ""}"
+                                >
+                            </label>
+                            <label class="my-results-modal__field" data-results-secondary-wrap ${config.showSecondary ? "" : "hidden"}>
+                                <span>${config.secondaryLabel}</span>
+                                <input
+                                    type="text"
+                                    class="my-results-input"
+                                    placeholder="${config.secondaryPlaceholder}"
+                                    inputmode="numeric"
+                                    data-results-seconds
+                                    value="${config.showSecondary ? (stored.seconds ?? "") : ""}"
+                                >
+                            </label>
+                        </div>
+                        <div class="my-results-modal__chips" aria-label="Режим выполнения">
+                            <button type="button" class="my-results-chip${rxActive ? " my-results-chip--active" : ""}" data-results-mode="rx">RX</button>
+                            <button type="button" class="my-results-chip${rxActive ? "" : " my-results-chip--active"}" data-results-mode="scaled">SCALED</button>
+                        </div>
+                    </article>
+                `;
+            }).join("");
+        }
+
+        function rememberAllSectionInputs() {
+            sections.forEach((section) => {
+                const state = getSectionState(section.key);
+                const config = getSectionConfig(section.key);
+                if (!state) {
+                    delete resultsDraft[section.key];
+                    return;
+                }
+                const minutes = parsePositiveInt(state.minutesInput?.value);
+                const seconds = config.showSecondary ? parsePositiveInt(state.secondsInput?.value) : null;
+                const activeMode = state.modeButtons.find((button) => button.classList.contains("my-results-chip--active"))?.getAttribute("data-results-mode") || "rx";
+                if (minutes === null && seconds === null) {
+                    delete resultsDraft[section.key];
+                    return;
+                }
+                resultsDraft[section.key] = {
+                    minutes,
+                    seconds,
+                    mode: activeMode,
+                    result_type: config.resultType
+                };
+            });
         }
 
         function formatResultForShare(entry) {
@@ -378,6 +578,14 @@
         }
 
         async function saveResultsToServer() {
+            const parsedTrainingId = Number.parseInt(String(activeTrainingId || "").trim(), 10);
+            const payload = {
+                date: isoDateToday(),
+                results: resultsDraft
+            };
+            if (Number.isFinite(parsedTrainingId) && parsedTrainingId > 0) {
+                payload.training_id = parsedTrainingId;
+            }
             const response = await fetch("{% url 'auth:calendar_save_results' %}", {
                 method: "POST",
                 credentials: "same-origin",
@@ -385,10 +593,7 @@
                     "Content-Type": "application/json",
                     "X-CSRFToken": getCsrfToken()
                 },
-                body: JSON.stringify({
-                    date: isoDateToday(),
-                    results: resultsDraft
-                })
+                body: JSON.stringify(payload)
             });
             if (!response.ok) throw new Error("save_results_failed");
         }
@@ -431,33 +636,32 @@
         document.addEventListener("click", (event) => {
             const button = event.target.closest(".plan-card__add");
             if (!button) return;
+            const card = button.closest("[data-plan-card]");
+            activeTrainingId = String(card?.getAttribute("data-training-id") || "").trim();
             const defaults = getCurrentDefaultSectionResultTypes();
             activeSectionResultTypes = {
                 strength: button.getAttribute("data-result-type-strength") || defaults.strength || "time",
                 cardio: button.getAttribute("data-result-type-cardio") || defaults.cardio || "time",
                 metabolic: button.getAttribute("data-result-type-metabolic") || defaults.metabolic || "time"
             };
-            currentSectionIndex = 0;
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
-            renderSectionStep();
+            renderSections();
             setModalVisible(myResultsModal, true);
         });
 
-        modeButtons.forEach((button) => {
-            button.addEventListener("click", () => {
-                const mode = button.getAttribute("data-results-mode") || "rx";
-                setActiveMode(mode);
+        sectionsWrap?.addEventListener("click", (event) => {
+            const modeButton = event.target.closest("[data-results-mode]");
+            if (!modeButton) return;
+            const sectionNode = modeButton.closest("[data-results-section]");
+            if (!sectionNode) return;
+            const nextMode = modeButton.getAttribute("data-results-mode") || "rx";
+            Array.from(sectionNode.querySelectorAll("[data-results-mode]")).forEach((button) => {
+                button.classList.toggle("my-results-chip--active", (button.getAttribute("data-results-mode") || "rx") === nextMode);
             });
         });
 
         nextButton?.addEventListener("click", async () => {
-            rememberSectionInput();
-            if (currentSectionIndex < sections.length - 1) {
-                currentSectionIndex += 1;
-                renderSectionStep();
-                return;
-            }
-
+            rememberAllSectionInputs();
             try {
                 await saveResultsToServer();
                 applySharePreview();
@@ -468,25 +672,17 @@
             }
         });
 
-        skipButton?.addEventListener("click", async () => {
-            delete resultsDraft[sections[currentSectionIndex].key];
-            if (currentSectionIndex < sections.length - 1) {
-                currentSectionIndex += 1;
-                renderSectionStep();
-                return;
-            }
-            try {
-                await saveResultsToServer();
-                applySharePreview();
-                setModalVisible(myResultsModal, false);
-                setModalVisible(resultSavedModal, true);
-            } catch (_error) {
-                alert("Не удалось сохранить результаты. Попробуйте еще раз.");
-            }
+        skipButton?.addEventListener("click", () => {
+            Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
+            activeTrainingId = "";
+            setModalVisible(myResultsModal, false);
         });
 
         myResultsModal.querySelectorAll("[data-close-results-modal]").forEach((node) => {
-            node.addEventListener("click", () => setModalVisible(myResultsModal, false));
+            node.addEventListener("click", () => {
+                activeTrainingId = "";
+                setModalVisible(myResultsModal, false);
+            });
         });
 
         resultSavedModal.querySelectorAll("[data-close-result-saved-modal]").forEach((node) => {
@@ -504,7 +700,7 @@
             setModalVisible(shareResultsModal, true);
         });
 
-        openLeaderboardButton?.addEventListener("click", () => {
+        const redirectToLeaderboard = () => {
             const date = isoDateToday();
             const baseUrl = "{% url 'auth:leaderboard_day' %}";
             if (date) {
@@ -512,6 +708,11 @@
                 return;
             }
             window.location.href = baseUrl;
+        };
+
+        openLeaderboardButton?.addEventListener("click", (event) => {
+            event.preventDefault();
+            redirectToLeaderboard();
         });
 
         if (shareResultsModal) {
@@ -560,19 +761,28 @@
             thanksModal.querySelectorAll("[data-close-training-rate-thanks-modal]").forEach((node) => {
                 node.addEventListener("click", () => setModalVisible(thanksModal, false));
             });
+            const thanksLeaderboardButton = thanksModal.querySelector("[data-open-leaderboard-from-thanks]");
+            thanksLeaderboardButton?.addEventListener("click", () => {
+                redirectToLeaderboard();
+            });
         }
     })();
 </script>
 <script>
     (function () {
-        const REFRESH_INTERVAL_MS = 10000;
+        const STATE_POLL_INTERVAL_MS = 2000;
+        const FALLBACK_REFRESH_INTERVAL_MS = 30000;
+        const versionEndpoint = "{% url 'auth:training_plan_today_version' %}";
         const modalIds = [
+            "exercise-video-modal",
             "my-results-modal",
             "result-saved-modal",
             "training-rate-modal",
             "share-results-modal",
             "training-rate-thanks-modal",
         ];
+        let knownVersion = "";
+        let isRefreshing = false;
 
         function hasOpenModal() {
             return modalIds.some((id) => {
@@ -589,11 +799,24 @@
             return tag === "input" || tag === "textarea" || tag === "select";
         }
 
+        function buildVersionUrl() {
+            const selectedDate = String(window.planSelectedDateIso || "").trim();
+            const params = new URLSearchParams();
+            if (selectedDate) params.set("date", selectedDate);
+            return `${versionEndpoint}?${params.toString()}`;
+        }
+
         async function refreshIfSafe() {
             if (document.hidden) return;
             if (hasOpenModal()) return;
             if (hasActiveInput()) return;
+            if (isRefreshing) return;
+            isRefreshing = true;
             try {
+                const currentCardsContainer = document.getElementById("plan-cards-container");
+                const currentResultTypes = document.getElementById("plan-result-types-json");
+                if (!currentCardsContainer || !currentResultTypes) return;
+
                 const response = await fetch(window.location.href, {
                     method: "GET",
                     credentials: "same-origin",
@@ -607,17 +830,88 @@
                 const nextDoc = parser.parseFromString(html, "text/html");
                 const nextCardsContainer = nextDoc.getElementById("plan-cards-container");
                 const nextResultTypes = nextDoc.getElementById("plan-result-types-json");
-                const currentCardsContainer = document.getElementById("plan-cards-container");
-                const currentResultTypes = document.getElementById("plan-result-types-json");
-                if (!nextCardsContainer || !nextResultTypes || !currentCardsContainer || !currentResultTypes) return;
+                if (!nextCardsContainer || !nextResultTypes) return;
+
+                const expandedTrainingIds = new Set(
+                    Array.from(currentCardsContainer.querySelectorAll("[data-plan-card][data-training-id]"))
+                        .filter((card) => {
+                            const toggle = card.querySelector("[data-plan-toggle]");
+                            return toggle?.getAttribute("aria-expanded") === "true";
+                        })
+                        .map((card) => card.getAttribute("data-training-id"))
+                        .filter((value) => Boolean(value))
+                );
+                const languageByTrainingId = new Map(
+                    Array.from(currentCardsContainer.querySelectorAll("[data-plan-card][data-training-id]"))
+                        .map((card) => {
+                            const trainingId = String(card.getAttribute("data-training-id") || "").trim();
+                            if (!trainingId) return null;
+                            const activeButton = card.querySelector("[data-plan-lang].plan-card__lang-btn--active");
+                            const activeLang = String(activeButton?.getAttribute("data-plan-lang") || "ru").trim().toLowerCase();
+                            return [trainingId, activeLang === "en" ? "en" : "ru"];
+                        })
+                        .filter((entry) => Array.isArray(entry))
+                );
+
                 currentCardsContainer.innerHTML = nextCardsContainer.innerHTML;
                 currentResultTypes.textContent = nextResultTypes.textContent || "{}";
+
+                Array.from(currentCardsContainer.querySelectorAll("[data-plan-card][data-training-id]")).forEach((card) => {
+                    const trainingId = card.getAttribute("data-training-id");
+                    if (!trainingId) return;
+                    if (expandedTrainingIds.has(trainingId)) {
+                        const toggle = card.querySelector("[data-plan-toggle]");
+                        const details = card.querySelector("[data-plan-details]");
+                        if (toggle && details) {
+                            toggle.setAttribute("aria-expanded", "true");
+                            details.hidden = false;
+                            card.classList.add("plan-card--expanded");
+                            card.classList.remove("plan-card--collapsed");
+                        }
+                    }
+                    const storedLang = languageByTrainingId.get(trainingId);
+                    if (storedLang && typeof window.__applyPlanCardLanguage === "function") {
+                        window.__applyPlanCardLanguage(card, storedLang);
+                    }
+                });
+            } catch (_error) {
+            } finally {
+                isRefreshing = false;
+            }
+        }
+
+        async function syncVersionAndRefreshIfNeeded() {
+            if (document.hidden) return;
+            try {
+                const response = await fetch(buildVersionUrl(), {
+                    method: "GET",
+                    credentials: "same-origin",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest"
+                    }
+                });
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload || payload.ok !== true) return;
+                const nextVersion = String(payload.version || "");
+                if (!knownVersion) {
+                    knownVersion = nextVersion;
+                    return;
+                }
+                if (nextVersion !== knownVersion) {
+                    knownVersion = nextVersion;
+                    await refreshIfSafe();
+                }
             } catch (_error) {
             }
         }
 
         refreshIfSafe();
-        window.setInterval(refreshIfSafe, REFRESH_INTERVAL_MS);
+        syncVersionAndRefreshIfNeeded();
+        window.setInterval(syncVersionAndRefreshIfNeeded, STATE_POLL_INTERVAL_MS);
+        window.setInterval(refreshIfSafe, FALLBACK_REFRESH_INTERVAL_MS);
     })();
 </script>
 {% endblock %}
+
+

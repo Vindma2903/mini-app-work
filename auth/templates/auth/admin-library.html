@@ -1,11 +1,11 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Библиотека{% endblock %}
 
 {% block styles %}
 <link rel="stylesheet" href="{% static 'auth/css/calendar.css' %}">
-<link rel="stylesheet" href="{% static 'auth/css/admin-library.css' %}?v=20260426-1">
+<link rel="stylesheet" href="{% static 'auth/css/admin-library.css' %}?v=20260428-3">
 {% endblock %}
 
 {% block content %}
@@ -86,7 +86,13 @@
                             <td>{{ row.name_en }}</td>
                             <td>{{ row.desc_ru }}</td>
                             <td>{{ row.desc_en }}</td>
-                            <td><a href="#" class="admin-library-video">{{ row.video }}</a></td>
+                            <td>
+                                <a
+                                    href="{{ row.video_url|default:'#' }}"
+                                    class="admin-library-video{% if not row.video_url %} is-empty{% endif %}"
+                                    data-library-video-url="{{ row.video_url|default:'' }}"
+                                >{{ row.video_count|default:0 }}</a>
+                            </td>
                             <td>
                                 <span class="admin-library-actions">
                                     <a href="#" aria-label="Редактировать" data-library-edit="{{ row.id }}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
@@ -115,20 +121,13 @@
                 <span>Раздел</span>
                 <select id="admin-library-form-section" class="admin-library-modal__input">
                     <option value="exercises">Упражнения</option>
-                    <option value="trainings">Тренировки</option>
-                    <option value="barbell">Barbell PRs</option>
                     <option value="benchmarks">Benchmarks</option>
                 </select>
             </label>
 
-            <label class="admin-library-modal__field" id="admin-library-form-category-wrap" hidden>
+            <label class="admin-library-modal__field" id="admin-library-form-category-wrap">
                 <span>Категория</span>
-                <select id="admin-library-form-category" class="admin-library-modal__input">
-                    <option value="girls">Girls</option>
-                    <option value="heroes">Heroes</option>
-                    <option value="gymnastics">Gymnastics</option>
-                    <option value="total">Total</option>
-                </select>
+                <select id="admin-library-form-category" class="admin-library-modal__input"></select>
             </label>
 
             <label class="admin-library-modal__field">
@@ -180,6 +179,16 @@
     </section>
 </div>
 
+<div class="admin-library-modal admin-library-video-modal" id="admin-library-video-modal" hidden>
+    <div class="admin-library-modal__overlay" data-library-video-modal-close></div>
+    <section class="admin-library-video-modal__card" role="dialog" aria-modal="true" aria-label="Просмотр видео">
+        <button type="button" class="admin-library-video-modal__close" data-library-video-modal-close aria-label="Закрыть">&times;</button>
+        <div class="admin-library-video-modal__player-wrap">
+            <video id="admin-library-video-player" class="admin-library-video-modal__player" controls playsinline preload="metadata"></video>
+        </div>
+    </section>
+</div>
+
 {{ library_rows_json|json_script:"admin-library-rows-data" }}
 
 <script>
@@ -189,6 +198,8 @@
         const addButton = document.querySelector(".admin-library-add");
         const addModal = document.getElementById("admin-library-add-modal");
         const deleteModal = document.getElementById("admin-library-delete-modal");
+        const videoModal = document.getElementById("admin-library-video-modal");
+        const videoPlayer = document.getElementById("admin-library-video-player");
         const deleteConfirmButton = document.getElementById("admin-library-delete-confirm-btn");
         const uploadTrigger = document.getElementById("admin-library-upload-trigger");
         const uploadInput = document.getElementById("admin-library-upload-input");
@@ -226,6 +237,25 @@
         const EDIT_BUTTON = "Сохранить";
         const SAVING_LABEL = "Сохраняем...";
         const EMPTY_VIDEO_TEXT = "Нажмите для загрузки видео";
+        const SECTION_EXERCISES = "exercises";
+        const SECTION_BENCHMARKS = "benchmarks";
+        const EXERCISE_CATEGORY_OPTIONS = [
+            { value: "squat", label: "Squat" },
+            { value: "push", label: "Push" },
+            { value: "pull", label: "Pull" },
+            { value: "bend", label: "Bend" },
+            { value: "lunge", label: "Lunge" },
+            { value: "olympic", label: "Olympic" },
+            { value: "plyometric", label: "Plyometric" },
+            { value: "cardio", label: "Cardio" },
+            { value: "trx", label: "TRX" }
+        ];
+        const BENCHMARK_CATEGORY_OPTIONS = [
+            { value: "girls", label: "Girls" },
+            { value: "heroes", label: "Heroes" },
+            { value: "gymnastics", label: "Gymnastics" },
+            { value: "total", label: "Total" }
+        ];
 
         function escapeHtml(value) {
             return String(value)
@@ -263,7 +293,13 @@
                     <td>${escapeHtml(row.name_en || "")}</td>
                     <td>${formatMultiline(row.desc_ru || "")}</td>
                     <td>${formatMultiline(row.desc_en || "")}</td>
-                    <td><a href="#" class="admin-library-video">${escapeHtml(row.video || "")}</a></td>
+                    <td>
+                        <a
+                            href="${escapeHtml(row.video_url || '#')}"
+                            class="admin-library-video${row.video_url ? '' : ' is-empty'}"
+                            data-library-video-url="${escapeHtml(row.video_url || '')}"
+                        >${String(Number(row.video_count || 0))}</a>
+                    </td>
                     <td>
                         <span class="admin-library-actions">
                             <a href="#" aria-label="Редактировать" data-library-edit="${String(row.id || "")}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
@@ -295,7 +331,7 @@
             addModal.hidden = !open;
             document.body.style.overflow = open ? "hidden" : "";
             if (open) {
-                toggleCategoryField();
+                syncCategoryOptions();
             }
         }
 
@@ -312,14 +348,50 @@
             }
         }
 
-        function toggleCategoryField() {
-            if (!sectionInput || !categoryWrap) return;
-            const shouldShowCategory = String(sectionInput.value || "").toLowerCase() === "benchmarks";
-            categoryWrap.hidden = !shouldShowCategory;
-            categoryWrap.style.display = shouldShowCategory ? "grid" : "none";
-            if (!shouldShowCategory && categoryInput) {
-                categoryInput.value = "girls";
+        function setVideoModalOpen(open) {
+            if (!videoModal || !videoPlayer) return;
+            videoModal.hidden = !open;
+            document.body.style.overflow = open ? "hidden" : "";
+            if (!open) {
+                videoPlayer.pause();
+                videoPlayer.removeAttribute("src");
+                videoPlayer.load();
             }
+        }
+
+        function openVideoModal(url) {
+            if (!videoModal || !videoPlayer) return;
+            const normalized = String(url || "").trim();
+            if (!normalized) return;
+            videoPlayer.src = normalized;
+            videoPlayer.load();
+            setVideoModalOpen(true);
+            videoPlayer.play().catch(() => {});
+        }
+
+        function getCategoryOptionsBySection(section) {
+            return section === SECTION_BENCHMARKS ? BENCHMARK_CATEGORY_OPTIONS : EXERCISE_CATEGORY_OPTIONS;
+        }
+
+        function getDefaultCategoryBySection(section) {
+            if (section === SECTION_BENCHMARKS) {
+                return currentBenchmarkFilter || BENCHMARK_CATEGORY_OPTIONS[0].value;
+            }
+            return currentExerciseFilter || EXERCISE_CATEGORY_OPTIONS[0].value;
+        }
+
+        function syncCategoryOptions(selectedValue) {
+            if (!sectionInput || !categoryWrap || !categoryInput) return;
+            const section = String(sectionInput.value || "").toLowerCase();
+            const options = getCategoryOptionsBySection(section);
+            categoryInput.innerHTML = options
+                .map((option) => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`)
+                .join("");
+            const optionValues = options.map((option) => option.value);
+            const normalizedSelected = String(selectedValue || "").toLowerCase();
+            categoryInput.value = optionValues.includes(normalizedSelected) ? normalizedSelected : options[0].value;
+            categoryWrap.hidden = false;
+            categoryWrap.style.display = "grid";
         }
 
         function setModalMode(mode) {
@@ -336,9 +408,7 @@
             if (sectionInput) {
                 sectionInput.value = activeTab || "exercises";
             }
-            if (categoryInput) {
-                categoryInput.value = "girls";
-            }
+            syncCategoryOptions(getDefaultCategoryBySection(activeTab));
             if (nameRuInput) {
                 nameRuInput.value = "";
             }
@@ -358,7 +428,7 @@
             if (uploadTitle) {
                 uploadTitle.textContent = EMPTY_VIDEO_TEXT;
             }
-            toggleCategoryField();
+            syncCategoryOptions();
         }
 
         function openCreateModal() {
@@ -405,7 +475,7 @@
                 uploadTitle.textContent = String(item.video || "").trim() || EMPTY_VIDEO_TEXT;
             }
 
-            toggleCategoryField();
+            syncCategoryOptions(item.section === SECTION_BENCHMARKS ? item.category : item.movement_group);
             setAddModalOpen(true);
         }
 
@@ -449,11 +519,11 @@
 
             const formData = new FormData();
             formData.append("section", sectionInput.value);
-            if (sectionInput.value === "benchmarks") {
+            if (sectionInput.value === SECTION_BENCHMARKS) {
                 formData.append("category", categoryInput?.value || "");
             }
-            if (sectionInput.value === "exercises") {
-                formData.append("movement_group", currentExerciseFilter);
+            if (sectionInput.value === SECTION_EXERCISES) {
+                formData.append("movement_group", categoryInput?.value || "");
             }
             formData.append("name_ru", nameRuInput.value || "");
             formData.append("name_en", nameEnInput?.value || "");
@@ -484,6 +554,9 @@
 
                 if (!response.ok || !payload?.ok || !payload?.item) {
                     const videoError = payload?.field_errors?.video || "";
+                    if (payload?.error === "storage_full") {
+                        throw new Error("Недостаточно места на диске для загрузки видео. Освободите место и повторите попытку.");
+                    }
                     if (videoError === "invalid_video_format") {
                         throw new Error("Разрешены только форматы MP4, AVI, MOV, WMV.");
                     }
@@ -604,6 +677,9 @@
                 if (event.key === "Escape" && deleteModal && !deleteModal.hidden) {
                     setDeleteModalOpen(false);
                 }
+                if (event.key === "Escape" && videoModal && !videoModal.hidden) {
+                    setVideoModalOpen(false);
+                }
             });
         }
 
@@ -617,11 +693,30 @@
             });
         }
 
+        if (videoModal) {
+            videoModal.addEventListener("click", (event) => {
+                const target = event.target;
+                if (!(target instanceof Element)) return;
+                if (target.closest("[data-library-video-modal-close]")) {
+                    setVideoModalOpen(false);
+                }
+            });
+        }
+
         tbody.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
+            const videoLink = target.closest("[data-library-video-url]");
             const editLink = target.closest("[data-library-edit]");
             const deleteLink = target.closest("[data-library-delete]");
+            if (videoLink) {
+                event.preventDefault();
+                const videoUrl = String(videoLink.getAttribute("data-library-video-url") || "").trim();
+                if (videoUrl) {
+                    openVideoModal(videoUrl);
+                }
+                return;
+            }
             if (editLink) {
                 event.preventDefault();
                 const itemId = Number(editLink.getAttribute("data-library-edit") || "0");
@@ -652,8 +747,11 @@
         }
 
         if (sectionInput) {
-            sectionInput.addEventListener("change", toggleCategoryField);
-            toggleCategoryField();
+            sectionInput.addEventListener("change", () => {
+                const section = String(sectionInput.value || "").toLowerCase();
+                syncCategoryOptions(getDefaultCategoryBySection(section));
+            });
+            syncCategoryOptions();
         }
 
         if (submitButton) {
@@ -672,3 +770,5 @@
     })();
 </script>
 {% endblock %}
+
+

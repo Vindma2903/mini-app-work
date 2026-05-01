@@ -36,7 +36,12 @@
 
             <label class="auth-form__field">
                 <span class="auth-form__label">Пароль</span>
-                <input class="auth-form__input" type="password" name="password" required>
+                <span class="auth-form__password-wrap">
+                    <input class="auth-form__input" type="password" name="password" id="login-password-input" required>
+                    <button class="auth-form__password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false" data-password-toggle>
+                        <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                    </button>
+                </span>
             </label>
 
             <button class="auth-form__submit" type="submit">Войти</button>
@@ -45,4 +50,52 @@
         <a class="auth-card__register" href="{% url 'auth:register' %}">Зарегистрироваться</a>
     </section>
 </main>
+<script>
+    (function () {
+        const toggleButton = document.querySelector('[data-password-toggle]');
+        const passwordInput = document.getElementById('login-password-input');
+        if (!toggleButton || !passwordInput) {
+            return;
+        }
+
+        toggleButton.addEventListener('click', function () {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            toggleButton.setAttribute('aria-pressed', String(isHidden));
+            toggleButton.setAttribute('aria-label', isHidden ? 'Скрыть пароль' : 'Показать пароль');
+        });
+    })();
+</script>
+
+<script>
+    (function () {
+        const loginPath = "{% url 'auth:login' %}";
+        const startedAt = Date.now();
+        const maxDurationMs = 2 * 60 * 1000;
+        const intervalMs = 1500;
+
+        async function checkAuthAndRedirect() {
+            if (Date.now() - startedAt > maxDurationMs) {
+                clearInterval(timerId);
+                return;
+            }
+            try {
+                const response = await fetch(loginPath, {
+                    method: 'GET',
+                    credentials: 'include',
+                    redirect: 'follow',
+                    cache: 'no-store',
+                });
+                if (response.redirected && response.url && !response.url.endsWith(loginPath)) {
+                    window.location.href = response.url;
+                }
+            } catch (error) {
+                // Ignore transient network errors and retry on next tick.
+            }
+        }
+
+        const timerId = setInterval(checkAuthAndRedirect, intervalMs);
+    })();
+</script>
+
 {% endblock %}

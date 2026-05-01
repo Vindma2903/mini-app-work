@@ -1,5 +1,9 @@
 ﻿from django.contrib.auth.models import User
+import logging
+
 from django.db import models
+
+logger = logging.getLogger(__name__)
 from django.utils import timezone
 from django.core.validators import MinValueValidator
 
@@ -71,6 +75,13 @@ class TrainingResult(models.Model):
         on_delete=models.CASCADE,
         related_name='training_results',
     )
+    training = models.ForeignKey(
+        'AdminTraining',
+        on_delete=models.SET_NULL,
+        related_name='results',
+        null=True,
+        blank=True,
+    )
     training_date = models.DateField(default=timezone.localdate, db_index=True)
     section = models.CharField(max_length=16, choices=SECTION_CHOICES)
     result_type = models.CharField(max_length=16, choices=RESULT_TYPE_CHOICES, default=RESULT_TIME)
@@ -82,7 +93,18 @@ class TrainingResult(models.Model):
 
     class Meta:
         ordering = ['-training_date', '-updated_at']
-        unique_together = ('user', 'training_date', 'section')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'training', 'section'],
+                condition=models.Q(training__isnull=False),
+                name='uniq_training_result_user_training_section',
+            ),
+            models.UniqueConstraint(
+                fields=['user', 'training_date', 'section'],
+                condition=models.Q(training__isnull=True),
+                name='uniq_training_result_user_date_section_legacy',
+            ),
+        ]
 
     def __str__(self):
         return f'{self.user.email}: {self.training_date} ({self.section})'
@@ -222,6 +244,8 @@ class AdminTraining(models.Model):
     comment_for_athletes = models.TextField(blank=True, default='')
     manual_description_ru = models.TextField(blank=True, default='')
     manual_description_en = models.TextField(blank=True, default='')
+    manual_block_type = models.CharField(max_length=16, blank=True, default='')
+    manual_block_custom_name = models.CharField(max_length=255, blank=True, default='')
     manual_sets = models.PositiveSmallIntegerField(null=True, blank=True)
     manual_result_type = models.CharField(
         max_length=16,
@@ -280,6 +304,13 @@ class AdminTrainingExercise(models.Model):
         AdminTraining,
         on_delete=models.CASCADE,
         related_name='exercises',
+    )
+    library_item = models.ForeignKey(
+        'AdminLibraryItem',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='training_exercises',
     )
     block_type = models.CharField(max_length=16, choices=BLOCK_CHOICES, default=BLOCK_STRENGTH)
     block_custom_name = models.CharField(max_length=255, blank=True, default='')
@@ -409,3 +440,36 @@ class AdminLibraryItem(models.Model):
 
     def __str__(self):
         return f'{self.name_ru} ({self.section})'
+
+    @staticmethod
+    def _delete_file_if_unreferenced(storage, file_name):
+        if not storage or not file_name:
+            return
+        try:
+            if storage.exists(file_name):
+                storage.delete(file_name)
+        except OSError:
+            logger.exception('Failed to delete library video file=%s', file_name)
+
+    def save(self, *args, **kwargs):
+        old_file_name = ''
+        if self.pk:
+            old_item = AdminLibraryItem.objects.filter(pk=self.pk).only('video_file').first()
+            old_file_name = old_item.video_file.name if old_item and old_item.video_file else ''
+
+        super().save(*args, **kwargs)
+
+        new_file_name = self.video_file.name if self.video_file else ''
+        if old_file_name and old_file_name != new_file_name:
+            still_used = AdminLibraryItem.objects.filter(video_file=old_file_name).exclude(pk=self.pk).exists()
+            if not still_used:
+                self._delete_file_if_unreferenced(self.video_file.storage, old_file_name)
+
+    def delete(self, *args, **kwargs):
+        file_name = self.video_file.name if self.video_file else ''
+        storage = self.video_file.storage if self.video_file else None
+        super().delete(*args, **kwargs)
+        if file_name:
+            still_used = AdminLibraryItem.objects.filter(video_file=file_name).exists()
+            if not still_used:
+                self._delete_file_if_unreferenced(storage, file_name)

@@ -11,6 +11,7 @@ from .views import (
     SaveTrainingRateView,
     SaveTrainingResultsView,
     TrainingPlanTodayView,
+    TrainingPlanVersionView,
 )
 
 urlpatterns = [
@@ -24,4 +25,5 @@ urlpatterns = [
     path("calendar/save-training-rate/", SaveTrainingRateView.as_view(), name="calendar_save_training_rate"),
     path("calendar/download-results-image/", DownloadTrainingResultsImageView.as_view(), name="calendar_download_results_image"),
     path("training-plan/today/", TrainingPlanTodayView.as_view(), name="training_plan_today"),
+    path("training-plan/today/version/", TrainingPlanVersionView.as_view(), name="training_plan_today_version"),
 ]

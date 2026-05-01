@@ -112,6 +112,40 @@ body {
     color: var(--input-text-color);
 }
 
+.auth-form__password-wrap {
+    position: relative;
+    display: block;
+}
+
+.auth-form__password-wrap .auth-form__input {
+    padding-right: 40px;
+}
+
+.auth-form__password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    color: var(--label-color);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.auth-form__password-toggle img {
+    width: 16px;
+    height: 16px;
+    display: block;
+    opacity: 0.72;
+}
+
 .auth-form__input:focus {
     outline: 1px solid var(--focus-outline-color);
 }
@@ -147,5 +181,6 @@ body {
     line-height: var(--register-line-height);
     text-align: center;
     color: var(--label-color);
-    text-decoration: none;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }

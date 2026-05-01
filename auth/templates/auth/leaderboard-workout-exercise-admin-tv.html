@@ -50,13 +50,20 @@
                 {% for row in workout_leader_rows %}
                     <article class="workout-leader-row workout-leader-row--no-section{% if row.row_class %} {{ row.row_class }}{% endif %}">
                         <b>{% if row.place_label %}<i>{{ row.place_label }}</i> {% endif %}{{ row.user_name }}</b>
-                        <span><small>Результат</small>{{ row.result_label }}</span>
+                        <span>
+                            <small>Результат</small>
+                            <strong>{{ row.result_label }}</strong>
+                            <em class="workout-result-mode">{{ row.result_mode_label }}</em>
+                        </span>
                     </article>
                 {% endfor %}
             {% else %}
                 <article class="workout-leader-row workout-leader-row--no-section">
                     <b>По выбранной дате нет лидеров</b>
-                    <span><small>Результат</small>--</span>
+                    <span>
+                        <small>Результат</small>
+                        <strong>--</strong>
+                    </span>
                 </article>
             {% endif %}
         </section>

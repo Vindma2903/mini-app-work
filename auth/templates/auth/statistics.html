@@ -181,82 +181,31 @@
 
                 <div class="statistics-charts">
                     <section class="statistics-chart">
-                        <h3>График регистрации пользователей</h3>
+                        <h3>Записанные за день результаты</h3>
                         <p>за неделю</p>
                         <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
-                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
-                            <path d="M40 170 C55 165,65 160,80 150 S105 110,120 110 S145 155,160 160 S185 150,200 135 S225 95,240 85 S265 120,280 115" class="statistics-chart__line statistics-chart__line--blue"/>
-                            <circle cx="40" cy="170" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="80" cy="150" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="120" cy="110" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="160" cy="160" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="200" cy="135" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="240" cy="85" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="280" cy="115" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
+                            <path d="" class="statistics-chart__grid" data-chart-grid="results-mixed"/>
+                            <g class="statistics-chart__axis" data-chart-axis="results-mixed"></g>
+                            <g data-chart-bars="results-mixed"></g>
+                            <path d="" class="statistics-chart__line statistics-chart__line--gray" data-chart-line="results-mixed"/>
+                            <g data-chart-points="results-mixed"></g>
                         </svg>
-                        <div class="statistics-chart__labels">
-                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-                        </div>
+                        <div class="statistics-chart__labels" data-chart-labels="results-mixed"></div>
                     </section>
 
                     <section class="statistics-chart">
-                        <h3>Кол-во тренировок в день</h3>
+                        <h3>Поставленные реакции</h3>
                         <p>за неделю</p>
                         <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
-                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
-                            <path d="M40 165 C55 160,65 155,80 145 S105 100,120 95 S145 150,160 155 S185 145,200 130 S225 90,240 70 S265 40,280 30" class="statistics-chart__line statistics-chart__line--orange"/>
-                            <circle cx="40" cy="165" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="80" cy="145" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="120" cy="95" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="160" cy="155" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="200" cy="130" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="240" cy="70" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
-                            <circle cx="280" cy="30" r="4" class="statistics-chart__point statistics-chart__point--orange"/>
+                            <path d="" class="statistics-chart__grid" data-chart-grid="sent-reactions-line"/>
+                            <g class="statistics-chart__axis" data-chart-axis="sent-reactions-line"></g>
+                            <path d="" class="statistics-chart__line statistics-chart__line--orange" data-chart-line="sent-reactions-line"/>
+                            <g data-chart-points="sent-reactions-line"></g>
                         </svg>
-                        <div class="statistics-chart__labels">
-                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-                        </div>
+                        <div class="statistics-chart__labels" data-chart-labels="sent-reactions-line"></div>
                     </section>
                 </div>
 
-                <div class="statistics-charts">
-                    <section class="statistics-chart">
-                        <h3>Тренировочная активность</h3>
-                        <p>за неделю</p>
-                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
-                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
-                            <rect x="52" y="80" width="24" height="120" rx="6" class="statistics-chart__bar"/>
-                            <rect x="92" y="105" width="24" height="95" rx="6" class="statistics-chart__bar"/>
-                            <rect x="132" y="40" width="24" height="160" rx="6" class="statistics-chart__bar"/>
-                            <rect x="172" y="55" width="24" height="145" rx="6" class="statistics-chart__bar"/>
-                            <rect x="212" y="135" width="24" height="65" rx="6" class="statistics-chart__bar"/>
-                            <rect x="252" y="120" width="24" height="80" rx="6" class="statistics-chart__bar"/>
-                            <rect x="292" y="72" width="24" height="128" rx="6" class="statistics-chart__bar"/>
-                        </svg>
-                        <div class="statistics-chart__labels">
-                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-                        </div>
-                    </section>
-
-                    <section class="statistics-chart">
-                        <h3>График регистрации пользователей</h3>
-                        <p>за неделю</p>
-                        <svg viewBox="0 0 320 240" class="statistics-chart__svg" aria-hidden="true">
-                            <path d="M40 20V200M80 20V200M120 20V200M160 20V200M200 20V200M240 20V200M280 20V200M40 200H290M40 170H290M40 140H290M40 110H290M40 80H290M40 50H290M40 20H290" class="statistics-chart__grid"/>
-                            <path d="M40 170 C55 165,65 160,80 150 S105 110,120 110 S145 155,160 160 S185 150,200 135 S225 95,240 85 S265 120,280 115" class="statistics-chart__line statistics-chart__line--blue"/>
-                            <circle cx="40" cy="170" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="80" cy="150" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="120" cy="110" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="160" cy="160" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="200" cy="135" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="240" cy="85" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                            <circle cx="280" cy="115" r="4" class="statistics-chart__point statistics-chart__point--blue"/>
-                        </svg>
-                        <div class="statistics-chart__labels">
-                            <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
-                        </div>
-                    </section>
-                </div>
             </div>
         </div>
     </section>
@@ -345,6 +294,7 @@
 
 {{ exercise_reviews_payload|json_script:"statistics-reviews-payload" }}
 {{ exercise_results_payload|json_script:"statistics-results-payload" }}
+{{ statistics_charts_json|json_script:"statistics-charts-payload" }}
 
 <div class="statistics-results-modal" id="statistics-results-modal" hidden>
     <div class="statistics-results-modal__overlay" data-close-results></div>
@@ -393,8 +343,10 @@
         const nextBtn = document.getElementById("statistics-next-month");
         const reviewsPayloadEl = document.getElementById("statistics-reviews-payload");
         const resultsPayloadEl = document.getElementById("statistics-results-payload");
+        const chartsPayloadEl = document.getElementById("statistics-charts-payload");
         const reviewsPayload = reviewsPayloadEl ? JSON.parse(reviewsPayloadEl.textContent || "{}") : {};
         const resultsPayload = resultsPayloadEl ? JSON.parse(resultsPayloadEl.textContent || "{}") : {};
+        const chartsPayload = chartsPayloadEl ? JSON.parse(chartsPayloadEl.textContent || "{}") : {};
 
         if (!openBtn || !modal || !monthLabel || !grid) return;
 
@@ -415,12 +367,14 @@
         let currentMonth = new Date(rangeEnd.getFullYear(), rangeEnd.getMonth(), 1);
         let selectedDate = new Date(rangeEnd);
         let selectingBoundary = "start";
-        const trainingViewExercises = [
-            { block: "Силовые", text: "Смит x 2 подхода по 10" },
-            { block: "Силовые", text: "Болгарские выпады x 3 подхода по 12" },
-            { block: "Кардио", text: "Гребля x 4 подхода по 250м" },
-            { block: "Метаболическая", text: "Бёрпи x 3 подхода по 15" },
-        ];
+        const trainingViewExercises = [];
+        const CHART_LEFT = 40;
+        const CHART_RIGHT = 280;
+        const CHART_TOP = 20;
+        const CHART_BOTTOM = 200;
+        const CHART_BAR_WIDTH = 24;
+        const CHART_Y_TICKS = 5;
+        const CHART_MIN_TOP_VALUE = 5;
 
         function escapeHtml(value) {
             return String(value)
@@ -429,6 +383,189 @@
                 .replaceAll(">", "&gt;")
                 .replaceAll('"', "&quot;")
                 .replaceAll("'", "&#39;");
+        }
+
+        function renderChartLabels(chartKey, labels) {
+            const labelsWrap = document.querySelector(`[data-chart-labels="${chartKey}"]`);
+            if (!labelsWrap || !Array.isArray(labels)) return;
+            labelsWrap.innerHTML = labels.map((label) => `<span>${escapeHtml(label)}</span>`).join("");
+        }
+
+        function getChartX(index, totalPoints) {
+            if (totalPoints <= 1) return CHART_LEFT;
+            const width = CHART_RIGHT - CHART_LEFT;
+            return CHART_LEFT + ((width / (totalPoints - 1)) * index);
+        }
+
+        function getChartY(value, maxValue) {
+            const safeValue = Math.max(0, Number(value) || 0);
+            const safeMax = Math.max(1, Number(maxValue) || 1);
+            const ratio = safeValue / safeMax;
+            return CHART_BOTTOM - ((CHART_BOTTOM - CHART_TOP) * ratio);
+        }
+
+        function getTickY(tickIndex, totalTicks = CHART_Y_TICKS) {
+            const ratio = tickIndex / Math.max(1, totalTicks);
+            return CHART_BOTTOM - ((CHART_BOTTOM - CHART_TOP) * ratio);
+        }
+
+        function buildGridPath(totalTicks = CHART_Y_TICKS) {
+            const parts = [];
+            for (let x = CHART_LEFT; x <= CHART_RIGHT; x += 40) {
+                parts.push(`M${x} ${CHART_TOP}V${CHART_BOTTOM}`);
+            }
+            for (let tick = 0; tick <= totalTicks; tick += 1) {
+                parts.push(`M${CHART_LEFT} ${getTickY(tick, totalTicks)}H290`);
+            }
+            return parts.join("");
+        }
+
+        function computeNiceStep(maxValue, totalTicks = CHART_Y_TICKS) {
+            const normalizedMax = Math.max(0, Number(maxValue) || 0);
+            if (normalizedMax <= 0) return 1;
+            const rawStep = normalizedMax / Math.max(1, totalTicks);
+            if (rawStep <= 1) return 1;
+            const power = Math.floor(Math.log10(rawStep));
+            const magnitude = 10 ** power;
+            const fraction = rawStep / magnitude;
+            if (fraction <= 1) return 1 * magnitude;
+            if (fraction <= 2) return 2 * magnitude;
+            if (fraction <= 5) return 5 * magnitude;
+            return 10 * magnitude;
+        }
+
+        function computeChartScale(values, options = {}) {
+            const series = Array.isArray(values) ? values : [];
+            const totalTicks = Math.max(1, Number(options.ticks) || CHART_Y_TICKS);
+            const minTopValue = Math.max(1, Number(options.minTopValue) || CHART_MIN_TOP_VALUE);
+            const maxValue = Math.max(0, ...series.map((value) => Math.max(0, Number(value) || 0)));
+            const step = computeNiceStep(maxValue, totalTicks);
+            const topValue = Math.max(minTopValue, step * totalTicks);
+            return { step, topValue, totalTicks };
+        }
+
+        function renderChartAxisAndGrid(chartKey, scale) {
+            const axisGroup = document.querySelector(`[data-chart-axis="${chartKey}"]`);
+            const gridPath = document.querySelector(`[data-chart-grid="${chartKey}"]`);
+            if (!axisGroup || !gridPath) return;
+
+            gridPath.setAttribute("d", buildGridPath(scale.totalTicks));
+            axisGroup.innerHTML = Array.from({ length: scale.totalTicks + 1 }, (_, index) => {
+                const labelValue = scale.step * index;
+                return `<text x="28" y="${getTickY(index, scale.totalTicks)}" class="statistics-chart__axis-label">${escapeHtml(labelValue)}</text>`;
+            }).join("");
+        }
+
+        function buildLinePath(values, maxValue) {
+            if (!Array.isArray(values) || !values.length) return "";
+            return values.map((value, index) => {
+                const x = getChartX(index, values.length);
+                const y = getChartY(value, maxValue);
+                return `${index === 0 ? "M" : "L"}${x} ${y}`;
+            }).join(" ");
+        }
+
+        function buildPointsMarkup(values, maxValue, pointClass) {
+            if (!Array.isArray(values) || !values.length) return "";
+            return values.map((value, index) => {
+                const x = getChartX(index, values.length);
+                const y = getChartY(value, maxValue);
+                return `<circle cx="${x}" cy="${y}" r="4" class="statistics-chart__point ${pointClass}"></circle>`;
+            }).join("");
+        }
+
+        function buildBarsMarkup(values, maxValue, options = {}) {
+            if (!Array.isArray(values) || !values.length) return "";
+            const hideZero = Boolean(options.hideZeroValues);
+            return values.map((value, index) => {
+                if (hideZero && Number(value) <= 0) {
+                    return "";
+                }
+                const x = getChartX(index, values.length);
+                const y = getChartY(value, maxValue);
+                const height = Math.max(0, CHART_BOTTOM - y);
+                return `<rect x="${x - (CHART_BAR_WIDTH / 2)}" y="${y}" width="${CHART_BAR_WIDTH}" height="${height}" rx="6" class="statistics-chart__bar"></rect>`;
+            }).join("");
+        }
+
+        function normalizeSeries(values, options = {}) {
+            if (!Array.isArray(values)) return [];
+            const { clampMin = null, clampMax = null } = options;
+            return values.map((value) => {
+                let normalized = Number(value) || 0;
+                if (clampMin !== null) normalized = Math.max(clampMin, normalized);
+                if (clampMax !== null) normalized = Math.min(clampMax, normalized);
+                return normalized;
+            });
+        }
+
+        function renderMixedChart(chartKey, barsValues, lineValues, pointClass, options = {}) {
+            const barsGroup = document.querySelector(`[data-chart-bars="${chartKey}"]`);
+            const linePath = document.querySelector(`[data-chart-line="${chartKey}"]`);
+            const pointsGroup = document.querySelector(`[data-chart-points="${chartKey}"]`);
+            if (!barsGroup || !linePath || !pointsGroup) return;
+
+            const normalizedBars = normalizeSeries(barsValues, {
+                clampMin: options.clampMin ?? null,
+                clampMax: options.clampMax ?? null,
+            });
+            const normalizedLine = normalizeSeries(lineValues, {
+                clampMin: options.clampMin ?? null,
+                clampMax: options.clampMax ?? null,
+            });
+            const scale = computeChartScale([...normalizedBars, ...normalizedLine], {
+                ticks: options.ticks ?? CHART_Y_TICKS,
+                minTopValue: options.minTopValue ?? CHART_MIN_TOP_VALUE,
+            });
+            renderChartAxisAndGrid(chartKey, scale);
+
+            barsGroup.innerHTML = buildBarsMarkup(normalizedBars, scale.topValue, {
+                hideZeroValues: Boolean(options.hideZeroBars),
+            });
+            linePath.setAttribute("d", buildLinePath(normalizedLine, scale.topValue));
+            pointsGroup.innerHTML = buildPointsMarkup(normalizedLine, scale.topValue, pointClass);
+        }
+
+        function renderLineChart(chartKey, lineValues, pointClass, options = {}) {
+            const linePath = document.querySelector(`[data-chart-line="${chartKey}"]`);
+            const pointsGroup = document.querySelector(`[data-chart-points="${chartKey}"]`);
+            if (!linePath || !pointsGroup) return;
+
+            const normalizedLine = normalizeSeries(lineValues, {
+                clampMin: options.clampMin ?? 0,
+                clampMax: options.clampMax ?? null,
+            });
+            const scale = computeChartScale(normalizedLine, {
+                ticks: options.ticks ?? CHART_Y_TICKS,
+                minTopValue: options.minTopValue ?? CHART_MIN_TOP_VALUE,
+            });
+            renderChartAxisAndGrid(chartKey, scale);
+            linePath.setAttribute("d", buildLinePath(normalizedLine, scale.topValue));
+            pointsGroup.innerHTML = buildPointsMarkup(normalizedLine, scale.topValue, pointClass);
+        }
+
+        function renderStatisticsCharts() {
+            const labels = Array.isArray(chartsPayload.labels) ? chartsPayload.labels : [];
+            renderChartLabels("results-mixed", labels);
+            renderChartLabels("sent-reactions-line", labels);
+            renderMixedChart(
+                "results-mixed",
+                chartsPayload.results_logged?.bars || [],
+                chartsPayload.results_logged?.line || [],
+                "statistics-chart__point--gray",
+                {
+                    clampMin: 0,
+                    hideZeroBars: true,
+                }
+            );
+            renderLineChart(
+                "sent-reactions-line",
+                chartsPayload.sent_reactions_per_day?.line || [],
+                "statistics-chart__point--orange",
+                {
+                    clampMin: 0,
+                }
+            );
         }
 
         function formatNumericDate(dateValue) {
@@ -518,18 +655,30 @@
             return "#8ec5ff";
         }
 
-        function renderTrainingViewExistingExercises(colorKey = "blue") {
+        function renderTrainingViewExistingExercises(colorKey = "blue", exercises = trainingViewExercises) {
             if (!trainingViewExisting) return;
             const grouped = new Map();
             const normalizedColor = String(colorKey || "blue").trim().toLowerCase();
             const accentColor = getTrainingColorAccent(normalizedColor);
-            trainingViewExercises.forEach((item) => {
-                const groupName = String(item.block || "Раздел");
+            const source = Array.isArray(exercises) ? exercises : [];
+            source.forEach((item) => {
+                const groupName = String(item.block || "Section");
                 if (!grouped.has(groupName)) {
                     grouped.set(groupName, []);
                 }
                 grouped.get(groupName).push(item);
             });
+
+            if (!grouped.size) {
+                trainingViewExisting.innerHTML = `
+                    <section class="calendar-create-modal__existing-group">
+                        <article class="calendar-create-modal__existing-item calendar-create-modal__existing-item--${escapeHtml(normalizedColor)}" style="--exercise-accent:${escapeHtml(accentColor)};">
+                            <span class="calendar-create-modal__existing-text">No exercises provided</span>
+                        </article>
+                    </section>
+                `;
+                return;
+            }
 
             trainingViewExisting.innerHTML = Array.from(grouped.entries()).map(([title, items]) => `
                 <section class="calendar-create-modal__existing-group">
@@ -559,14 +708,16 @@
                 return;
             }
 
-            reviewsGrid.innerHTML = reviews.map((review) => `
+            reviewsGrid.innerHTML = reviews.map((review, index) => `
                 <article class="statistics-review-card">
                     <div class="statistics-review-card__head">
                         <div>
                             <h4>${escapeHtml(review.training_title || payload.title || "")}</h4>
                             <p>${escapeHtml(review.date_label || "")}</p>
                         </div>
-                        <span class="statistics-review-card__eye">?</span>
+                        <button type="button" class="statistics-review-card__eye" data-open-review-training data-review-index="${Number(index)}" aria-label="Показать тренировку">
+                            <img src="{% static 'auth/img/admin/eye.svg' %}" alt="" aria-hidden="true">
+                        </button>
                     </div>
                     <div class="statistics-review-card__ratings">
                         <div><span>Силовая</span><b>${escapeHtml(review.strength_stars || "—")}</b><strong>${escapeHtml(review.strength_value || "—")}</strong></div>
@@ -576,6 +727,32 @@
                     <div class="statistics-review-card__text">${escapeHtml(review.comment || "")}</div>
                 </article>
             `).join("");
+
+            reviewsGrid.querySelectorAll("[data-open-review-training]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const reviewIndex = Number.parseInt(button.getAttribute("data-review-index") || "", 10);
+                    const review = Number.isFinite(reviewIndex) ? reviews[reviewIndex] : null;
+                    const trainingView = review?.training_view || null;
+                    if (!trainingView || !trainingViewModal) return;
+
+                    if (reviewsModal) {
+                        reviewsModal.hidden = true;
+                    }
+
+                    if (trainingViewName) {
+                        trainingViewName.textContent = trainingView.title || review?.training_title || "На все тело";
+                    }
+                    if (trainingViewDate) {
+                        trainingViewDate.textContent = trainingView.date_label || review?.date_label || formatNumericDate(rangeEnd);
+                    }
+                    if (trainingViewComment) {
+                        trainingViewComment.value = trainingView.comment || "";
+                    }
+                    renderTrainingViewExistingExercises(trainingView.color || "blue", trainingView.exercises || []);
+                    trainingViewModal.hidden = false;
+                    document.body.style.overflow = "hidden";
+                });
+            });
         }
 
         function initActivityTableSorting() {
@@ -890,11 +1067,11 @@
         });
 
         updateRangeLabel();
+        renderStatisticsCharts();
         initActivityTableSorting();
         initAchievementTableSorting();
     })();
 </script>
 {% endblock %}
-
 
 

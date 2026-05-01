@@ -4,6 +4,8 @@ import json
 import re
 import hmac
 import hashlib
+import smtplib
+from errno import ENOSPC
 from datetime import datetime, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -21,7 +23,7 @@ from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
 from django.core import signing
 from django.db import transaction
-from django.db.models import Avg, Count, Q
+from django.db.models import Avg, Count, Max, Q
 from django.shortcuts import redirect
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
@@ -65,79 +67,107 @@ TELEGRAM_LINK_TTL_MINUTES = 10
 TELEGRAM_QUICK_LOGIN_TTL_SECONDS = 10 * 60
 logger = logging.getLogger(__name__)
 
+
+def _get_existing_media_file_url(file_field, *, auto_clear_missing=False):
+    if not file_field:
+        return ''
+    try:
+        file_name = str(file_field.name or '').strip()
+        if not file_name:
+            return ''
+        storage = file_field.storage
+        if not storage.exists(file_name):
+            if auto_clear_missing:
+                try:
+                    instance = getattr(file_field, 'instance', None)
+                    field = getattr(file_field, 'field', None)
+                    field_name = getattr(field, 'name', '')
+                    if instance is not None and field_name:
+                        setattr(instance, field_name, None)
+                        update_fields = [field_name]
+                        if hasattr(instance, 'updated_at'):
+                            update_fields.append('updated_at')
+                        instance.save(update_fields=update_fields)
+                except Exception:
+                    logger.exception('Failed to auto-clear missing media file reference=%s', file_name)
+            return ''
+        return file_field.url
+    except Exception:
+        return ''
+
 RU_WEEKDAY = {
-    0: 'Понедельник',
-    1: 'Вторник',
-    2: 'Среда',
-    3: 'Четверг',
-    4: 'Пятница',
-    5: 'Суббота',
-    6: 'Воскресенье',
+    0: '\u041f\u043e\u043d\u0435\u0434\u0435\u043b\u044c\u043d\u0438\u043a',
+    1: '\u0412\u0442\u043e\u0440\u043d\u0438\u043a',
+    2: '\u0421\u0440\u0435\u0434\u0430',
+    3: '\u0427\u0435\u0442\u0432\u0435\u0440\u0433',
+    4: '\u041f\u044f\u0442\u043d\u0438\u0446\u0430',
+    5: '\u0421\u0443\u0431\u0431\u043e\u0442\u0430',
+    6: '\u0412\u043e\u0441\u043a\u0440\u0435\u0441\u0435\u043d\u044c\u0435',
 }
 
 RU_WEEKDAY_SHORT = {
-    0: 'Пн',
-    1: 'Вт',
-    2: 'Ср',
-    3: 'Чт',
-    4: 'Пт',
-    5: 'Сб',
-    6: 'Вс',
+    0: '\u041f\u043d',
+    1: '\u0412\u0442',
+    2: '\u0421\u0440',
+    3: '\u0427\u0442',
+    4: '\u041f\u0442',
+    5: '\u0421\u0431',
+    6: '\u0412\u0441',
 }
 
 TRAINING_DIRECTION_LABELS = {
     AdminTraining.DIRECTION_FBB: 'FBB',
-    AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
-    AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
-    AdminTraining.DIRECTION_WORKOUT: 'Тренировка дня',
-    AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
-    AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
+    AdminTraining.DIRECTION_CROSSFIT: '\u041a\u0440\u043e\u0441\u0441\u0444\u0438\u0442 \u0441 \u0414\u0435\u043d\u0438\u0441\u043e\u043c \u0417\u0430\u043b\u043e\u0437\u043d\u0438\u043c',
+    AdminTraining.DIRECTION_GYMNASTICS: '\u0413\u0438\u043c\u043d\u0430\u0441\u0442\u0438\u043a\u0430',
+    AdminTraining.DIRECTION_WORKOUT: '\u0422\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043a\u0430 \u0434\u043d\u044f',
+    AdminTraining.DIRECTION_FUNCTIONAL: '\u0424\u0443\u043d\u043a\u0446\u0438\u043e\u043d\u0430\u043b\u044c\u043d\u0430\u044f \u0442\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043a\u0430',
+    AdminTraining.DIRECTION_STRENGTH: '\u0421\u0438\u043b\u043e\u0432\u0430\u044f \u0442\u0440\u0435\u043d\u0438\u0440\u043e\u0432\u043a\u0430',
 }
 
 TRAINING_BLOCK_LABELS = {
-    AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
-    AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
-    AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
-    AdminTrainingExercise.BLOCK_CUSTOM: 'Свое название',
+    AdminTrainingExercise.BLOCK_STRENGTH: '\u0421\u0438\u043b\u043e\u0432\u0430\u044f',
+    AdminTrainingExercise.BLOCK_CARDIO: '\u041a\u0430\u0440\u0434\u0438\u043e',
+    AdminTrainingExercise.BLOCK_GYMNASTICS: '\u0413\u0438\u043c\u043d\u0430\u0441\u0442\u0438\u043a\u0430',
+    AdminTrainingExercise.BLOCK_CUSTOM: '\u0421\u0432\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435',
 }
 
 TRAINING_RESULT_TYPE_LABELS = {
-    AdminTrainingExercise.RESULT_TIME: 'Время',
-    AdminTrainingExercise.RESULT_WEIGHT: 'Вес',
-    AdminTrainingExercise.RESULT_REPS: 'Кол-во повторений',
+    AdminTrainingExercise.RESULT_TIME: '\u0412\u0440\u0435\u043c\u044f',
+    AdminTrainingExercise.RESULT_WEIGHT: '\u0412\u0435\u0441',
+    AdminTrainingExercise.RESULT_REPS: '\u041a\u043e\u043b-\u0432\u043e \u043f\u043e\u0432\u0442\u043e\u0440\u0435\u043d\u0438\u0439',
 }
 
 EXERCISE_KIND_LABELS = {
-    'exercise': 'Упражнение',
+    'exercise': '\u0423\u043f\u0440\u0430\u0436\u043d\u0435\u043d\u0438\u0435',
     'benchmarks': 'Benchmarks',
 }
 
 RESULT_TYPE_UNITS = {
-    TrainingResult.RESULT_TIME: 'мин',
-    TrainingResult.RESULT_WEIGHT: 'кг',
-    TrainingResult.RESULT_REPS: 'повт',
+    TrainingResult.RESULT_TIME: 'Р СР С‘Р Р…',
+    TrainingResult.RESULT_WEIGHT: 'Р С”Р С–',
+    TrainingResult.RESULT_REPS: 'Р С—Р С•Р Р†РЎвЂљ',
 }
 
 RESULT_MODAL_TYPE_CONFIG = {
     AdminTrainingExercise.RESULT_TIME: {
-        'primary_label': 'Минуты',
-        'primary_placeholder': 'мин.',
-        'secondary_label': 'Секунды',
-        'secondary_placeholder': 'сек.',
+        'primary_label': 'Р СљР С‘Р Р…РЎС“РЎвЂљРЎвЂ№',
+        'primary_placeholder': 'Р СР С‘Р Р….',
+        'secondary_label': 'Р РЋР ВµР С”РЎС“Р Р…Р Т‘РЎвЂ№',
+        'secondary_placeholder': 'РЎРѓР ВµР С”.',
         'show_secondary': True,
     },
     AdminTrainingExercise.RESULT_WEIGHT: {
-        'primary_label': 'Вес',
-        'primary_placeholder': 'кг',
+        'primary_label': 'Р вЂ™Р ВµРЎРѓ',
+        'primary_placeholder': 'Р С”Р С–',
         'secondary_label': '',
         'secondary_placeholder': '',
         'show_secondary': False,
     },
     AdminTrainingExercise.RESULT_REPS: {
-        'primary_label': 'Количество',
-        'primary_placeholder': 'Количество',
-        'secondary_label': 'Подходы',
-        'secondary_placeholder': 'Подходы',
+        'primary_label': 'Р С™Р С•Р В»Р С‘РЎвЂЎР ВµРЎРѓРЎвЂљР Р†Р С•',
+        'primary_placeholder': 'Р С™Р С•Р В»Р С‘РЎвЂЎР ВµРЎРѓРЎвЂљР Р†Р С•',
+        'secondary_label': 'Р СџР С•Р Т‘РЎвЂ¦Р С•Р Т‘РЎвЂ№',
+        'secondary_placeholder': 'Р СџР С•Р Т‘РЎвЂ¦Р С•Р Т‘РЎвЂ№',
         'show_secondary': True,
     },
 }
@@ -153,17 +183,48 @@ def format_admin_training_volume(exercise):
     return f'{exercise.exercise_name} {sets}x{reps}'
 
 
+def format_admin_training_volume_by_name(exercise_name, sets, reps):
+    if sets is None and reps is None:
+        return exercise_name
+    if sets is None or reps is None:
+        return exercise_name
+    return f'{exercise_name} {sets}x{reps}'
+
+
+def split_manual_description_lines(text_ru, text_en):
+    source = text_ru if str(text_ru or '').strip() else text_en
+    normalized = normalize_mojibake_text(str(source or ''))
+    return [line.strip() for line in normalized.splitlines() if line.strip()]
+
+
+def split_library_description_lines(text_ru, text_en):
+    source = text_ru if str(text_ru or '').strip() else text_en
+    normalized = normalize_mojibake_text(str(source or ''))
+    return [line.strip() for line in normalized.splitlines() if line.strip()]
+
+
+def resolve_manual_block_label(training):
+    block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
+    if block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+        custom_name = normalize_mojibake_text(getattr(training, 'manual_block_custom_name', '') or '').strip()
+        if custom_name:
+            return custom_name
+    if block_type in TRAINING_BLOCK_LABELS:
+        return normalize_mojibake_text(TRAINING_BLOCK_LABELS[block_type])
+    return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'Силовая'))
+
+
 def normalize_mojibake_text(value):
     if not isinstance(value, str):
         return value
     source = value.strip()
     if not source:
         return value
-    if not any(marker in source for marker in ('Р', 'С', 'Ð', 'Ñ')):
+    if not any(marker in source for marker in ('Р В ', 'Р РЋ', 'Р“С’', 'Р“вЂ')):
         return value
 
     def cyrillic_score(text):
-        return sum(1 for ch in text if ('А' <= ch <= 'я') or ch in {'Ё', 'ё'})
+        return sum(1 for ch in text if ('Р С’' <= ch <= 'РЎРЏ') or ch in {'Р Рѓ', 'РЎвЂ'})
 
     best = source
     best_score = cyrillic_score(source)
@@ -220,14 +281,55 @@ def serialize_admin_training(training):
         block_label = (
             item.block_custom_name.strip()
             if item.block_type == AdminTrainingExercise.BLOCK_CUSTOM
-            else TRAINING_BLOCK_LABELS.get(item.block_type, 'Блок')
+            else TRAINING_BLOCK_LABELS.get(item.block_type, 'Р вЂР В»Р С•Р С”')
         )
         block_label = normalize_mojibake_text(block_label)
         exercise_name = normalize_mojibake_text(item.exercise_name or '')
+        exercise_name_en = normalize_mojibake_text(
+            (getattr(item.library_item, 'name_en', '') or item.exercise_name or '')
+        )
         volume = normalize_mojibake_text(format_admin_training_volume(item))
+        volume_en = normalize_mojibake_text(
+            format_admin_training_volume_by_name(exercise_name_en, item.sets, item.reps)
+        )
+        volume_ru_lines = [volume] if volume else []
+        volume_en_lines = [volume_en] if volume_en else []
+        if (
+            str(item.exercise_kind or '').strip().lower() == AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS
+            and item.library_item_id
+            and item.library_item
+        ):
+            benchmark_ru_lines = split_library_description_lines(
+                getattr(item.library_item, 'desc_ru', ''),
+                getattr(item.library_item, 'desc_en', ''),
+            )
+            benchmark_en_lines = split_library_description_lines(
+                getattr(item.library_item, 'desc_en', ''),
+                getattr(item.library_item, 'desc_ru', ''),
+            )
+            if benchmark_ru_lines:
+                volume_ru_lines = benchmark_ru_lines
+            if benchmark_en_lines:
+                volume_en_lines = benchmark_en_lines
 
         exercise_payload = {
             'id': item.id,
+            'library_item_id': item.library_item_id,
+            'library_section': (
+                str(getattr(item.library_item, 'section', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
+            'library_movement_group': (
+                str(getattr(item.library_item, 'movement_group', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
+            'library_category': (
+                str(getattr(item.library_item, 'benchmark_category', '') or '').strip().lower()
+                if item.library_item_id and item.library_item
+                else ''
+            ),
             'block_type': item.block_type,
             'block_custom_name': normalize_mojibake_text(item.block_custom_name or ''),
             'block_label': block_label,
@@ -241,7 +343,7 @@ def serialize_admin_training(training):
             'reps': item.reps,
             'result_type': item.result_type,
             'result_type_label': normalize_mojibake_text(
-                TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Время')
+                TRAINING_RESULT_TYPE_LABELS.get(item.result_type, 'Р вЂ™РЎР‚Р ВµР СРЎРЏ')
             ),
             'order': item.order,
             'volume': volume,
@@ -250,8 +352,32 @@ def serialize_admin_training(training):
 
         if block_label not in section_index:
             section_index[block_label] = len(grouped_sections)
-            grouped_sections.append({'title': block_label, 'items': []})
-        grouped_sections[section_index[block_label]]['items'].append(exercise_payload['volume'])
+            grouped_sections.append({'title': block_label, 'items': [], 'items_ru': [], 'items_en': []})
+        grouped_sections[section_index[block_label]]['items'].extend(volume_ru_lines or [exercise_payload['volume']])
+        grouped_sections[section_index[block_label]]['items_ru'].extend(volume_ru_lines or [volume])
+        grouped_sections[section_index[block_label]]['items_en'].extend(volume_en_lines or [volume_en])
+
+    if training.source_type == AdminTraining.SOURCE_MANUAL and not grouped_sections:
+        manual_items_ru = [
+            normalize_mojibake_text(line.strip())
+            for line in str(training.manual_description_ru or '').splitlines()
+            if str(line).strip()
+        ]
+        manual_items_en = [
+            normalize_mojibake_text(line.strip())
+            for line in str(training.manual_description_en or '').splitlines()
+            if str(line).strip()
+        ]
+        fallback_items = split_manual_description_lines(training.manual_description_ru, training.manual_description_en)
+        if fallback_items:
+            grouped_sections.append(
+                {
+                    'title': resolve_manual_block_label(training),
+                    'items': fallback_items,
+                    'items_ru': manual_items_ru or fallback_items,
+                    'items_en': manual_items_en or fallback_items,
+                }
+            )
 
     first_exercise = exercises_payload[0] if exercises_payload else None
     training_title = normalize_mojibake_text(
@@ -281,6 +407,8 @@ def serialize_admin_training(training):
         'source_type': training.source_type,
         'manual_description_ru': normalize_mojibake_text(training.manual_description_ru or ''),
         'manual_description_en': normalize_mojibake_text(training.manual_description_en or ''),
+        'manual_block_type': (training.manual_block_type or ''),
+        'manual_block_custom_name': normalize_mojibake_text(training.manual_block_custom_name or ''),
         'manual_sets': training.manual_sets,
         'manual_result_type': training.manual_result_type or '',
         'ready_workout_type': training.ready_workout_type,
@@ -288,8 +416,16 @@ def serialize_admin_training(training):
         'ready_complex_name': normalize_mojibake_text(training.ready_complex_name or ''),
         'ready_plan_title': normalize_mojibake_text(training.ready_plan_title or ''),
         'created_by_id': training.created_by_id,
-        'block_name': first_exercise['block_label'] if first_exercise else 'Блок',
-        'volume': first_exercise['volume'] if first_exercise else '',
+        'block_name': (
+            first_exercise['block_label']
+            if first_exercise
+            else (grouped_sections[0]['title'] if grouped_sections else 'Р вЂР В»Р С•Р С”')
+        ),
+        'volume': (
+            first_exercise['volume']
+            if first_exercise
+            else (grouped_sections[0]['items'][0] if grouped_sections and grouped_sections[0].get('items') else '')
+        ),
         'sections': grouped_sections,
         'exercises': exercises_payload,
     }
@@ -303,9 +439,9 @@ def build_admin_training_results_payload(training):
         AdminTrainingExercise.BLOCK_CUSTOM: TrainingResult.SECTION_METABOLIC,
     }
     default_titles = {
-        TrainingResult.SECTION_STRENGTH: 'Силовая',
-        TrainingResult.SECTION_CARDIO: 'Кардио',
-        TrainingResult.SECTION_METABOLIC: 'Гимнастика',
+        TrainingResult.SECTION_STRENGTH: 'Р РЋР С‘Р В»Р С•Р Р†Р В°РЎРЏ',
+        TrainingResult.SECTION_CARDIO: 'Р С™Р В°РЎР‚Р Т‘Р С‘Р С•',
+        TrainingResult.SECTION_METABOLIC: 'Р вЂњР С‘Р СР Р…Р В°РЎРѓРЎвЂљР С‘Р С”Р В°',
     }
 
     columns = []
@@ -320,7 +456,7 @@ def build_admin_training_results_payload(training):
         if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip():
             section_title = exercise.block_custom_name.strip()
         else:
-            section_title = TRAINING_BLOCK_LABELS.get(exercise.block_type) or default_titles.get(section_key, 'Раздел')
+            section_title = TRAINING_BLOCK_LABELS.get(exercise.block_type) or default_titles.get(section_key, 'Р В Р В°Р В·Р Т‘Р ВµР В»')
 
         result_type = exercise.result_type or TrainingResult.RESULT_TIME
         section_index[section_key] = len(columns)
@@ -335,18 +471,29 @@ def build_admin_training_results_payload(training):
 
     if not columns:
         columns = [
-            {'section_key': TrainingResult.SECTION_STRENGTH, 'title': 'Силовая', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
-            {'section_key': TrainingResult.SECTION_CARDIO, 'title': 'Кардио', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
-            {'section_key': TrainingResult.SECTION_METABOLIC, 'title': 'Гимнастика', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_STRENGTH, 'title': 'Р РЋР С‘Р В»Р С•Р Р†Р В°РЎРЏ', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_CARDIO, 'title': 'Р С™Р В°РЎР‚Р Т‘Р С‘Р С•', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
+            {'section_key': TrainingResult.SECTION_METABOLIC, 'title': 'Р вЂњР С‘Р СР Р…Р В°РЎРѓРЎвЂљР С‘Р С”Р В°', 'result_type': TrainingResult.RESULT_TIME, 'unit': RESULT_TYPE_UNITS[TrainingResult.RESULT_TIME]},
         ]
         section_index = {col['section_key']: idx for idx, col in enumerate(columns)}
 
-    day_results = (
+    day_results = list(
         TrainingResult.objects
         .select_related('user')
-        .filter(training_date=training.training_date, section__in=list(section_index.keys()))
+        .filter(training=training, section__in=list(section_index.keys()))
         .order_by('user__first_name', 'user__last_name', 'user__email', 'section')
     )
+    if not day_results:
+        day_results = list(
+            TrainingResult.objects
+            .select_related('user')
+            .filter(
+                training__isnull=True,
+                training_date=training.training_date,
+                section__in=list(section_index.keys()),
+            )
+            .order_by('user__first_name', 'user__last_name', 'user__email', 'section')
+        )
 
     grouped = {}
     for item in day_results:
@@ -448,8 +595,14 @@ def build_daily_leaderboard_payload(training_date):
         .select_related('user')
         .filter(training_date=training_date)
         .filter(Q(minutes__isnull=False) | Q(seconds__isnull=False))
+        .order_by('user_id', 'section', '-updated_at', '-id')
     )
+    seen_user_section = set()
     for item in raw_results:
+        pair_key = (item.user_id, item.section)
+        if pair_key in seen_user_section:
+            continue
+        seen_user_section.add(pair_key)
         full_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
         minutes = item.minutes if item.minutes is not None else 0
         seconds = item.seconds if item.seconds is not None else 0
@@ -505,7 +658,7 @@ def build_week_days(selected_date):
         current = today + timedelta(days=offset)
         days.append(
             {
-                'weekday': RU_WEEKDAY_SHORT[current.weekday()],
+                'weekday': normalize_mojibake_text(RU_WEEKDAY_SHORT[current.weekday()]),
                 'day': current.day,
                 'iso_date': current.isoformat(),
                 'is_active': current == selected_date,
@@ -627,6 +780,13 @@ class LoginView(FormView):
     form_class = LoginForm
     success_url = reverse_lazy('auth:profile')
 
+    def dispatch(self, request, *args, **kwargs):
+        user, _ = resolve_request_user(request)
+        if user is not None and user.is_active:
+            redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
+            return redirect(redirect_url)
+        return super().dispatch(request, *args, **kwargs)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs['request'] = self.request
@@ -673,14 +833,14 @@ class TelegramWidgetLoginView(View):
             if value not in (None, '')
         }
         if not validate_telegram_login_payload(payload):
-            messages.error(request, 'Не удалось подтвердить вход через Telegram.')
+            messages.error(request, 'Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р Т‘Р С‘РЎвЂљРЎРЉ Р Р†РЎвЂ¦Р С•Р Т‘ РЎвЂЎР ВµРЎР‚Р ВµР В· Telegram.')
             return redirect('auth:login')
 
         user_id_raw = str(payload.get('id') or '').strip()
         try:
             telegram_user_id = int(user_id_raw)
         except (TypeError, ValueError):
-            messages.error(request, 'Некорректные данные Telegram.')
+            messages.error(request, 'Р СњР ВµР С”Р С•РЎР‚РЎР‚Р ВµР С”РЎвЂљР Р…РЎвЂ№Р Вµ Р Т‘Р В°Р Р…Р Р…РЎвЂ№Р Вµ Telegram.')
             return redirect('auth:login')
 
         linked_profile = (
@@ -738,7 +898,7 @@ class TelegramWidgetLoginView(View):
                 )
 
         if linked_profile is None or not linked_profile.user.is_active:
-            messages.error(request, 'Telegram не привязан к аккаунту. Войдите по почте и паролю.')
+            messages.error(request, 'Telegram Р Р…Р Вµ Р С—РЎР‚Р С‘Р Р†РЎРЏР В·Р В°Р Р… Р С” Р В°Р С”Р С”Р В°РЎС“Р Р…РЎвЂљРЎС“. Р вЂ™Р С•Р в„–Р Т‘Р С‘РЎвЂљР Вµ Р С—Р С• Р С—Р С•РЎвЂЎРЎвЂљР Вµ Р С‘ Р С—Р В°РЎР‚Р С•Р В»РЎР‹.')
             return redirect('auth:login')
 
         user = linked_profile.user
@@ -1127,6 +1287,18 @@ class RegisterPasswordView(FormView):
             return redirect('auth:register')
 
         email = signup_data['email']
+        logger.info(
+            'Register step2 email_send_start email=%s ip=%s backend=%s host=%s port=%s tls=%s ssl=%s timeout=%s from=%s',
+            email,
+            get_client_ip(self.request),
+            getattr(settings, 'EMAIL_BACKEND', ''),
+            getattr(settings, 'EMAIL_HOST', ''),
+            getattr(settings, 'EMAIL_PORT', ''),
+            getattr(settings, 'EMAIL_USE_TLS', False),
+            getattr(settings, 'EMAIL_USE_SSL', False),
+            getattr(settings, 'EMAIL_TIMEOUT', None),
+            getattr(settings, 'DEFAULT_FROM_EMAIL', ''),
+        )
         try:
             with transaction.atomic():
                 user = User.objects.create_user(
@@ -1137,7 +1309,48 @@ class RegisterPasswordView(FormView):
                     last_name=signup_data['last_name'],
                     is_active=True,
                 )
+                logger.info(
+                    'Register step2 email_send_attempt email=%s user_id=%s ip=%s',
+                    email,
+                    user.id,
+                    get_client_ip(self.request),
+                )
                 EmailAddress.objects.add_email(self.request, user, email, confirm=True)
+                logger.info(
+                    'Register step2 email_send_success email=%s user_id=%s ip=%s',
+                    email,
+                    user.id,
+                    get_client_ip(self.request),
+                )
+        except smtplib.SMTPException as exc:
+            logger.warning(
+                'Register step2 smtp_error email=%s ip=%s smtp_code=%s smtp_error=%s error=%r',
+                email,
+                get_client_ip(self.request),
+                getattr(exc, 'smtp_code', None),
+                getattr(exc, 'smtp_error', None),
+                exc,
+                exc_info=True,
+            )
+            messages.error(
+                self.request,
+                'Не удалось отправить письмо подтверждения. Проверьте SMTP-настройки и повторите попытку.',
+            )
+            return self.render_to_response(self.get_context_data(form=form))
+        except OSError as exc:
+            logger.warning(
+                'Register step2 smtp_network_error email=%s ip=%s errno=%s error=%r',
+                email,
+                get_client_ip(self.request),
+                getattr(exc, 'errno', None),
+                exc,
+                exc_info=True,
+            )
+            messages.error(
+                self.request,
+                'Не удалось подключиться к почтовому серверу. Проверьте сеть и SMTP-настройки.',
+            )
+            return self.render_to_response(self.get_context_data(form=form))
         except Exception:
             logger.warning(
                 'Register step2 email confirmation send failed email=%s ip=%s',
@@ -1147,7 +1360,7 @@ class RegisterPasswordView(FormView):
             )
             messages.error(
                 self.request,
-                'Р СњР Вµ РЎС“Р Т‘Р В°Р В»Р С•РЎРѓРЎРЉ Р С•РЎвЂљР С—РЎР‚Р В°Р Р†Р С‘РЎвЂљРЎРЉ Р С—Р С‘РЎРѓРЎРЉР СР С• Р С—Р С•Р Т‘РЎвЂљР Р†Р ВµРЎР‚Р В¶Р Т‘Р ВµР Р…Р С‘РЎРЏ. Р С’Р С”Р С”Р В°РЎС“Р Р…РЎвЂљ Р Р…Р Вµ РЎРѓР С•Р В·Р Т‘Р В°Р Р…, Р С—Р С•Р С—РЎР‚Р С•Р В±РЎС“Р в„–РЎвЂљР Вµ Р С—Р С•Р В·Р В¶Р Вµ.',
+                'Р В Р’В Р РЋРЎС™Р В Р’В Р вЂ™Р’Вµ Р В Р Р‹Р РЋРІР‚СљР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ° Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚Сћ Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В¶Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В Р РЏ. Р В Р’В Р РЋРІР‚в„ўР В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р Р‹Р РЋРІР‚СљР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦, Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В±Р В Р Р‹Р РЋРІР‚СљР В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’Вµ.',
             )
             return self.render_to_response(self.get_context_data(form=form))
         self.request.session.pop(REGISTER_SESSION_KEY, None)
@@ -1175,7 +1388,7 @@ class RegisterSuccessView(TemplateView):
     def dispatch(self, request, *args, **kwargs):
         messages.success(
             request,
-            'Р В Р’В Р РЋРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚Сћ Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В° email. Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„– Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚Сћ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В· Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р вЂ°Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°.',
+            'Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚Сљ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В РІР‚в„ўР вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂє Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В° email. Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р Р‹Р РЋРЎСџР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂєР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р РЋРЎвЂєР В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р РЋРЎвЂєР В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎвЂє Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚СљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В· Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р В Р вЂ№Р В РІР‚в„ўР вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р Р†Р вЂљРІвЂћСћР В РІР‚в„ўР вЂ™Р’В°.',
         )
         return super().dispatch(request, *args, **kwargs)
 
@@ -1214,7 +1427,7 @@ class SharedProfileHeaderMixin:
 class AdminProtectedMixin:
     login_url = reverse_lazy('auth:admin_login')
     fallback_url = reverse_lazy('auth:profile')
-    permission_denied_message = 'Р В РЎСљР В Р’ВµР В РўвЂР В РЎвЂўР РЋР С“Р РЋРІР‚С™Р В Р’В°Р РЋРІР‚С™Р В РЎвЂўР РЋРІР‚РЋР В Р вЂ¦Р В РЎвЂў Р В РЎвЂ”Р РЋР вЂљР В Р’В°Р В Р вЂ  Р В РўвЂР В Р’В»Р РЋР РЏ Р В РЎвЂ”Р РЋР вЂљР В РЎвЂўР РЋР С“Р В РЎВР В РЎвЂўР РЋРІР‚С™Р РЋР вЂљР В Р’В° Р РЋР РЉР РЋРІР‚С™Р В РЎвЂўР В РІвЂћвЂ“ Р РЋР С“Р РЋРІР‚С™Р РЋР вЂљР В Р’В°Р В Р вЂ¦Р В РЎвЂР РЋРІР‚В Р РЋРІР‚в„–.'
+    permission_denied_message = 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р РЋРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р В Р вЂ№Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС› Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В  Р В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р вЂ™Р’В Р В Р Р‹Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В° Р В Р’В Р В Р вЂ№Р В Р’В Р В Р вЂ°Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В Р вЂ Р Р†Р вЂљРЎвЂєР Р†Р вЂљРІР‚Сљ Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р вЂ™Р’В Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњ.'
 
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
@@ -1271,8 +1484,8 @@ class ProfileView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView
             .distinct()
             .count()
         )
-        month_goal = weekly_goal * 4
-        year_goal = weekly_goal * 52
+        month_goal = weekly_goal * 3
+        year_goal = month_goal * 12
         context['profile_activity_values_json'] = json.dumps(
             {
                 'week': {
@@ -1384,7 +1597,7 @@ class SupportView(UserOnlyProtectedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
-        context['support_experience'] = '8 Р В»Р ВµРЎвЂљ'
+        context['support_experience'] = '8 Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў'
         return context
 
 
@@ -1394,7 +1607,7 @@ class SupportMessageSentView(UserOnlyProtectedMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['support_name'] = f'{self.request.user.first_name} {self.request.user.last_name}'.strip() or self.request.user.email
-        context['support_experience'] = '8 Р В»Р ВµРЎвЂљ'
+        context['support_experience'] = '8 Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў'
         return context
 
 
@@ -1761,11 +1974,11 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             if matched:
                 if matched['place'] in award_counts:
                     award_counts[matched['place']] += 1
-                place_label = f'Место: {matched["place"]}'
+                place_label = f'Р СљР ВµРЎРѓРЎвЂљР С•: {matched["place"]}'
                 result_value = normalize_mojibake_text(matched['result_label'])
                 result_mode = normalize_mojibake_text(matched['mode'])
             else:
-                place_label = 'Место: —'
+                place_label = 'Р СљР ВµРЎРѓРЎвЂљР С•: РІР‚вЂќ'
                 result_value = '--'
                 result_mode = '--'
 
@@ -1783,16 +1996,16 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
                     'data_date': today.isoformat(),
                     'title': f'{training_direction_label} / {normalize_mojibake_text(section_payload["title"])}',
                     'date': today.strftime('%d.%m.%Y'),
-                    'result': f'{result_value} • {place_label}',
+                    'result': f'{result_value} РІР‚Сћ {place_label}',
                 }
             )
 
         context['result_sections'] = result_sections
         context['award_rows'] = award_rows
         context['award_summary_rows'] = [
-            {'place': '1 место', 'count': award_counts[1], 'icon': 'auth/img/award-first.svg'},
-            {'place': '2 место', 'count': award_counts[2], 'icon': 'auth/img/award-second.svg'},
-            {'place': '3 место', 'count': award_counts[3], 'icon': 'auth/img/award-third.svg'},
+            {'place': '1 Р СР ВµРЎРѓРЎвЂљР С•', 'count': award_counts[1], 'icon': 'auth/img/award-first.svg'},
+            {'place': '2 Р СР ВµРЎРѓРЎвЂљР С•', 'count': award_counts[2], 'icon': 'auth/img/award-second.svg'},
+            {'place': '3 Р СР ВµРЎРѓРЎвЂљР С•', 'count': award_counts[3], 'icon': 'auth/img/award-third.svg'},
         ]
         context['award_training_direction_label'] = training_direction_label
         return context
@@ -1806,7 +2019,7 @@ class CalendarView(AdminProtectedMixin, TemplateView):
         trainings = (
             AdminTraining.objects
             .select_related('created_by')
-            .prefetch_related('exercises')
+            .prefetch_related('exercises__library_item')
             .order_by('-training_date', '-updated_at', '-id')
         )
         context['calendar_trainings_json'] = json.dumps(
@@ -2070,12 +2283,12 @@ class AdminProfileUserCreateView(AdminProtectedMixin, View):
             try:
                 reset_link = build_admin_password_reset_link(request, reset_request)
                 send_mail(
-                    subject='Р СџРЎР‚Р С‘Р С–Р В»Р В°РЎв‚¬Р ВµР Р…Р С‘Р Вµ Р Р† Р В°Р Т‘Р СР С‘Р Р…-Р С—Р В°Р Р…Р ВµР В»РЎРЉ',
+                    subject='Р В Р’В Р РЋРЎСџР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р’В Р РЋРІР‚вЂњР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ Р В Р’В Р В РІР‚В  Р В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚ВР В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚ВР В Р’В Р В РІР‚В¦-Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°',
                     message=(
-                        'Р вЂ™РЎвЂ№ Р В±РЎвЂ№Р В»Р С‘ Р Т‘Р С•Р В±Р В°Р Р†Р В»Р ВµР Р…РЎвЂ№ Р Р† РЎРѓР С‘РЎРѓРЎвЂљР ВµР СРЎС“.\n\n'
-                        'Р вЂќР В»РЎРЏ РЎС“РЎРѓРЎвЂљР В°Р Р…Р С•Р Р†Р С”Р С‘ Р С—Р В°РЎР‚Р С•Р В»РЎРЏ Р С•РЎвЂљР С”РЎР‚Р С•Р в„–РЎвЂљР Вµ РЎРѓРЎРѓРЎвЂ№Р В»Р С”РЎС“:\n'
+                        'Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В±Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ Р В Р’В Р В РІР‚В  Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋР’ВР В Р Р‹Р РЋРІР‚Сљ.\n\n'
+                        'Р В Р’В Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚В Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СњР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ Р В Р Р‹Р В РЎвЂњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СњР В Р Р‹Р РЋРІР‚Сљ:\n'
                         f'{reset_link}\n\n'
-                        'Р РЋРЎРѓРЎвЂ№Р В»Р С”Р В° Р Т‘Р ВµР в„–РЎРѓРЎвЂљР Р†РЎС“Р ВµРЎвЂљ 10 Р СР С‘Р Р…РЎС“РЎвЂљ.'
+                        'Р В Р’В Р В Р вЂ№Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р Р‹Р РЋРІР‚СљР В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў 10 Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚ВР В Р’В Р В РІР‚В¦Р В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљРЎв„ў.'
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[email],
@@ -2104,6 +2317,7 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
 
     @staticmethod
     def _serialize_item(item):
+        video_url = _get_existing_media_file_url(item.video_file, auto_clear_missing=True)
         return {
             'id': item.id,
             'section': item.section,
@@ -2114,6 +2328,8 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
             'desc_ru': item.desc_ru,
             'desc_en': item.desc_en,
             'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
+            'video_url': video_url,
+            'video_count': 1 if video_url else 0,
         }
 
     def get_context_data(self, **kwargs):
@@ -2126,16 +2342,16 @@ class AdminLibraryView(AdminProtectedMixin, TemplateView):
 
 class AdminLibraryListView(AdminProtectedMixin, View):
     http_method_names = ['get']
+    ALLOWED_SECTIONS = {AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BENCHMARKS}
 
     def get(self, request, *args, **kwargs):
         section = str(request.GET.get('section') or AdminLibraryItem.SECTION_EXERCISES).strip().lower()
         category = str(request.GET.get('category') or '').strip().lower()
         movement_group = str(request.GET.get('movement_group') or '').strip().lower()
 
-        valid_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         valid_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
         valid_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
-        if section not in valid_sections:
+        if section not in self.ALLOWED_SECTIONS:
             return JsonResponse({'ok': False, 'error': 'invalid_section'}, status=400)
 
         query = AdminLibraryItem.objects.filter(section=section)
@@ -2155,6 +2371,7 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
     http_method_names = ['post']
     ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.wmv'}
     MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024
+    ALLOWED_SECTIONS = {AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BENCHMARKS}
 
     def post(self, request, *args, **kwargs):
         section = str(request.POST.get('section') or '').strip().lower()
@@ -2166,12 +2383,11 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         desc_en = str(request.POST.get('desc_en') or '').strip()
         video_file = request.FILES.get('video')
 
-        allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
         allowed_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
 
         field_errors = {}
-        if section not in allowed_sections:
+        if section not in self.ALLOWED_SECTIONS:
             field_errors['section'] = 'invalid_section'
         if section == AdminLibraryItem.SECTION_BENCHMARKS:
             if category not in allowed_categories:
@@ -2200,32 +2416,27 @@ class AdminLibraryCreateView(AdminProtectedMixin, View):
         if field_errors:
             return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
 
-        item = AdminLibraryItem.objects.create(
-            section=section,
-            benchmark_category=category,
-            movement_group=movement_group,
-            name_ru=name_ru,
-            name_en=name_en,
-            desc_ru=desc_ru,
-            desc_en=desc_en,
-            video_file=video_file,
-            created_by=request.user,
-        )
+        try:
+            item = AdminLibraryItem.objects.create(
+                section=section,
+                benchmark_category=category,
+                movement_group=movement_group,
+                name_ru=name_ru,
+                name_en=name_en,
+                desc_ru=desc_ru,
+                desc_en=desc_en,
+                video_file=video_file,
+                created_by=request.user,
+            )
+        except OSError as exc:
+            if getattr(exc, 'errno', None) == ENOSPC:
+                return JsonResponse({'ok': False, 'error': 'storage_full'}, status=507)
+            raise
 
         return JsonResponse(
             {
                 'ok': True,
-                'item': {
-                    'id': item.id,
-                    'section': item.section,
-                    'category': item.benchmark_category,
-                    'movement_group': item.movement_group,
-                    'name_ru': item.name_ru,
-                    'name_en': item.name_en,
-                    'desc_ru': item.desc_ru,
-                    'desc_en': item.desc_en,
-                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
-                },
+                'item': AdminLibraryView._serialize_item(item),
             }
         )
 
@@ -2234,6 +2445,7 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
     http_method_names = ['post']
     ALLOWED_VIDEO_EXTENSIONS = {'.mp4', '.avi', '.mov', '.wmv'}
     MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024
+    ALLOWED_SECTIONS = {AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BENCHMARKS}
 
     def post(self, request, item_id, *args, **kwargs):
         item = AdminLibraryItem.objects.filter(id=item_id).first()
@@ -2249,12 +2461,11 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
         desc_en = str(request.POST.get('desc_en') or '').strip()
         video_file = request.FILES.get('video')
 
-        allowed_sections = {choice[0] for choice in AdminLibraryItem.SECTION_CHOICES}
         allowed_categories = {choice[0] for choice in AdminLibraryItem.BENCHMARK_CATEGORY_CHOICES}
         allowed_groups = {choice[0] for choice in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
 
         field_errors = {}
-        if section not in allowed_sections:
+        if section not in self.ALLOWED_SECTIONS:
             field_errors['section'] = 'invalid_section'
         if section == AdminLibraryItem.SECTION_BENCHMARKS:
             if category not in allowed_categories:
@@ -2292,34 +2503,29 @@ class AdminLibraryUpdateView(AdminProtectedMixin, View):
         item.desc_en = desc_en
         if video_file:
             item.video_file = video_file
-        item.save(
-            update_fields=[
-                'section',
-                'benchmark_category',
-                'movement_group',
-                'name_ru',
-                'name_en',
-                'desc_ru',
-                'desc_en',
-                'video_file',
-                'updated_at',
-            ]
-        )
+        try:
+            item.save(
+                update_fields=[
+                    'section',
+                    'benchmark_category',
+                    'movement_group',
+                    'name_ru',
+                    'name_en',
+                    'desc_ru',
+                    'desc_en',
+                    'video_file',
+                    'updated_at',
+                ]
+            )
+        except OSError as exc:
+            if getattr(exc, 'errno', None) == ENOSPC:
+                return JsonResponse({'ok': False, 'error': 'storage_full'}, status=507)
+            raise
 
         return JsonResponse(
             {
                 'ok': True,
-                'item': {
-                    'id': item.id,
-                    'section': item.section,
-                    'category': item.benchmark_category,
-                    'movement_group': item.movement_group,
-                    'name_ru': item.name_ru,
-                    'name_en': item.name_en,
-                    'desc_ru': item.desc_ru,
-                    'desc_en': item.desc_en,
-                    'video': item.video_file.name.rsplit('/', 1)[-1] if item.video_file else '',
-                },
+                'item': AdminLibraryView._serialize_item(item),
             }
         )
 
@@ -2332,8 +2538,6 @@ class AdminLibraryDeleteView(AdminProtectedMixin, View):
         if item is None:
             return JsonResponse({'ok': False, 'error': 'item_not_found'}, status=404)
 
-        if item.video_file:
-            item.video_file.delete(save=False)
         item.delete()
         return JsonResponse({'ok': True, 'deleted_id': item_id})
 
@@ -2342,8 +2546,8 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     template_name = 'auth/statistics.html'
 
     MONTHS_GENITIVE = (
-        'РЎРЏР Р…Р Р†Р В°РЎР‚РЎРЏ', 'РЎвЂћР ВµР Р†РЎР‚Р В°Р В»РЎРЏ', 'Р СР В°РЎР‚РЎвЂљР В°', 'Р В°Р С—РЎР‚Р ВµР В»РЎРЏ', 'Р СР В°РЎРЏ', 'Р С‘РЎР‹Р Р…РЎРЏ',
-        'Р С‘РЎР‹Р В»РЎРЏ', 'Р В°Р Р†Р С–РЎС“РЎРѓРЎвЂљР В°', 'РЎРѓР ВµР Р…РЎвЂљРЎРЏР В±РЎР‚РЎРЏ', 'Р С•Р С”РЎвЂљРЎРЏР В±РЎР‚РЎРЏ', 'Р Р…Р С•РЎРЏР В±РЎР‚РЎРЏ', 'Р Т‘Р ВµР С”Р В°Р В±РЎР‚РЎРЏ',
+        'Р В Р Р‹Р В Р РЏР В Р’В Р В РІР‚В¦Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏ', 'Р В Р Р‹Р Р†Р вЂљРЎвЂєР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°', 'Р В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„–Р В Р’В Р В РІР‚В¦Р В Р Р‹Р В Р РЏ',
+        'Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„–Р В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚вЂњР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°', 'Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р РЏР В Р’В Р вЂ™Р’В±Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚СњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р РЏР В Р’В Р вЂ™Р’В±Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СћР В Р Р‹Р В Р РЏР В Р’В Р вЂ™Р’В±Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏ', 'Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏ',
     )
 
     @staticmethod
@@ -2364,7 +2568,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             return f'{first} {last[0]}.'
         if first:
             return first
-        return (user.email or '').strip() or f'Р СџР С•Р В»РЎРЉР В·Р С•Р Р†Р В°РЎвЂљР ВµР В»РЎРЉ {user.id}'
+        return (user.email or '').strip() or f'Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р вЂ™Р’В·Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ° {user.id}'
 
     @classmethod
     def _default_period(cls):
@@ -2400,27 +2604,46 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         return f'{float(value):.1f}'.replace('.', ',')
 
     @staticmethod
+    def _result_submissions_queryset():
+        return (
+            TrainingResult.objects
+            .values('training_date', 'user_id', 'training_id')
+            .distinct()
+        )
+
+    @classmethod
+    def _result_submissions_by_date(cls, start_date, end_date):
+        counts = {}
+        rows = cls._result_submissions_queryset().filter(training_date__range=(start_date, end_date))
+        for row in rows:
+            day = row.get('training_date')
+            if day is None:
+                continue
+            counts[day] = counts.get(day, 0) + 1
+        return counts
+
+    @staticmethod
     def _result_unit_label(result_type):
         if result_type == TrainingResult.RESULT_WEIGHT:
-            return 'Р С”Р С–'
+            return 'кг'
         if result_type == TrainingResult.RESULT_REPS:
-            return 'Р С—Р С•Р Р†РЎвЂљ'
-        return 'Р СР С‘Р Р…'
+            return 'повторений'
+        return 'мин'
 
     @staticmethod
     def _result_value_label(result_type, minutes, seconds):
         if result_type == TrainingResult.RESULT_WEIGHT:
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else 'РІР‚вЂќ'
+            return str(seconds) if seconds is not None else 'Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ'
         if result_type == TrainingResult.RESULT_REPS:
             if minutes is not None and seconds is not None:
                 return f'{minutes} x {seconds}'
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else 'РІР‚вЂќ'
+            return str(seconds) if seconds is not None else 'Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ'
         if minutes is None and seconds is None:
-            return 'РІР‚вЂќ'
+            return 'Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ'
         if minutes is None:
             return f'0:{int(seconds):02d}'
         if seconds is None:
@@ -2453,13 +2676,23 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         }
 
         grouped_exercises = {}
+        trainings_by_date = {}
+        trainings_in_period = (
+            AdminTraining.objects
+            .filter(training_date__range=(period_start, period_end))
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        for training in trainings_in_period:
+            trainings_by_date.setdefault(training.training_date, []).append(training)
+
         exercise_entries = (
             AdminTrainingExercise.objects
             .select_related('training')
             .filter(training__training_date__range=(period_start, period_end))
         )
         for entry in exercise_entries:
-            direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°')
+            direction_label = TRAINING_DIRECTION_LABELS.get(entry.training.direction, 'Р В Р’В Р РЋРЎвЂєР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°')
             key = (entry.exercise_name, direction_label)
             bucket = grouped_exercises.setdefault(
                 key,
@@ -2490,6 +2723,48 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             for training_date in training_dates:
                 for rate in rates_by_date.get(training_date, []):
                     full_name = f'{rate.user.first_name} {rate.user.last_name}'.strip() or rate.user.email
+                    date_trainings = trainings_by_date.get(training_date, [])
+                    selected_training = None
+                    if date_trainings:
+                        current_direction = normalize_mojibake_text(str(key[1] or '')).strip()
+                        matched_by_direction = [
+                            item for item in date_trainings
+                            if normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(item.direction, '')).strip() == current_direction
+                        ]
+                        selected_training = matched_by_direction[0] if matched_by_direction else date_trainings[0]
+
+                    training_view = None
+                    if selected_training:
+                        training_exercises = []
+                        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
+                        for exercise in ordered_exercises:
+                            exercise_name = normalize_mojibake_text(str(exercise.exercise_name or '').strip())
+                            if not exercise_name:
+                                continue
+                            block_label = (
+                                normalize_mojibake_text(str(exercise.block_custom_name or '').strip())
+                                if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and str(exercise.block_custom_name or '').strip()
+                                else normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок'))
+                            )
+                            training_exercises.append(
+                                {
+                                    'block': block_label,
+                                    'text': normalize_mojibake_text(format_admin_training_volume(exercise)),
+                                }
+                            )
+                        training_view = {
+                            'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(selected_training.direction, 'Тренировка')),
+                            'date_label': selected_training.training_date.strftime('%d.%m.%Y'),
+                            'comment': normalize_mojibake_text(str(selected_training.comment or '').strip()),
+                            'visibility': (
+                                'Только для тренеров'
+                                if selected_training.visibility == AdminTraining.VISIBILITY_COACHES
+                                else 'Для всех'
+                            ),
+                            'color': selected_training.color or AdminTraining.COLOR_BLUE,
+                            'exercises': training_exercises,
+                        }
+
                     review_cards.append(
                         {
                             'training_title': key[1],
@@ -2502,6 +2777,7 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                             'cardio_value': self._rating_label(rate.cardio),
                             'metabolic_stars': self._stars(rate.metabolic),
                             'metabolic_value': self._rating_label(rate.metabolic),
+                            'training_view': training_view,
                             'overall': float(rate.overall),
                         }
                     )
@@ -2645,10 +2921,47 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
         context['users_active_count'] = active_users_count
 
         today = timezone.localdate()
-        context['results_today_count'] = TrainingResult.objects.filter(training_date=today).count()
-        context['results_period_count'] = TrainingResult.objects.filter(
+        context['results_today_count'] = self._result_submissions_queryset().filter(training_date=today).count()
+        context['results_period_count'] = self._result_submissions_queryset().filter(
             training_date__range=(period_start, period_end)
         ).count()
+
+        chart_week_end = period_end
+        chart_week_start = chart_week_end - timedelta(days=6)
+
+        results_counts_current_week = self._result_submissions_by_date(chart_week_start, chart_week_end)
+        sent_reactions_counts_current_week = {
+            row['training_date']: row['total']
+            for row in (
+                CommunityReaction.objects
+                .filter(training_date__range=(chart_week_start, chart_week_end))
+                .values('training_date')
+                .annotate(total=Count('id'))
+            )
+        }
+
+        chart_labels = []
+        results_logged_bars = []
+        results_logged_line = []
+        sent_reactions_per_day_line = []
+        for day_offset in range(7):
+            current_day = chart_week_start + timedelta(days=day_offset)
+            chart_labels.append(RU_WEEKDAY_SHORT.get(current_day.weekday(), current_day.strftime('%a')))
+            day_results_count = int(results_counts_current_week.get(current_day, 0))
+            results_logged_bars.append(day_results_count)
+            results_logged_line.append(day_results_count)
+            sent_reactions_per_day_line.append(int(sent_reactions_counts_current_week.get(current_day, 0)))
+
+        context['statistics_charts_json'] = {
+            'labels': chart_labels,
+            'results_logged': {
+                'bars': results_logged_bars,
+                'line': results_logged_line,
+            },
+            'sent_reactions_per_day': {
+                'line': sent_reactions_per_day_line,
+            },
+        }
 
         visited_counts = {
             row['user_id']: row['visited']
@@ -2696,6 +3009,19 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         'metabolic': 'metabolic',
     }
     PERIOD_OPTIONS = {'all', 'today', 'week', 'month'}
+    DIRECTION_LABELS_RU = {
+        AdminTraining.DIRECTION_FBB: 'FBB',
+        AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
+        AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
+        AdminTraining.DIRECTION_WORKOUT: 'Тренировка дня',
+        AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
+        AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
+    }
+    BLOCK_LABELS_RU = {
+        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
+    }
 
     @staticmethod
     def _stars(value):
@@ -2715,13 +3041,13 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
             return f'{name} x {sets} подхода по {reps}'
         return name
 
-    @staticmethod
-    def _resolve_block_label(exercise):
+    @classmethod
+    def _resolve_block_label(cls, exercise):
         if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM:
             custom_name = str(exercise.block_custom_name or '').strip()
             if custom_name:
                 return normalize_mojibake_text(custom_name)
-        return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок'))
+        return normalize_mojibake_text(cls.BLOCK_LABELS_RU.get(exercise.block_type, 'Блок'))
 
     @staticmethod
     def _pick_training_for_rate(rate, candidates):
@@ -2797,7 +3123,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
             )
             training_key = f'rate-{rate.id}'
             training_title = normalize_mojibake_text(
-                TRAINING_DIRECTION_LABELS.get(training.direction, 'HIIT Training')
+                self.DIRECTION_LABELS_RU.get(training.direction, 'HIIT Training')
             ) if training else 'HIIT Training'
             if search_query_folded and search_query_folded not in training_title.casefold():
                 continue
@@ -2817,9 +3143,9 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
 
                 training_view_payload[training_key] = {
                     'training_id': training.id,
-                    'title': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка')),
+                    'title': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
                     'date_label': training.training_date.strftime('%d.%m.%Y'),
-                    'direction': normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(training.direction, 'Тренировка')),
+                    'direction': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
                     'visibility': 'Только для тренеров' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
                     'comment': normalize_mojibake_text(str(training.comment or '').strip()),
                     'color': training.color or 'blue',
@@ -2878,7 +3204,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             return None
         return parsed
 
-    def _collect_exercises(self, payload):
+    def _collect_exercises(self, payload, source_type):
         raw_exercises = payload.get('exercises') or []
         if not isinstance(raw_exercises, list):
             return None, {'exercises': 'invalid_exercises'}
@@ -2886,8 +3212,29 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         valid_block_values = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
         valid_result_values = {key for key, _ in AdminTrainingExercise.RESULT_CHOICES}
         valid_exercise_kinds = set(EXERCISE_KIND_LABELS.keys())
+        expected_section_by_kind = {
+            AdminTrainingExercise.EXERCISE_KIND_EXERCISE: AdminLibraryItem.SECTION_EXERCISES,
+            AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS: AdminLibraryItem.SECTION_BENCHMARKS,
+        }
         parsed_exercises = []
         errors = {}
+        library_items_by_id = {}
+        if source_type == AdminTraining.SOURCE_LIBRARY:
+            requested_library_ids = set()
+            for raw_item in raw_exercises:
+                if not isinstance(raw_item, dict):
+                    continue
+                parsed_library_item_id = self._parse_positive_int(raw_item.get('library_item_id'))
+                if parsed_library_item_id is not None:
+                    requested_library_ids.add(parsed_library_item_id)
+            if requested_library_ids:
+                library_items_by_id = {
+                    item.id: item
+                    for item in AdminLibraryItem.objects.filter(
+                        id__in=requested_library_ids,
+                        section__in=[AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BENCHMARKS],
+                    ).only('id', 'section')
+                }
 
         for index, raw_item in enumerate(raw_exercises):
             if not isinstance(raw_item, dict):
@@ -2917,6 +3264,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             exercise_name = str(raw_item.get('exercise_name') or '').strip()
             sets = self._parse_positive_int(raw_item.get('sets'))
             reps = self._parse_positive_int(raw_item.get('reps'))
+            library_item_id = self._parse_positive_int(raw_item.get('library_item_id'))
 
             if not exercise_name:
                 errors[f'exercises.{index}.exercise_name'] = 'exercise_name_required'
@@ -2932,9 +3280,24 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
                 sets = None
                 reps = None
 
+            if source_type == AdminTraining.SOURCE_LIBRARY:
+                if library_item_id is None:
+                    errors[f'exercises.{index}.library_item_id'] = 'library_item_id_required'
+                    continue
+                library_item = library_items_by_id.get(library_item_id)
+                if library_item is None:
+                    errors[f'exercises.{index}.library_item_id'] = 'invalid_library_item_id'
+                    continue
+                if library_item.section != expected_section_by_kind[exercise_kind]:
+                    errors[f'exercises.{index}.library_item_id'] = 'library_item_kind_mismatch'
+                    continue
+            else:
+                library_item_id = None
+
             parsed_exercises.append(
                 {
                     'exercise_kind': exercise_kind,
+                    'library_item_id': library_item_id,
                     'block_type': block_type,
                     'block_custom_name': block_custom_name,
                     'exercise_name': exercise_name,
@@ -2963,6 +3326,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         comment_for_athletes = str(payload.get('comment_for_athletes') or '').strip()
         manual_description_ru = str(payload.get('manual_description_ru') or '').strip()
         manual_description_en = str(payload.get('manual_description_en') or '').strip()
+        manual_block_type = str(payload.get('training_block') or AdminTrainingExercise.BLOCK_STRENGTH).strip().lower()
+        manual_block_custom_name = str(payload.get('training_block_custom') or '').strip()
         manual_sets = self._parse_positive_int(payload.get('manual_sets'))
         manual_result_type = str(payload.get('manual_result_type') or '').strip().lower()
         ready_workout_type = str(payload.get('ready_workout_type') or '').strip()
@@ -2995,13 +3360,18 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         exercises = []
         exercise_errors = {}
         if source_type in {AdminTraining.SOURCE_LIBRARY, AdminTraining.SOURCE_READY}:
-            exercises, exercise_errors = self._collect_exercises(payload)
+            exercises, exercise_errors = self._collect_exercises(payload, source_type=source_type)
             field_errors.update(exercise_errors)
 
         if source_type == AdminTraining.SOURCE_READY and not ready_plan_title:
             field_errors['ready_plan_title'] = 'ready_plan_title_required'
 
         if source_type == AdminTraining.SOURCE_MANUAL:
+            valid_block_values = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
+            if manual_block_type not in valid_block_values:
+                field_errors['training_block'] = 'invalid_block_type'
+            if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM and not manual_block_custom_name:
+                field_errors['training_block_custom'] = 'block_custom_name_required'
             if not manual_description_ru:
                 field_errors['manual_description_ru'] = 'manual_description_ru_required'
             if not manual_description_en:
@@ -3018,6 +3388,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
         else:
             manual_description_ru = ''
             manual_description_en = ''
+            manual_block_type = ''
+            manual_block_custom_name = ''
             manual_sets = None
             manual_result_type = ''
 
@@ -3054,6 +3426,8 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             'source_type': source_type,
             'manual_description_ru': manual_description_ru,
             'manual_description_en': manual_description_en,
+            'manual_block_type': manual_block_type,
+            'manual_block_custom_name': manual_block_custom_name,
             'manual_sets': manual_sets,
             'manual_result_type': manual_result_type,
             'ready_workout_type': ready_workout_type,
@@ -3071,6 +3445,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
                 AdminTrainingExercise(
                     training=training,
                     exercise_kind=item['exercise_kind'],
+                    library_item_id=item.get('library_item_id'),
                     block_type=item['block_type'],
                     block_custom_name=item['block_custom_name'],
                     exercise_name=item['exercise_name'],
@@ -3109,6 +3484,8 @@ class AdminTrainingCreateView(AdminTrainingBaseView):
                 source_type=parsed_payload['source_type'],
                 manual_description_ru=parsed_payload['manual_description_ru'],
                 manual_description_en=parsed_payload['manual_description_en'],
+                manual_block_type=parsed_payload['manual_block_type'],
+                manual_block_custom_name=parsed_payload['manual_block_custom_name'],
                 manual_sets=parsed_payload['manual_sets'],
                 manual_result_type=parsed_payload['manual_result_type'],
                 ready_workout_type=parsed_payload['ready_workout_type'],
@@ -3151,6 +3528,8 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
             training.source_type = parsed_payload['source_type']
             training.manual_description_ru = parsed_payload['manual_description_ru']
             training.manual_description_en = parsed_payload['manual_description_en']
+            training.manual_block_type = parsed_payload['manual_block_type']
+            training.manual_block_custom_name = parsed_payload['manual_block_custom_name']
             training.manual_sets = parsed_payload['manual_sets']
             training.manual_result_type = parsed_payload['manual_result_type']
             training.ready_workout_type = parsed_payload['ready_workout_type']
@@ -3169,6 +3548,8 @@ class AdminTrainingUpdateView(AdminTrainingBaseView):
                     'source_type',
                     'manual_description_ru',
                     'manual_description_en',
+                    'manual_block_type',
+                    'manual_block_custom_name',
                     'manual_sets',
                     'manual_result_type',
                     'ready_workout_type',
@@ -3191,7 +3572,26 @@ class AdminTrainingDeleteView(AdminProtectedMixin, View):
         training = AdminTraining.objects.filter(id=training_id).first()
         if training is None:
             return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
-        training.delete()
+        with transaction.atomic():
+            linked_results = list(
+                TrainingResult.objects
+                .select_for_update()
+                .filter(training=training)
+                .order_by('id')
+            )
+            for result in linked_results:
+                legacy_exists = TrainingResult.objects.filter(
+                    user_id=result.user_id,
+                    training_date=result.training_date,
+                    section=result.section,
+                    training__isnull=True,
+                ).exclude(pk=result.pk).exists()
+                if legacy_exists:
+                    result.delete()
+                else:
+                    result.training = None
+                    result.save(update_fields=['training', 'updated_at'])
+            training.delete()
         return JsonResponse({'ok': True, 'training_id': training_id})
 
 
@@ -3260,14 +3660,25 @@ class SaveTrainingResultsView(View):
         except json.JSONDecodeError:
             return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
 
+        training = None
+        training_id_raw = payload.get('training_id')
+        training_id = self._parse_positive_int(training_id_raw)
+        if training_id is not None and training_id > 0:
+            training = AdminTraining.objects.filter(id=training_id).only('id', 'training_date').first()
+            if training is None:
+                return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
+
         raw_date = payload.get('date')
-        if raw_date:
-            try:
-                training_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
-            except ValueError:
-                return JsonResponse({'ok': False, 'error': 'invalid_date'}, status=400)
+        if training is not None:
+            training_date = training.training_date
         else:
-            training_date = timezone.localdate()
+            if raw_date:
+                try:
+                    training_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+                except ValueError:
+                    return JsonResponse({'ok': False, 'error': 'invalid_date'}, status=400)
+            else:
+                training_date = timezone.localdate()
 
         if get_user_role(user) == UserProfile.ROLE_USER and training_date != timezone.localdate():
             return JsonResponse({'ok': False, 'error': 'only_today_allowed'}, status=403)
@@ -3304,17 +3715,33 @@ class SaveTrainingResultsView(View):
             if result_type == TrainingResult.RESULT_TIME and seconds is not None and seconds > 59:
                 return JsonResponse({'ok': False, 'error': f'invalid_seconds:{section_key}'}, status=400)
 
-            TrainingResult.objects.update_or_create(
-                user=user,
-                training_date=training_date,
-                section=section_key,
-                defaults={
-                    'result_type': result_type,
-                    'minutes': minutes,
-                    'seconds': seconds,
-                    'mode': mode,
-                },
-            )
+            if training is not None:
+                TrainingResult.objects.update_or_create(
+                    user=user,
+                    training=training,
+                    section=section_key,
+                    defaults={
+                        'training_date': training_date,
+                        'result_type': result_type,
+                        'minutes': minutes,
+                        'seconds': seconds,
+                        'mode': mode,
+                    },
+                )
+            else:
+                TrainingResult.objects.update_or_create(
+                    user=user,
+                    training_date=training_date,
+                    training__isnull=True,
+                    section=section_key,
+                    defaults={
+                        'training': None,
+                        'result_type': result_type,
+                        'minutes': minutes,
+                        'seconds': seconds,
+                        'mode': mode,
+                    },
+                )
             saved_count += 1
 
         logger.info(
@@ -3482,15 +3909,15 @@ class DownloadTrainingResultsImageView(View):
             fill='#f0f0f0',
         )
 
-        title = 'Р В Р’В Р В Р’ВµР В Р’В·Р РЋРЎвЂњР В Р’В»Р РЋР Р‰Р РЋРІР‚С™Р В Р’В°Р РЋРІР‚С™Р РЋРІР‚в„– Р РЋРІР‚С™Р РЋР вЂљР В Р’ВµР В Р вЂ¦Р В РЎвЂР РЋР вЂљР В РЎвЂўР В Р вЂ Р В РЎвЂќР В РЎвЂ'
+        title = 'Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В·Р В Р’В Р В Р вЂ№Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В РІР‚В°Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’В'
         title_box = draw.textbbox((0, 0), title, font=font_title)
         title_w = title_box[2] - title_box[0]
         draw.text((summary_x + (summary_w - title_w) / 2, summary_y + 72), title, font=font_title, fill='#242d35')
 
         row_specs = [
-            ('Р В РЎв„ўР В Р’В°Р РЋР вЂљР В РўвЂР В РЎвЂР В РЎвЂў', cardio_value),
-            ('Р В Р Р‹Р В РЎвЂР В Р’В»Р В РЎвЂўР В Р вЂ Р В Р’В°Р РЋР РЏ', strength_value),
-            ('Р В РЎС™Р В Р’ВµР РЋРІР‚С™Р В Р’В°Р В Р’В±Р В РЎвЂўР В Р’В»Р В РЎвЂР РЋРІР‚РЋР В Р’ВµР РЋР С“Р В РЎвЂќР В Р’В°Р РЋР РЏ', metabolic_value),
+            ('Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†РІР‚С›РЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›', cardio_value),
+            ('Р В Р’В Р вЂ™Р’В Р В Р’В Р В РІР‚в„–Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', strength_value),
+            ('Р В Р’В Р вЂ™Р’В Р В Р Р‹Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р В Р вЂ№Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', metabolic_value),
         ]
         row_x, row_w, row_h = summary_x + 50, summary_w - 100, 106
         first_row_y = summary_y + 160
@@ -3505,10 +3932,10 @@ class DownloadTrainingResultsImageView(View):
             draw.text((row_x + row_w - 36 - value_w, y + 34), value, font=font_value, fill='#252d35')
 
         month_names = {
-            1: 'Р РЋР РЏР В Р вЂ¦Р В Р вЂ Р В Р’В°Р РЋР вЂљР РЋР РЏ', 2: 'Р РЋРІР‚С›Р В Р’ВµР В Р вЂ Р РЋР вЂљР В Р’В°Р В Р’В»Р РЋР РЏ', 3: 'Р В РЎВР В Р’В°Р РЋР вЂљР РЋРІР‚С™Р В Р’В°', 4: 'Р В Р’В°Р В РЎвЂ”Р РЋР вЂљР В Р’ВµР В Р’В»Р РЋР РЏ', 5: 'Р В РЎВР В Р’В°Р РЋР РЏ', 6: 'Р В РЎвЂР РЋР вЂ№Р В Р вЂ¦Р РЋР РЏ',
-            7: 'Р В РЎвЂР РЋР вЂ№Р В Р’В»Р РЋР РЏ', 8: 'Р В Р’В°Р В Р вЂ Р В РЎвЂ“Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р В Р’В°', 9: 'Р РЋР С“Р В Р’ВµР В Р вЂ¦Р РЋРІР‚С™Р РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 10: 'Р В РЎвЂўР В РЎвЂќР РЋРІР‚С™Р РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 11: 'Р В Р вЂ¦Р В РЎвЂўР РЋР РЏР В Р’В±Р РЋР вЂљР РЋР РЏ', 12: 'Р В РўвЂР В Р’ВµР В РЎвЂќР В Р’В°Р В Р’В±Р РЋР вЂљР РЋР РЏ',
+            1: 'Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 2: 'Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІР‚С”Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 3: 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°', 4: 'Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 5: 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 6: 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ',
+            7: 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 8: 'Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СљР В Р’В Р В Р вЂ№Р В Р Р‹Р Р†Р вЂљРЎС™Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°', 9: 'Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 10: 'Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎСљР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 11: 'Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ', 12: 'Р В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎСљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р В Р вЂ№Р В Р’В Р В Р РЏ',
         }
-        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} Р В РЎвЂ“."
+        pretty_date = f"{training_date.day} {month_names.get(training_date.month, '')} {training_date.year} Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚Сљ."
         date_box = draw.textbbox((0, 0), pretty_date, font=font_date)
         date_w = date_box[2] - date_box[0]
         draw.text((summary_x + (summary_w - date_w) / 2, summary_y + summary_h - 74), pretty_date, font=font_date, fill='#363f47')
@@ -3625,7 +4052,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
                 section_title = (
                     exercise.block_custom_name.strip()
                     if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else dict(LEADERBOARD_SECTION_META).get(section_key, 'Р В Р В°Р В·Р Т‘Р ВµР В»')
+                    else dict(LEADERBOARD_SECTION_META).get(section_key, 'Раздел')
                 )
                 section_identity = f'{section_key}:{section_title}'
                 if section_identity in seen_sections:
@@ -3677,16 +4104,16 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             for exercise in ordered_exercises:
                 secondary = ''
                 if exercise.sets is not None and exercise.reps is not None:
-                    sets_label = format_count_with_word_ru(exercise.sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
-                    reps_label = format_count_with_word_ru(exercise.reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+                    sets_label = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
+                    reps_label = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
                     secondary = f'{sets_label} / {reps_label}'
                 elif exercise.sets is not None:
-                    secondary = format_count_with_word_ru(exercise.sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+                    secondary = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
                 elif exercise.reps is not None:
-                    secondary = format_count_with_word_ru(exercise.reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+                    secondary = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
                 exercise_cards.append(
                     {
-                        'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
+                        'title': (exercise.exercise_name or '').strip() or 'Упражнение',
                         'meta': secondary,
                     }
                 )
@@ -3745,13 +4172,13 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
-            reps_label = format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
             return f'{sets_label} / {reps_label}'
         if sets is not None:
-            return format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
         if reps is not None:
-            return format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
         return '--'
 
     def get_context_data(self, **kwargs):
@@ -3783,7 +4210,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°'
+            context['workout_title'] = 'Тренировка'
             context['workout_direction_label'] = '--'
             context['workout_cards'] = []
             context['workout_selected_date_iso'] = selected_date.isoformat()
@@ -3802,7 +4229,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
         )
         context['workout_cards'] = [
             {
-                'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
+                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
                 'meta': self._format_exercise_meta(exercise),
             }
             for exercise in ordered_exercises
@@ -3820,13 +4247,13 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
-            reps_label = format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
             return f'{sets_label} / {reps_label}'
         if sets is not None:
-            return format_count_with_word_ru(sets, 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р В°', 'Р С—Р С•Р Т‘РЎвЂ¦Р С•Р Т‘Р С•Р Р†')
+            return format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
         if reps is not None:
-            return format_count_with_word_ru(reps, 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р Вµ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘РЎРЏ', 'Р С—Р С•Р Р†РЎвЂљР С•РЎР‚Р ВµР Р…Р С‘Р в„–')
+            return format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
         return '--'
 
     def get_context_data(self, **kwargs):
@@ -3848,7 +4275,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         trainings = list(
             AdminTraining.objects
             .filter(training_date=selected_date)
-            .prefetch_related('exercises')
+            .prefetch_related('exercises__library_item')
             .order_by('-updated_at', '-id')
         )
         selected_training = None
@@ -3858,7 +4285,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'Р СћРЎР‚Р ВµР Р…Р С‘РЎР‚Р С•Р Р†Р С”Р В°'
+            context['workout_title'] = 'Тренировка'
             context['workout_kind_badge'] = '--'
             context['workout_exercises'] = []
             context['workout_leader_rows'] = []
@@ -3870,15 +4297,31 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             selected_training.source_type,
             selected_training.ready_plan_title,
         )
-        context['workout_kind_badge'] = TRAINING_DIRECTION_LABELS.get(
-            selected_training.direction,
-            (selected_training.direction or 'FBB'),
-        )
+        if ordered_exercises:
+            first_exercise = ordered_exercises[0]
+            if (
+                first_exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
+                and str(first_exercise.block_custom_name or '').strip()
+            ):
+                workout_kind_badge = str(first_exercise.block_custom_name or '').strip()
+            else:
+                workout_kind_badge = TRAINING_BLOCK_LABELS.get(first_exercise.block_type, 'Блок')
+        else:
+            workout_kind_badge = '--'
+        context['workout_kind_badge'] = normalize_mojibake_text(workout_kind_badge)
         context['workout_exercises'] = [
             {
                 'index': idx + 1,
-                'title': (exercise.exercise_name or '').strip() or 'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ',
+                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
                 'meta': self._format_exercise_meta(exercise),
+                'show_video': bool(
+                    exercise.library_item_id
+                    and exercise.library_item
+                    and _get_existing_media_file_url(
+                        exercise.library_item.video_file,
+                        auto_clear_missing=True,
+                    )
+                ),
             }
             for idx, exercise in enumerate(ordered_exercises)
         ]
@@ -3905,9 +4348,14 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 medal = entry.get('medal')
                 workout_leader_rows.append(
                     {
-                        'user_name': entry.get('user_name') or 'Р Р€РЎвЂЎР В°РЎРѓРЎвЂљР Р…Р С‘Р С”',
+                        'user_name': entry.get('user_name') or 'Участник',
                         'result_label': entry.get('result_label') or '--',
-                        'section_title': section_titles.get(section_key, 'Р В Р В°Р В·Р Т‘Р ВµР В»'),
+                        'result_mode_label': (
+                            'RX'
+                            if str(entry.get('mode') or '').strip().lower() == 'rx'
+                            else 'Scaled'
+                        ),
+                        'section_title': section_titles.get(section_key, 'Раздел'),
                         'place_label': entry.get('place_label') or '--',
                         'row_class': (
                             'workout-leader-row--gold'
@@ -3986,7 +4434,7 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             TrainingResult.objects
             .select_related('user')
             .filter(training_date=selected_date)
-            .order_by('-updated_at', 'user_id')
+            .order_by('-updated_at', '-id', 'user_id', 'section')
         )
         for item in day_results:
             user_id = item.user_id
@@ -4000,6 +4448,8 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                     'sections': {key: {'title': title, 'value': '--', 'mode': '--'} for key, title in section_meta},
                 }
 
+            if grouped[user_id]['sections'][item.section]['value'] != '--':
+                continue
             grouped[user_id]['sections'][item.section] = {
                 'title': normalize_mojibake_text(section_titles[item.section]),
                 'value': normalize_mojibake_text(self._format_training_value(item)),
@@ -4089,6 +4539,70 @@ class ToggleCommunityReactionView(View):
 
 class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
+    PLAN_BLOCK_TITLES_RU = {
+        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
+    }
+
+    @staticmethod
+    def _normalized_text(value):
+        return normalize_mojibake_text(str(value or '').strip())
+
+    @classmethod
+    def _build_plan_line_payload(
+        cls,
+        *,
+        text_ru,
+        text_en,
+        video_url='',
+        video_search_name_ru='',
+        video_search_name_en='',
+        details_ru='',
+        details_en='',
+        kind='default',
+    ):
+        normalized_ru = cls._normalized_text(text_ru)
+        normalized_en = cls._normalized_text(text_en) or normalized_ru
+        normalized_search_ru = cls._normalized_text(video_search_name_ru) or normalized_ru
+        normalized_search_en = cls._normalized_text(video_search_name_en) or normalized_en or normalized_ru
+        normalized_details_ru = normalize_mojibake_text(str(details_ru or '').strip())
+        normalized_details_en = normalize_mojibake_text(str(details_en or '').strip()) or normalized_details_ru
+        return {
+            'text': normalized_ru,
+            'text_ru': normalized_ru,
+            'text_en': normalized_en,
+            'details_ru': normalized_details_ru,
+            'details_en': normalized_details_en,
+            'kind': kind,
+            'show_video': bool(video_url),
+            'video_url': video_url,
+            'video_search_name_ru': normalized_search_ru,
+            'video_search_name_en': normalized_search_en,
+        }
+
+    @classmethod
+    def _split_manual_description_lines(cls, text_ru, text_en):
+        ru_lines = [cls._normalized_text(line) for line in str(text_ru or '').splitlines()]
+        en_lines = [cls._normalized_text(line) for line in str(text_en or '').splitlines()]
+        ru_lines = [line for line in ru_lines if line]
+        en_lines = [line for line in en_lines if line]
+        max_len = max(len(ru_lines), len(en_lines))
+        if max_len == 0:
+            return []
+
+        lines = []
+        for index in range(max_len):
+            ru_line = ru_lines[index] if index < len(ru_lines) else ''
+            en_line = en_lines[index] if index < len(en_lines) else ''
+            if not ru_line and not en_line:
+                continue
+            if not ru_line:
+                ru_line = en_line
+            if not en_line:
+                en_line = ru_line
+            lines.append((ru_line, en_line))
+        return lines
 
     def get(self, request, *args, **kwargs):
         role = get_user_role(request.user)
@@ -4131,31 +4645,100 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
         if role == UserProfile.ROLE_USER:
             trainings_query = trainings_query.filter(visibility=AdminTraining.VISIBILITY_ALL)
 
-        trainings = list(trainings_query.prefetch_related('exercises').order_by('-updated_at', '-id'))
+        trainings = list(
+            trainings_query
+            .prefetch_related('exercises__library_item')
+            .order_by('-updated_at', '-id')
+        )
 
         plan_cards = []
         for training in trainings:
             sections = []
             section_index = {}
-            for exercise in training.exercises.all():
-                section_title = (
-                    exercise.block_custom_name.strip()
-                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
-                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
-                )
-                section_title = normalize_mojibake_text(section_title)
-                if section_title not in section_index:
-                    section_index[section_title] = len(sections)
-                    sections.append({'title': section_title, 'lines': []})
-                line_text = normalize_mojibake_text(format_admin_training_volume(exercise))
-                sections[section_index[section_title]]['lines'].append({
-                    'text': line_text,
-                    'show_video': True,
-                    'video_url': '',
-                })
+            exercises = list(training.exercises.all())
+
+            if training.source_type == AdminTraining.SOURCE_MANUAL:
+                default_title = 'Тренировка'
+                manual_block_type = str(training.manual_block_type or '').strip().lower()
+                manual_block_custom_name = str(training.manual_block_custom_name or '').strip()
+                if manual_block_type:
+                    if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM and manual_block_custom_name:
+                        default_title = manual_block_custom_name
+                    else:
+                        default_title = self.PLAN_BLOCK_TITLES_RU.get(manual_block_type, default_title)
+                elif exercises:
+                    first_exercise = exercises[0]
+                    default_title = (
+                        first_exercise.block_custom_name.strip()
+                        if first_exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
+                        else self.PLAN_BLOCK_TITLES_RU.get(first_exercise.block_type, default_title)
+                    )
+                manual_lines = [
+                    self._build_plan_line_payload(text_ru=text_ru_line, text_en=text_en_line)
+                    for text_ru_line, text_en_line in self._split_manual_description_lines(
+                        training.manual_description_ru,
+                        training.manual_description_en,
+                    )
+                ]
+                if manual_lines:
+                    sections.append({'title': normalize_mojibake_text(default_title), 'lines': manual_lines})
+            else:
+                for exercise in exercises:
+                    section_title = (
+                        exercise.block_custom_name.strip()
+                        if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
+                        else self.PLAN_BLOCK_TITLES_RU.get(exercise.block_type, 'Блок')
+                    )
+                    section_title = normalize_mojibake_text(section_title)
+                    if section_title not in section_index:
+                        section_index[section_title] = len(sections)
+                        sections.append({'title': section_title, 'lines': []})
+
+                    video_url = ''
+                    if exercise.library_item_id and exercise.library_item:
+                        video_url = _get_existing_media_file_url(
+                            exercise.library_item.video_file,
+                            auto_clear_missing=True,
+                        )
+
+                    if training.source_type == AdminTraining.SOURCE_LIBRARY:
+                        library_item = exercise.library_item if exercise.library_item_id else None
+                        fallback_text = format_admin_training_volume(exercise)
+                        exercise_kind = str(exercise.exercise_kind or '').strip().lower()
+                        if exercise_kind == AdminTrainingExercise.EXERCISE_KIND_BENCHMARKS and library_item:
+                            line_payload = self._build_plan_line_payload(
+                                text_ru=(library_item.name_ru or exercise.exercise_name or '').strip(),
+                                text_en=(library_item.name_en or exercise.exercise_name or '').strip(),
+                                details_ru=(library_item.desc_ru or '').strip(),
+                                details_en=(library_item.desc_en or '').strip(),
+                                kind='benchmark',
+                                video_url=video_url,
+                                video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
+                                video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
+                            )
+                        else:
+                            line_payload = self._build_plan_line_payload(
+                                text_ru=(library_item.desc_ru if library_item else '') or fallback_text,
+                                text_en=library_item.desc_en if library_item else '',
+                                video_url=video_url,
+                                video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
+                                video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
+                            )
+                    else:
+                        fallback_text = format_admin_training_volume(exercise)
+                        line_payload = self._build_plan_line_payload(
+                            text_ru=fallback_text,
+                            text_en=fallback_text,
+                            video_url=video_url,
+                            video_search_name_ru=fallback_text,
+                            video_search_name_en=fallback_text,
+                        )
+
+                    sections[section_index[section_title]]['lines'].append(line_payload)
 
             plan_cards.append(
                 {
+                    'id': training.id,
                     'title': normalize_mojibake_text(
                         get_admin_training_title(training.direction, training.source_type, training.ready_plan_title)
                     ),
@@ -4169,6 +4752,37 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
         result_type_map = get_plan_result_type_map(trainings)
         context['plan_result_types_json'] = json.dumps(result_type_map, ensure_ascii=False)
         return context
+
+class TrainingPlanVersionView(UserOnlyProtectedMixin, View):
+    http_method_names = ['get']
+
+    def get(self, request, *args, **kwargs):
+        role = get_user_role(request.user)
+        raw_date = str(request.GET.get('date') or '').strip()
+        if raw_date:
+            try:
+                selected_date = timezone.datetime.strptime(raw_date, '%Y-%m-%d').date()
+            except ValueError:
+                selected_date = timezone.localdate()
+        else:
+            selected_date = timezone.localdate()
+
+        trainings_query = AdminTraining.objects.filter(training_date=selected_date)
+        if role == UserProfile.ROLE_USER:
+            trainings_query = trainings_query.filter(visibility=AdminTraining.VISIBILITY_ALL)
+
+        aggregate = trainings_query.aggregate(total=Count('id'), latest=Max('updated_at'))
+        latest = aggregate.get('latest')
+        latest_ts = int(latest.timestamp()) if latest else 0
+        version = f"{int(aggregate.get('total') or 0)}:{latest_ts}"
+
+        return JsonResponse(
+            {
+                'ok': True,
+                'date': selected_date.isoformat(),
+                'version': version,
+            }
+        )
 
 
 class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
@@ -4199,7 +4813,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
         context['barbell_exercises'] = [
             {
                 'slug': slug,
-                'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
+                'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р В РІвЂљВ¬Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В¶Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ {item.id}',
                 'value': profiles[slug].rep_1 if slug in profiles else None,
             }
             for slug, item in slug_map.items()
@@ -4225,7 +4839,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
             slug = self._build_library_exercise_slug(item.id)
             return {
                 'slug': slug,
-                'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
+                'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р В РІвЂљВ¬Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В¶Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ {item.id}',
                 'value': benchmark_profiles[slug].rep_1 if slug in benchmark_profiles else None,
             }
 
@@ -4319,7 +4933,7 @@ class AchievementExerciseView(UserOnlyProtectedMixin, TemplateView):
                 )
                 if item is not None:
                     data = {
-                        'title': (item.name_ru or item.name_en or '').strip() or f'Р Р€Р С—РЎР‚Р В°Р В¶Р Р…Р ВµР Р…Р С‘Р Вµ {item.id}',
+                        'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р В РІвЂљВ¬Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В¶Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ {item.id}',
                         'max': [10, 10, 10, 10],
                     }
         if data is None:

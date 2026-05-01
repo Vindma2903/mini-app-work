@@ -44,13 +44,13 @@
         <section class="plan-card plan-card--collapsed" data-plan-card data-training-id="{{ card.id }}" data-direction="{{ card.direction|default:'' }}">
             <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
                 <span>{{ card.title }}</span>
-                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+                <img class="plan-card__chevron" src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
                 <div class="plan-card__lang" data-plan-lang-wrap>
                     <button type="button" class="plan-card__lang-btn plan-card__lang-btn--active" data-plan-lang="ru" aria-label="Русский">
-                        <img src="{% static 'auth/img/flag-ru-circle.svg' %}" alt="">
+                        <img src="{% static 'auth/img/ru-fl.svg' %}" alt="">
                     </button>
                     <button type="button" class="plan-card__lang-btn" data-plan-lang="en" aria-label="English">
-                        <img src="{% static 'auth/img/flag-usa-circle.svg' %}" alt="">
+                        <img src="{% static 'auth/img/us-fl.svg' %}" alt="">
                     </button>
                 </div>
             </div>
@@ -114,7 +114,7 @@
         <section class="plan-card plan-card--expanded">
             <div class="plan-card__head">
                 <span>На {{ plan_selected_date_label }} тренировок нет</span>
-                <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
+                <img class="plan-card__chevron" src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
             </div>
             <div class="plan-card__details">
                 <div class="plan-card__block">

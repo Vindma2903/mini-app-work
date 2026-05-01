@@ -246,6 +246,18 @@ def normalize_mojibake_text(value):
     return value.replace(source, best, 1)
 
 
+def cleanup_leaderboard_exercise_title(value):
+    text = normalize_mojibake_text(str(value or '').strip())
+    if not text:
+        return 'Упражнение'
+    parts = [part.strip() for part in re.split(r'\s*/\s*', text) if part.strip()]
+    if len(parts) >= 2 and re.fullmatch(r'[A-Za-z][A-Za-z0-9 _-]*', parts[0]):
+        parts = parts[1:]
+    cleaned = ' / '.join(parts).strip()
+    cleaned = re.sub(r'\s{2,}', ' ', cleaned)
+    return cleaned or 'Упражнение'
+
+
 def get_plan_result_type_map(trainings):
     result_map = {
         TrainingResult.SECTION_STRENGTH: TrainingResult.RESULT_TIME,
@@ -560,10 +572,10 @@ def format_training_duration_ru(minutes, seconds):
     if minutes is None and seconds is None:
         return '--'
     if minutes is None:
-        return f'{seconds} СЃРµРє'
+        return f'{seconds} сек'
     if seconds is None:
-        return f'{minutes} РјРёРЅ'
-    return f'{minutes} РјРёРЅ {seconds} СЃРµРє'
+        return f'{minutes} мин'
+    return f'{minutes} мин {seconds} сек'
 
 def format_count_with_word_ru(value, one, few, many):
     if value is None:
@@ -590,16 +602,16 @@ def format_training_result_value(result_type, primary_value, secondary_value):
     if result_type == TrainingResult.RESULT_WEIGHT:
         if primary_value is None:
             return '--'
-        return f'{primary_value} РєРі'
+        return f'{primary_value} кг'
 
     if result_type == TrainingResult.RESULT_REPS:
         if primary_value is None and secondary_value is not None:
-            return format_count_with_word_ru(secondary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
+            return format_count_with_word_ru(secondary_value, 'раз', 'раза', 'раз')
         if primary_value is not None and secondary_value is None:
-            return format_count_with_word_ru(primary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
-        approaches = format_count_with_word_ru(primary_value, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
-        reps = format_count_with_word_ru(secondary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
-        return f'{approaches} РїРѕ {reps}'
+            return format_count_with_word_ru(primary_value, 'раз', 'раза', 'раз')
+        approaches = format_count_with_word_ru(primary_value, 'подход', 'подхода', 'подходов')
+        reps = format_count_with_word_ru(secondary_value, 'раз', 'раза', 'раз')
+        return f'{approaches} по {reps}'
 
     return format_training_duration_ru(primary_value, secondary_value)
 
@@ -2878,25 +2890,25 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _result_unit_label(result_type):
         if result_type == TrainingResult.RESULT_WEIGHT:
-            return 'РєРі'
+            return 'кг'
         if result_type == TrainingResult.RESULT_REPS:
-            return 'РїРѕРІС‚РѕСЂРµРЅРёР№'
-        return 'РјРёРЅ'
+            return 'повторений'
+        return 'мин'
 
     @staticmethod
     def _result_value_label(result_type, minutes, seconds):
         if result_type == TrainingResult.RESULT_WEIGHT:
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else 'Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р В РІР‚С™Р РЋРЎС™'
+            return str(seconds) if seconds is not None else '--'
         if result_type == TrainingResult.RESULT_REPS:
             if minutes is not None and seconds is not None:
                 return f'{minutes} x {seconds}'
             if minutes is not None:
                 return str(minutes)
-            return str(seconds) if seconds is not None else 'Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р В РІР‚С™Р РЋРЎС™'
+            return str(seconds) if seconds is not None else '--'
         if minutes is None and seconds is None:
-            return 'Р В Р’В Р В РІР‚В Р В Р’В Р Р†Р вЂљРЎв„ўР В Р вЂ Р В РІР‚С™Р РЋРЎС™'
+            return '--'
         if minutes is None:
             return f'0:{int(seconds):02d}'
         if seconds is None:
@@ -4423,7 +4435,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
                     )
                 card['block_groups'][card['_block_index'][block_key]]['exercises'].append(
                     {
-                        'title': normalize_mojibake_text((exercise.exercise_name or '').strip() or 'Упражнение'),
+                        'title': cleanup_leaderboard_exercise_title((exercise.exercise_name or '').strip()),
                         'meta': normalize_mojibake_text(secondary),
                     }
                 )
@@ -4559,7 +4571,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
                     )
                 block_groups[block_index[block_key]]['exercises'].append(
                     {
-                        'title': normalize_mojibake_text((exercise.exercise_name or '').strip() or 'Упражнение'),
+                        'title': cleanup_leaderboard_exercise_title((exercise.exercise_name or '').strip()),
                         'meta': normalize_mojibake_text(self._format_exercise_meta(exercise)),
                     }
                 )
@@ -4588,13 +4600,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
 
     @staticmethod
     def _cleanup_exercise_title(title):
-        cleaned = re.sub(r'\bsquat\b', '', str(title or ''), flags=re.IGNORECASE).strip()
-        cleaned = re.sub(r'\s*/\s*', ' / ', cleaned)
-        cleaned = re.sub(r'^(?:/|\|)+\s*', '', cleaned)
-        cleaned = re.sub(r'\s*(?:/|\|)+$', '', cleaned)
-        cleaned = re.sub(r'\s*/\s*', ' ', cleaned)
-        cleaned = re.sub(r'\s{2,}', ' ', cleaned)
-        return cleaned or 'Упражнение'
+        return cleanup_leaderboard_exercise_title(title)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

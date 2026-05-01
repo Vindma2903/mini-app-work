@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}{{ workout_title }}{% endblock %}
@@ -10,9 +10,9 @@
 {% block content %}
 <main class="exercise-screen exercise-screen--tv">
     <header class="exercise-header exercise-header--compact">
-        <a href="{% url 'auth:leaderboard_day_workout_tv' %}?training_id={{ request.GET.training_id }}&date={{ request.GET.date }}" class="exercise-header__back" aria-label="Назад">Назад</a>
-        <a href="{% url 'auth:leaderboard_day_workout_tv' %}?training_id={{ request.GET.training_id }}&date={{ request.GET.date }}" class="exercise-header__close" aria-label="Закрыть">×</a>
-        <h1>{{ workout_title }}</h1>
+        <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
+        <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
+        <h1><a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}">{{ workout_title }}</a></h1>
     </header>
 
     <span class="workout-kind-badge">{{ workout_kind_badge }}</span>
@@ -26,11 +26,12 @@
                         <span class="workout-ex-item__num">{{ exercise.index }}</span>
                         <div>
                             <h3>{{ exercise.title }}</h3>
-                            <p>{{ exercise.meta }}</p>
                         </div>
-                        <button type="button" aria-label="Смотреть видео">
-                            <img src="{% static 'auth/img/play-circle.svg' %}" alt="" aria-hidden="true">
-                        </button>
+                        {% if exercise.show_video %}
+                            <button type="button" aria-label="Смотреть видео">
+                                <img src="{% static 'auth/img/play-circle.svg' %}" alt="" aria-hidden="true">
+                            </button>
+                        {% endif %}
                     </article>
                 {% endfor %}
             {% else %}

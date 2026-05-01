@@ -4380,37 +4380,58 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
 
         # Dedicated presentation payload for admin leaderboard page:
         # list of cards with direction header and real exercises of the day.
-        admin_cards = []
+        grouped_admin_cards = {}
         for training in trainings:
             ordered_exercises = sorted(training.exercises.all(), key=lambda item: (item.order, item.id))
-            exercise_cards = []
+            direction_label = normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(
+                training.direction,
+                (training.direction or 'FBB'),
+            ))
+            direction_key = str(training.direction or '').strip().lower() or direction_label.lower()
+            if direction_key not in grouped_admin_cards:
+                grouped_admin_cards[direction_key] = {
+                    'training_id': training.id,
+                    'direction_label': direction_label,
+                    'block_groups': [],
+                    '_block_index': {},
+                }
+            card = grouped_admin_cards[direction_key]
             for exercise in ordered_exercises:
                 secondary = ''
                 if exercise.sets is not None and exercise.reps is not None:
-                    sets_label = format_count_with_word_ru(exercise.sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
-                    reps_label = format_count_with_word_ru(exercise.reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
-                    secondary = f'{sets_label} / {reps_label}'
+                    sets_label = format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов')
+                    reps_label = format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений')
+                    secondary = normalize_mojibake_text(f'{sets_label} / {reps_label}')
                 elif exercise.sets is not None:
-                    secondary = format_count_with_word_ru(exercise.sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
+                    secondary = normalize_mojibake_text(format_count_with_word_ru(exercise.sets, 'подход', 'подхода', 'подходов'))
                 elif exercise.reps is not None:
-                    secondary = format_count_with_word_ru(exercise.reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
-                exercise_cards.append(
+                    secondary = normalize_mojibake_text(format_count_with_word_ru(exercise.reps, 'повторение', 'повторения', 'повторений'))
+
+                block_label = normalize_mojibake_text(
+                    exercise.block_custom_name.strip()
+                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
+                )
+                block_key = f'{exercise.block_type}:{block_label}'
+                if block_key not in card['_block_index']:
+                    card['_block_index'][block_key] = len(card['block_groups'])
+                    card['block_groups'].append(
+                        {
+                            'title': block_label,
+                            'exercises': [],
+                        }
+                    )
+                card['block_groups'][card['_block_index'][block_key]]['exercises'].append(
                     {
-                        'title': (exercise.exercise_name or '').strip() or 'РЈРїСЂР°Р¶РЅРµРЅРёРµ',
-                        'meta': secondary,
+                        'title': normalize_mojibake_text((exercise.exercise_name or '').strip() or 'Упражнение'),
+                        'meta': normalize_mojibake_text(secondary),
                     }
                 )
-            direction_label = TRAINING_DIRECTION_LABELS.get(
-                training.direction,
-                (training.direction or 'FBB'),
-            )
-            admin_cards.append(
-                {
-                    'training_id': training.id,
-                    'direction_label': direction_label,
-                    'exercise_cards': exercise_cards,
-                }
-            )
+
+        admin_cards = []
+        for card in grouped_admin_cards.values():
+            card.pop('_block_index', None)
+            admin_cards.append(card)
 
         context['leaderboard_admin_cards'] = admin_cards
         return context
@@ -4455,13 +4476,13 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
-            reps_label = format_count_with_word_ru(reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
-            return f'{sets_label} / {reps_label}'
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return normalize_mojibake_text(f'{sets_label} / {reps_label}')
         if sets is not None:
-            return format_count_with_word_ru(sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
+            return normalize_mojibake_text(format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов'))
         if reps is not None:
-            return format_count_with_word_ru(reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
+            return normalize_mojibake_text(format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений'))
         return '--'
 
     def get_context_data(self, **kwargs):
@@ -4493,30 +4514,56 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'РўСЂРµРЅРёСЂРѕРІРєР°'
+            context['workout_title'] = 'Тренировка'
             context['workout_direction_label'] = '--'
             context['workout_cards'] = []
             context['workout_selected_date_iso'] = selected_date.isoformat()
             context['workout_training_id'] = ''
             return context
 
-        ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
-        context['workout_title'] = get_admin_training_title(
+        selected_direction = selected_training.direction
+        direction_trainings = [
+            item for item in trainings
+            if str(item.direction or '').strip().lower() == str(selected_direction or '').strip().lower()
+        ]
+        if not direction_trainings:
+            direction_trainings = [selected_training]
+
+        context['workout_title'] = normalize_mojibake_text(get_admin_training_title(
             selected_training.direction,
             selected_training.source_type,
             selected_training.ready_plan_title,
-        )
-        context['workout_direction_label'] = TRAINING_DIRECTION_LABELS.get(
+        ))
+        context['workout_direction_label'] = normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(
             selected_training.direction,
             (selected_training.direction or 'FBB'),
-        )
-        context['workout_cards'] = [
-            {
-                'title': (exercise.exercise_name or '').strip() or 'РЈРїСЂР°Р¶РЅРµРЅРёРµ',
-                'meta': self._format_exercise_meta(exercise),
-            }
-            for exercise in ordered_exercises
-        ]
+        ))
+        block_groups = []
+        block_index = {}
+        for training in direction_trainings:
+            ordered_exercises = sorted(training.exercises.all(), key=lambda item: (item.order, item.id))
+            for exercise in ordered_exercises:
+                block_label = normalize_mojibake_text(
+                    exercise.block_custom_name.strip()
+                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
+                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
+                )
+                block_key = f'{exercise.block_type}:{block_label}'
+                if block_key not in block_index:
+                    block_index[block_key] = len(block_groups)
+                    block_groups.append(
+                        {
+                            'title': block_label,
+                            'exercises': [],
+                        }
+                    )
+                block_groups[block_index[block_key]]['exercises'].append(
+                    {
+                        'title': normalize_mojibake_text((exercise.exercise_name or '').strip() or 'Упражнение'),
+                        'meta': normalize_mojibake_text(self._format_exercise_meta(exercise)),
+                    }
+                )
+        context['workout_block_groups'] = block_groups
         context['workout_selected_date_iso'] = selected_date.isoformat()
         context['workout_training_id'] = selected_training.id
         return context
@@ -4530,14 +4577,24 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         sets = exercise.sets
         reps = exercise.reps
         if sets is not None and reps is not None:
-            sets_label = format_count_with_word_ru(sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
-            reps_label = format_count_with_word_ru(reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
-            return f'{sets_label} / {reps_label}'
+            sets_label = format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов')
+            reps_label = format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений')
+            return normalize_mojibake_text(f'{sets_label} / {reps_label}')
         if sets is not None:
-            return format_count_with_word_ru(sets, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
+            return normalize_mojibake_text(format_count_with_word_ru(sets, 'подход', 'подхода', 'подходов'))
         if reps is not None:
-            return format_count_with_word_ru(reps, 'РїРѕРІС‚РѕСЂРµРЅРёРµ', 'РїРѕРІС‚РѕСЂРµРЅРёСЏ', 'РїРѕРІС‚РѕСЂРµРЅРёР№')
+            return normalize_mojibake_text(format_count_with_word_ru(reps, 'повторение', 'повторения', 'повторений'))
         return '--'
+
+    @staticmethod
+    def _cleanup_exercise_title(title):
+        cleaned = re.sub(r'\bsquat\b', '', str(title or ''), flags=re.IGNORECASE).strip()
+        cleaned = re.sub(r'\s*/\s*', ' / ', cleaned)
+        cleaned = re.sub(r'^(?:/|\|)+\s*', '', cleaned)
+        cleaned = re.sub(r'\s*(?:/|\|)+$', '', cleaned)
+        cleaned = re.sub(r'\s*/\s*', ' ', cleaned)
+        cleaned = re.sub(r'\s{2,}', ' ', cleaned)
+        return cleaned or 'Упражнение'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -4568,18 +4625,19 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             selected_training = trainings[0]
 
         if selected_training is None:
-            context['workout_title'] = 'РўСЂРµРЅРёСЂРѕРІРєР°'
+            context['workout_title'] = 'Тренировка'
             context['workout_kind_badge'] = '--'
             context['workout_exercises'] = []
             context['workout_leader_rows'] = []
+            context['workout_selected_date_iso'] = selected_date.isoformat()
             return context
 
         ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
-        context['workout_title'] = get_admin_training_title(
+        context['workout_title'] = normalize_mojibake_text(get_admin_training_title(
             selected_training.direction,
             selected_training.source_type,
             selected_training.ready_plan_title,
-        )
+        ))
         if ordered_exercises:
             first_exercise = ordered_exercises[0]
             if (
@@ -4595,8 +4653,10 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         context['workout_exercises'] = [
             {
                 'index': idx + 1,
-                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
-                'meta': self._format_exercise_meta(exercise),
+                'title': normalize_mojibake_text(
+                    self._cleanup_exercise_title((exercise.exercise_name or '').strip())
+                ),
+                'meta': normalize_mojibake_text(self._format_exercise_meta(exercise)),
                 'show_video': bool(
                     exercise.library_item_id
                     and exercise.library_item
@@ -4622,24 +4682,70 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 continue
             selected_section_keys.append(section_key)
 
-        leaderboard = build_daily_leaderboard_payload(selected_date)
-        sections_by_key = {section['key']: section for section in leaderboard['sections']}
+        selected_direction = str(selected_training.direction or '').strip().lower()
+        direction_training_ids = [
+            item.id
+            for item in trainings
+            if str(item.direction or '').strip().lower() == selected_direction
+        ]
+        if not direction_training_ids:
+            direction_training_ids = [selected_training.id]
+
+        grouped_by_section = {section_key: [] for section_key in selected_section_keys}
+        raw_results = (
+            TrainingResult.objects
+            .select_related('user')
+            .filter(
+                training_date=selected_date,
+                training_id__in=direction_training_ids,
+                section__in=selected_section_keys,
+            )
+            .filter(Q(minutes__isnull=False) | Q(seconds__isnull=False))
+            .order_by('user_id', 'section', '-updated_at', '-id')
+        )
+        seen_user_section = set()
+        for item in raw_results:
+            pair_key = (item.user_id, item.section)
+            if pair_key in seen_user_section:
+                continue
+            seen_user_section.add(pair_key)
+            full_name = f'{item.user.first_name} {item.user.last_name}'.strip() or item.user.email
+            minutes = item.minutes if item.minutes is not None else 0
+            seconds = item.seconds if item.seconds is not None else 0
+            grouped_by_section.setdefault(item.section, []).append(
+                {
+                    'user_id': item.user_id,
+                    'user_name': full_name,
+                    'minutes': item.minutes,
+                    'seconds': item.seconds,
+                    'result_type': item.result_type,
+                    'mode': item.get_mode_display(),
+                    'updated_at': item.updated_at,
+                    'score_seconds': score_training_result(item.result_type, minutes, seconds),
+                }
+            )
+
         workout_leader_rows = []
         for section_key in selected_section_keys:
-            section = sections_by_key.get(section_key) or {}
-            for entry in section.get('entries', []):
-                medal = entry.get('medal')
+            entries = grouped_by_section.get(section_key, [])
+            entries.sort(key=lambda value: (-value['score_seconds'], value['updated_at'], value['user_id']))
+            for idx, entry in enumerate(entries, start=1):
+                medal = 'gold' if idx == 1 else 'silver' if idx == 2 else 'bronze' if idx == 3 else None
                 workout_leader_rows.append(
                     {
-                        'user_name': entry.get('user_name') or 'Участник',
-                        'result_label': entry.get('result_label') or '--',
+                        'user_name': normalize_mojibake_text(entry.get('user_name') or 'Участник'),
+                        'result_label': format_training_result_value(
+                            entry.get('result_type') or TrainingResult.RESULT_TIME,
+                            entry.get('minutes'),
+                            entry.get('seconds'),
+                        ) or '--',
                         'result_mode_label': (
                             'RX'
                             if str(entry.get('mode') or '').strip().lower() == 'rx'
                             else 'Scaled'
                         ),
-                        'section_title': section_titles.get(section_key, 'Раздел'),
-                        'place_label': entry.get('place_label') or '--',
+                        'section_title': normalize_mojibake_text(section_titles.get(section_key, 'Раздел')),
+                        'place_label': str(idx),
                         'row_class': (
                             'workout-leader-row--gold'
                             if medal == 'gold'
@@ -4652,6 +4758,7 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                     }
                 )
         context['workout_leader_rows'] = workout_leader_rows
+        context['workout_selected_date_iso'] = selected_date.isoformat()
         return context
 
 

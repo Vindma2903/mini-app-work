@@ -10,9 +10,9 @@
 {% block content %}
 <main class="exercise-screen">
     <header class="exercise-header exercise-header--compact">
-        <a href="{% url 'auth:leaderboard_day_workout' %}" class="exercise-header__back" aria-label="Назад">Назад</a>
-        <a href="{% url 'auth:leaderboard_day_workout' %}" class="exercise-header__close" aria-label="Закрыть">×</a>
-        <h1>{{ workout_title }}</h1>
+        <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
+        <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
+        <h1><a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}">{{ workout_title }}</a></h1>
     </header>
 
     <span class="workout-kind-badge">{{ workout_kind_badge }}</span>
@@ -26,7 +26,6 @@
                         <span class="workout-ex-item__num">{{ exercise.index }}</span>
                         <div>
                             <h3>{{ exercise.title }}</h3>
-                            <p>{{ exercise.meta }}</p>
                         </div>
                         {% if exercise.show_video %}
                             <button type="button" aria-label="Смотреть видео">

@@ -39,22 +39,95 @@ body {
 
 .plan-today-date {
     width: 365px;
-    height: 106px;
+    height: auto;
     margin-top: 36px;
     margin-bottom: 16px;
     position: relative;
 }
 
 .plan-today-date__title {
-    margin: 0;
+    margin: 12px 0 0;
     font-size: 16px;
     line-height: 20px;
     font-weight: 400;
     color: #000;
+    text-align: left;
+    width: 100%;
+}
+
+.plan-today-date__bottom {
+    display: grid;
+    justify-items: center;
+}
+
+.plan-top-filter { position: relative; width: 365px; }
+.plan-top-filter__trigger {
+    width: 100%;
+    height: 36px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    background: #fff;
+    color: #101828;
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    justify-content: space-between;
+}
+.plan-top-filter__trigger em {
+    font-style: normal;
+    font: 500 16px/22px Inter, Arial, sans-serif;
+    color: #101828;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 314px;
+}
+.plan-top-filter__trigger img { width: 16px; height: 16px; display: block; }
+.plan-top-filter__menu {
+    position: absolute;
+    top: 42px;
+    left: 0;
+    min-width: 280px;
+    max-width: 360px;
+    background: #fff;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    padding: 6px;
+    display: grid;
+    gap: 4px;
+    z-index: 25;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, .12);
+}
+.plan-top-filter__menu[hidden] { display: none !important; }
+.plan-top-filter__option {
+    height: 36px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    text-align: left;
+    padding: 0 10px;
+    font: 500 16px/22px Inter, Arial, sans-serif;
+    color: #101828;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.plan-today-date__bottom .plan-top-filter {
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+.plan-top-filter__option:hover,
+.plan-top-filter__option.is-active {
+    background: #f3f4f6;
 }
 
 .plan-today-days {
-    margin-top: 18px;
+    margin-top: 0;
+    margin-bottom: 18px;
     display: grid;
     grid-template-columns: repeat(7, 1fr);
     gap: 6px;
@@ -189,10 +262,11 @@ body {
 }
 
 .plan-card__block h2 {
-    margin: 0 0 12px;
-    font-size: 12px;
-    line-height: 15px;
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 17px;
     font-weight: 600;
+    color: #111827;
 }
 
 .plan-card__line {
@@ -215,19 +289,19 @@ body {
 }
 
 .plan-card__line-content { flex: 1; min-width: 0; display: grid; gap: 6px; }
-.plan-card__line-main { display: flex; align-items: center; gap: 8px; }
+.plan-card__line-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
 .plan-card__line span {
     flex: 1;
     display: block;
-    font-size: 12px;
-    line-height: 15px;
+    font-size: 13px;
+    line-height: 18px;
     color: rgba(25, 33, 38, 0.8);
     white-space: pre-line;
 }
 .plan-card__line-details {
     margin: 0;
     font-size: 12px;
-    line-height: 15px;
+    line-height: 18px;
     color: rgba(25, 33, 38, 0.5);
     white-space: pre-line;
 }
@@ -249,6 +323,39 @@ body {
 .plan-card__line button img {
     width: 18px;
     height: 18px;
+}
+
+.plan-card__comment {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--pt-line);
+}
+
+.plan-card__comment h3 {
+    margin: 0 0 6px;
+    font-size: 13px;
+    line-height: 17px;
+    font-weight: 600;
+    color: #192126;
+}
+
+.plan-card__comment p {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+    font-weight: 400;
+    color: rgba(25, 33, 38, 0.8);
+    white-space: pre-line;
+}
+
+.plan-card__comment-bubble {
+    width: min(317px, 100%);
+    min-height: 75px;
+    padding: 12px 14px 16px;
+    background-image: url("/static/auth/img/comment-svg.svg");
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+    background-position: left top;
 }
 
 .plan-card__add {
@@ -294,13 +401,13 @@ body {
 }
 .exercise-video-modal__close {
     position: absolute;
-    right: 12px;
-    top: 12px;
-    width: 34px;
-    height: 34px;
+    right: 0;
+    top: -34px;
+    width: 24px;
+    height: 24px;
     border: 0;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.9);
+    border-radius: 0;
+    background: transparent;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -308,9 +415,10 @@ body {
     z-index: 2;
 }
 .exercise-video-modal__close img {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
     display: block;
+    filter: brightness(0) invert(1);
 }
 .exercise-video-modal__player-wrap {
     width: 100%;

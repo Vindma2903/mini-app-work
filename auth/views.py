@@ -144,31 +144,31 @@ EXERCISE_KIND_LABELS = {
 }
 
 RESULT_TYPE_UNITS = {
-    TrainingResult.RESULT_TIME: 'Р В РЎВР В РЎвЂР В Р вЂ¦',
-    TrainingResult.RESULT_WEIGHT: 'Р В РЎвЂќР В РЎвЂ“',
-    TrainingResult.RESULT_REPS: 'Р В РЎвЂ”Р В РЎвЂўР В Р вЂ Р РЋРІР‚С™',
+    TrainingResult.RESULT_TIME: 'мин',
+    TrainingResult.RESULT_WEIGHT: 'кг',
+    TrainingResult.RESULT_REPS: 'повт',
 }
 
 RESULT_MODAL_TYPE_CONFIG = {
     AdminTrainingExercise.RESULT_TIME: {
-        'primary_label': 'Р В РЎС™Р В РЎвЂР В Р вЂ¦Р РЋРЎвЂњР РЋРІР‚С™Р РЋРІР‚в„–',
-        'primary_placeholder': 'Р В РЎВР В РЎвЂР В Р вЂ¦.',
-        'secondary_label': 'Р В Р Р‹Р В Р’ВµР В РЎвЂќР РЋРЎвЂњР В Р вЂ¦Р В РўвЂР РЋРІР‚в„–',
-        'secondary_placeholder': 'Р РЋР С“Р В Р’ВµР В РЎвЂќ.',
+        'primary_label': 'Минуты',
+        'primary_placeholder': 'мин.',
+        'secondary_label': 'Секунды',
+        'secondary_placeholder': 'сек.',
         'show_secondary': True,
     },
     AdminTrainingExercise.RESULT_WEIGHT: {
-        'primary_label': 'Р В РІР‚в„ўР В Р’ВµР РЋР С“',
-        'primary_placeholder': 'Р В РЎвЂќР В РЎвЂ“',
+        'primary_label': 'Вес',
+        'primary_placeholder': 'кг',
         'secondary_label': '',
         'secondary_placeholder': '',
         'show_secondary': False,
     },
     AdminTrainingExercise.RESULT_REPS: {
-        'primary_label': 'Р В РЎв„ўР В РЎвЂўР В Р’В»Р В РЎвЂР РЋРІР‚РЋР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В Р вЂ Р В РЎвЂў',
-        'primary_placeholder': 'Р В РЎв„ўР В РЎвЂўР В Р’В»Р В РЎвЂР РЋРІР‚РЋР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В Р вЂ Р В РЎвЂў',
-        'secondary_label': 'Р В РЎСџР В РЎвЂўР В РўвЂР РЋРІР‚В¦Р В РЎвЂўР В РўвЂР РЋРІР‚в„–',
-        'secondary_placeholder': 'Р В РЎСџР В РЎвЂўР В РўвЂР РЋРІР‚В¦Р В РЎвЂўР В РўвЂР РЋРІР‚в„–',
+        'primary_label': 'Количество',
+        'primary_placeholder': 'Количество',
+        'secondary_label': 'Подходы',
+        'secondary_placeholder': 'Подходы',
         'show_secondary': True,
     },
 }
@@ -212,7 +212,7 @@ def resolve_manual_block_label(training):
             return custom_name
     if block_type in TRAINING_BLOCK_LABELS:
         return normalize_mojibake_text(TRAINING_BLOCK_LABELS[block_type])
-    return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'РЎРёР»РѕРІР°СЏ'))
+    return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'Силовая'))
 
 
 def normalize_mojibake_text(value):
@@ -221,11 +221,12 @@ def normalize_mojibake_text(value):
     source = value.strip()
     if not source:
         return value
-    if not any(marker in source for marker in ('Р В Р’В ', 'Р В Р Р‹', 'Р вЂњРЎвЂ™', 'Р вЂњРІР‚В')):
+    # Common mojibake patterns after UTF-8/CP1251 mismatch.
+    if not any(marker in source for marker in ('Р', 'С', 'Ð', 'Ñ')):
         return value
 
     def cyrillic_score(text):
-        return sum(1 for ch in text if ('Р В РЎвЂ™' <= ch <= 'Р РЋР РЏ') or ch in {'Р В Р С“', 'Р РЋРІР‚В'})
+        return sum(1 for ch in text if '\u0400' <= ch <= '\u04FF')
 
     best = source
     best_score = cyrillic_score(source)
@@ -2294,20 +2295,34 @@ class AdminProfileUpdateView(AdminProtectedMixin, View):
         try:
             payload = json.loads(request.body.decode('utf-8') or '{}')
         except json.JSONDecodeError:
+            logger.warning('Admin profile update invalid_json user_id=%s ip=%s', request.user.id, get_client_ip(request))
             return JsonResponse({'ok': False, 'error': 'invalid_json'}, status=400)
 
-        first_name = str(payload.get('first_name') or '').strip()
-        last_name = str(payload.get('last_name') or '').strip()
-        email = str(payload.get('email') or '').strip().lower()
-        phone = str(payload.get('phone') or '').strip()
+        # Partial update: unchanged fields stay intact.
+        current_first_name = str(request.user.first_name or '').strip()
+        current_last_name = str(request.user.last_name or '').strip()
+        current_email = str(request.user.email or '').strip().lower()
+        current_phone = str((AdminContact.objects.filter(user=request.user).only('phone').first() or AdminContact(phone='')).phone or '').strip()
+
+        first_name = current_first_name
+        last_name = current_last_name
+        email = current_email
+        phone = current_phone
+
+        if 'first_name' in payload:
+            candidate = str(payload.get('first_name') or '').strip()
+            first_name = candidate if candidate else current_first_name
+        if 'last_name' in payload:
+            candidate = str(payload.get('last_name') or '').strip()
+            last_name = candidate if candidate else current_last_name
+        if 'email' in payload:
+            candidate = str(payload.get('email') or '').strip().lower()
+            email = candidate if candidate else current_email
+        if 'phone' in payload:
+            phone = str(payload.get('phone') or '').strip()
+        phone = re.sub(r'[^\d+]+', '', phone)
 
         field_errors = {}
-        if not first_name:
-            field_errors['first_name'] = 'required'
-        if not last_name:
-            field_errors['last_name'] = 'required'
-        if not email:
-            field_errors['email'] = 'required'
         if len(first_name) > 150:
             field_errors['first_name'] = 'too_long'
         if len(last_name) > 150:
@@ -2323,6 +2338,13 @@ class AdminProfileUpdateView(AdminProtectedMixin, View):
             field_errors['email'] = 'already_exists'
 
         if field_errors:
+            logger.warning(
+                'Admin profile update validation_error user_id=%s ip=%s errors=%s payload_keys=%s',
+                request.user.id,
+                get_client_ip(request),
+                field_errors,
+                sorted(payload.keys()),
+            )
             return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
 
         with transaction.atomic():
@@ -2452,34 +2474,34 @@ class AdminProfileUserCreateView(AdminProtectedMixin, View):
         if field_errors:
             return JsonResponse({'ok': False, 'error': 'validation_error', 'field_errors': field_errors}, status=400)
 
-        with transaction.atomic():
-            user = User.objects.create_user(
-                username=email,
-                email=email,
-                password=None,
-                first_name=first_name,
-                last_name=last_name,
-                is_active=True,
-                is_staff=False,
-                is_superuser=False,
-            )
-            user.set_unusable_password()
-            user.save(update_fields=['password'])
+        try:
+            with transaction.atomic():
+                user = User.objects.create_user(
+                    username=email,
+                    email=email,
+                    password=None,
+                    first_name=first_name,
+                    last_name=last_name,
+                    is_active=True,
+                    is_staff=False,
+                    is_superuser=False,
+                )
+                user.set_unusable_password()
+                user.save(update_fields=['password'])
 
-            profile, _ = UserProfile.objects.get_or_create(user=user)
-            profile.role = role
-            profile.save(update_fields=['role', 'updated_at'])
+                profile, _ = UserProfile.objects.get_or_create(user=user)
+                profile.role = role
+                profile.save(update_fields=['role', 'updated_at'])
 
-            reset_request = AdminPasswordResetRequest.objects.create(
-                user=user,
-                code=f'{secrets.randbelow(1000000):06d}',
-                expires_at=timezone.now() + timedelta(minutes=10),
-            )
+                reset_request = AdminPasswordResetRequest.objects.create(
+                    user=user,
+                    code=f'{secrets.randbelow(1000000):06d}',
+                    expires_at=timezone.now() + timedelta(minutes=10),
+                )
 
-            invite_sent = True
-            try:
-                reset_link = build_admin_password_reset_link(request, reset_request)
-                send_mail(
+                try:
+                    reset_link = build_admin_password_reset_link(request, reset_request)
+                    send_mail(
                     subject='Р В Р’В Р вЂ™Р’В Р В Р Р‹Р РЋРЎСџР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СљР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р В Р вЂ№Р В Р вЂ Р Р†Р вЂљРЎв„ўР вЂ™Р’В¬Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В  Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р вЂ™Р’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦-Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р В Р вЂ№Р В Р’В Р В РІР‚В°',
                     message=(
                         'Р В Р’В Р вЂ™Р’В Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РЎС›Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В РЎС›Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРЎС›Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В±Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В»Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В  Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚СљР В Р’В Р В Р вЂ№Р В Р вЂ Р В РІР‚С™Р РЋРІвЂћСћР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р Р‹Р вЂ™Р’ВР В Р’В Р В Р вЂ№Р В Р Р‹Р Р†Р вЂљРЎС™.\n\n'
@@ -2491,19 +2513,29 @@ class AdminProfileUserCreateView(AdminProtectedMixin, View):
                     recipient_list=[email],
                     fail_silently=False,
                 )
-            except Exception:
-                invite_sent = False
-                logger.exception(
-                    'Admin invite email send failed user_id=%s email=%s',
-                    user.id,
-                    email,
-                )
+                except Exception as error:
+                    logger.exception(
+                        'Admin invite email send failed user_id=%s email=%s',
+                        user.id,
+                        email,
+                    )
+                    raise RuntimeError('invite_email_send_failed') from error
+        except RuntimeError as error:
+            if str(error) != 'invite_email_send_failed':
+                raise
+            return JsonResponse(
+                {
+                    'ok': False,
+                    'error': 'invite_email_send_failed',
+                },
+                status=500,
+            )
 
         return JsonResponse(
             {
                 'ok': True,
                 'created': True,
-                'invite_sent': invite_sent,
+                'invite_sent': True,
                 'user': serialize_admin_user_row(user),
             }
         )
@@ -4502,14 +4534,14 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             ):
                 workout_kind_badge = str(first_exercise.block_custom_name or '').strip()
             else:
-                workout_kind_badge = TRAINING_BLOCK_LABELS.get(first_exercise.block_type, 'Р‘Р»РѕРє')
+                workout_kind_badge = TRAINING_BLOCK_LABELS.get(first_exercise.block_type, 'Блок')
         else:
             workout_kind_badge = '--'
         context['workout_kind_badge'] = normalize_mojibake_text(workout_kind_badge)
         context['workout_exercises'] = [
             {
                 'index': idx + 1,
-                'title': (exercise.exercise_name or '').strip() or 'РЈРїСЂР°Р¶РЅРµРЅРёРµ',
+                'title': (exercise.exercise_name or '').strip() or 'Упражнение',
                 'meta': self._format_exercise_meta(exercise),
                 'show_video': bool(
                     exercise.library_item_id
@@ -4545,14 +4577,14 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
                 medal = entry.get('medal')
                 workout_leader_rows.append(
                     {
-                        'user_name': entry.get('user_name') or 'РЈС‡Р°СЃС‚РЅРёРє',
+                        'user_name': entry.get('user_name') or 'Участник',
                         'result_label': entry.get('result_label') or '--',
                         'result_mode_label': (
                             'RX'
                             if str(entry.get('mode') or '').strip().lower() == 'rx'
                             else 'Scaled'
                         ),
-                        'section_title': section_titles.get(section_key, 'Р Р°Р·РґРµР»'),
+                        'section_title': section_titles.get(section_key, 'Раздел'),
                         'place_label': entry.get('place_label') or '--',
                         'row_class': (
                             'workout-leader-row--gold'
@@ -4737,9 +4769,9 @@ class ToggleCommunityReactionView(View):
 class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
     PLAN_BLOCK_TITLES_RU = {
-        AdminTrainingExercise.BLOCK_STRENGTH: 'РЎРёР»РѕРІР°СЏ',
-        AdminTrainingExercise.BLOCK_CARDIO: 'РљР°СЂРґРёРѕ',
-        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Р“РёРјРЅР°СЃС‚РёРєР°',
+        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
     }
 
     @staticmethod
@@ -4848,14 +4880,13 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
             .order_by('-updated_at', '-id')
         )
 
-        plan_cards = []
-        for training in trainings:
+        def build_sections_for_training(training):
             sections = []
             section_index = {}
             exercises = list(training.exercises.all())
 
             if training.source_type == AdminTraining.SOURCE_MANUAL:
-                default_title = 'РўСЂРµРЅРёСЂРѕРІРєР°'
+                default_title = 'Тренировка'
                 manual_block_type = str(training.manual_block_type or '').strip().lower()
                 manual_block_custom_name = str(training.manual_block_custom_name or '').strip()
                 if manual_block_type:
@@ -4884,7 +4915,7 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                     section_title = (
                         exercise.block_custom_name.strip()
                         if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM
-                        else self.PLAN_BLOCK_TITLES_RU.get(exercise.block_type, 'Р‘Р»РѕРє')
+                        else self.PLAN_BLOCK_TITLES_RU.get(exercise.block_type, 'Блок')
                     )
                     section_title = normalize_mojibake_text(section_title)
                     if section_title not in section_index:
@@ -4915,8 +4946,12 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                             )
                         else:
                             line_payload = self._build_plan_line_payload(
-                                text_ru=(library_item.desc_ru if library_item else '') or fallback_text,
-                                text_en=library_item.desc_en if library_item else '',
+                                # For normal exercises we must show the exact volume configured in training
+                                # (e.g. "Название 5x10"), not only library description text.
+                                text_ru=fallback_text,
+                                text_en=fallback_text,
+                                details_ru=(library_item.desc_ru if library_item else '') or '',
+                                details_en=(library_item.desc_en if library_item else '') or '',
                                 video_url=video_url,
                                 video_search_name_ru=(library_item.name_ru if library_item else '') or exercise.exercise_name,
                                 video_search_name_en=(library_item.name_en if library_item else '') or exercise.exercise_name,
@@ -4933,15 +4968,89 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
 
                     sections[section_index[section_title]]['lines'].append(line_payload)
 
+            return sections
+
+        def resolve_training_section_keys(training):
+            keys = []
+            if training.source_type == AdminTraining.SOURCE_MANUAL:
+                manual_block_type = str(training.manual_block_type or '').strip().lower()
+                if manual_block_type == AdminTrainingExercise.BLOCK_STRENGTH:
+                    keys.append(TrainingResult.SECTION_STRENGTH)
+                elif manual_block_type == AdminTrainingExercise.BLOCK_CARDIO:
+                    keys.append(TrainingResult.SECTION_CARDIO)
+                elif manual_block_type in {AdminTrainingExercise.BLOCK_GYMNASTICS, AdminTrainingExercise.BLOCK_CUSTOM}:
+                    keys.append(TrainingResult.SECTION_METABOLIC)
+                return keys
+
+            for exercise in training.exercises.all():
+                if exercise.block_type == AdminTrainingExercise.BLOCK_STRENGTH:
+                    section_key = TrainingResult.SECTION_STRENGTH
+                elif exercise.block_type == AdminTrainingExercise.BLOCK_CARDIO:
+                    section_key = TrainingResult.SECTION_CARDIO
+                else:
+                    section_key = TrainingResult.SECTION_METABOLIC
+                if section_key not in keys:
+                    keys.append(section_key)
+            return keys
+
+        grouped_trainings = {}
+        grouped_order = []
+        for training in trainings:
+            direction_key = str(training.direction or '').strip().lower() or AdminTraining.DIRECTION_FBB
+            if direction_key not in grouped_trainings:
+                grouped_trainings[direction_key] = []
+                grouped_order.append(direction_key)
+            grouped_trainings[direction_key].append(training)
+
+        plan_cards = []
+        for direction_key in grouped_order:
+            direction_trainings = grouped_trainings.get(direction_key, [])
+            if not direction_trainings:
+                continue
+            primary_training = direction_trainings[0]
+
+            merged_sections = []
+            merged_section_index = {}
+            for training in direction_trainings:
+                training_sections = build_sections_for_training(training)
+                for section in training_sections:
+                    section_title = normalize_mojibake_text(section.get('title') or '')
+                    if section_title not in merged_section_index:
+                        merged_section_index[section_title] = len(merged_sections)
+                        merged_sections.append({'title': section_title, 'lines': []})
+                    merged_sections[merged_section_index[section_title]]['lines'].extend(section.get('lines') or [])
+
+            comments = []
+            result_sections = []
+            for training in direction_trainings:
+                if role == UserProfile.ROLE_USER:
+                    preferred_comment = str(training.comment_for_athletes or '').strip()
+                    fallback_comment = str(training.comment or training.comment_for_coaches or '').strip()
+                else:
+                    preferred_comment = str(training.comment_for_coaches or '').strip()
+                    fallback_comment = str(training.comment or training.comment_for_athletes or '').strip()
+                comment_value = normalize_mojibake_text(preferred_comment or fallback_comment)
+                if comment_value and comment_value not in comments:
+                    comments.append(comment_value)
+                for section_key in resolve_training_section_keys(training):
+                    if section_key not in result_sections:
+                        result_sections.append(section_key)
+
             plan_cards.append(
                 {
-                    'id': training.id,
+                    'id': primary_training.id,
+                    'direction': direction_key,
                     'title': normalize_mojibake_text(
-                        get_admin_training_title(training.direction, training.source_type, training.ready_plan_title)
+                        get_admin_training_title(
+                            primary_training.direction,
+                            primary_training.source_type,
+                            primary_training.ready_plan_title,
+                        )
                     ),
-                    'sections': sections,
-                    'comment': training.comment,
-                    'result_types': get_plan_result_type_map([training]),
+                    'sections': merged_sections,
+                    'comment': '\n'.join(comments),
+                    'result_types': get_plan_result_type_map(direction_trainings),
+                    'result_sections': result_sections,
                 }
             )
 
@@ -4969,9 +5078,36 @@ class TrainingPlanVersionView(UserOnlyProtectedMixin, View):
             trainings_query = trainings_query.filter(visibility=AdminTraining.VISIBILITY_ALL)
 
         aggregate = trainings_query.aggregate(total=Count('id'), latest=Max('updated_at'))
-        latest = aggregate.get('latest')
+        training_ids = list(trainings_query.values_list('id', flat=True))
+
+        exercises_latest = None
+        library_latest = None
+        exercises_total = 0
+
+        if training_ids:
+            exercises_query = AdminTrainingExercise.objects.filter(training_id__in=training_ids)
+            exercise_aggregate = exercises_query.aggregate(total=Count('id'), latest=Max('updated_at'))
+            exercises_total = int(exercise_aggregate.get('total') or 0)
+            exercises_latest = exercise_aggregate.get('latest')
+
+            library_item_ids = list(
+                exercises_query
+                .exclude(library_item_id__isnull=True)
+                .values_list('library_item_id', flat=True)
+                .distinct()
+            )
+            if library_item_ids:
+                library_latest = (
+                    AdminLibraryItem.objects
+                    .filter(id__in=library_item_ids)
+                    .aggregate(latest=Max('updated_at'))
+                    .get('latest')
+                )
+
+        latest_candidates = [aggregate.get('latest'), exercises_latest, library_latest]
+        latest = max((item for item in latest_candidates if item is not None), default=None)
         latest_ts = int(latest.timestamp()) if latest else 0
-        version = f"{int(aggregate.get('total') or 0)}:{latest_ts}"
+        version = f"{int(aggregate.get('total') or 0)}:{exercises_total}:{latest_ts}"
 
         return JsonResponse(
             {

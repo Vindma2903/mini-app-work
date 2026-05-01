@@ -148,6 +148,26 @@
             alert(text);
         }
 
+        let adminTopToastTimer = null;
+        function showTopToast(message, kind = "error") {
+            let toast = document.getElementById("admin-profile-top-toast");
+            if (!toast) {
+                toast = document.createElement("div");
+                toast.id = "admin-profile-top-toast";
+                toast.className = "admin-profile-top-toast";
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.dataset.kind = kind;
+            toast.classList.add("is-visible");
+            if (adminTopToastTimer) {
+                window.clearTimeout(adminTopToastTimer);
+            }
+            adminTopToastTimer = window.setTimeout(() => {
+                toast.classList.remove("is-visible");
+            }, 5000);
+        }
+
         const dataForm = document.getElementById("admin-profile-data-form");
         const dataActions = document.getElementById("admin-profile-data-actions");
         const dataCancel = document.getElementById("admin-profile-data-cancel");
@@ -278,6 +298,10 @@
                 });
                 const payload = await response.json();
                 if (!response.ok || !payload?.ok || !payload?.created) {
+                    if (payload?.error === "invite_email_send_failed") {
+                        showTopToast("Не удалось отправить письмо на электронную почту, пользователь не создан.", "error");
+                        throw new Error("Не удалось отправить письмо на электронную почту, пользователь не создан.");
+                    }
                     if (payload?.field_errors?.email === "already_exists") {
                         throw new Error("Пользователь с таким email уже существует.");
                     }
@@ -342,6 +366,24 @@
                 const result = await response.json();
                 if (!response.ok || !result?.ok || !result?.profile) {
                     const fieldErrors = result?.field_errors || {};
+                    if (fieldErrors.first_name === "required") {
+                        throw new Error("Введите имя.");
+                    }
+                    if (fieldErrors.last_name === "required") {
+                        throw new Error("Введите фамилию.");
+                    }
+                    if (fieldErrors.email === "required") {
+                        throw new Error("Введите email.");
+                    }
+                    if (fieldErrors.first_name === "too_long" || fieldErrors.last_name === "too_long") {
+                        throw new Error("Имя или фамилия слишком длинные.");
+                    }
+                    if (fieldErrors.email === "too_long") {
+                        throw new Error("Email слишком длинный.");
+                    }
+                    if (fieldErrors.phone === "too_long") {
+                        throw new Error("Номер телефона слишком длинный.");
+                    }
                     if (fieldErrors.email === "already_exists") {
                         throw new Error("Этот email уже используется.");
                     }

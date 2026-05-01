@@ -71,10 +71,10 @@
                 <table class="admin-library-table">
                     <thead>
                         <tr>
-                            <th>Название<br>Русский</th>
-                            <th>Название<br>Английский</th>
-                            <th>Описание<br>Русский</th>
-                            <th>Описание<br>Английский</th>
+                            <th>Название (ru)</th>
+                            <th>Название (en)</th>
+                            <th>Описание (ru)</th>
+                            <th>Описание (en)</th>
                             <th>Видео</th>
                             <th>Действия</th>
                         </tr>
@@ -95,8 +95,8 @@
                             </td>
                             <td>
                                 <span class="admin-library-actions">
-                                    <a href="#" aria-label="Редактировать" data-library-edit="{{ row.id }}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
-                                    <a href="#" aria-label="Удалить" data-library-delete="{{ row.id }}"><img src="{% static 'auth/img/admin/Trash_Full.svg' %}" alt=""></a>
+                                    <a href="#" aria-label="Редактировать" data-library-edit="{{ row.id }}"><img src="{% static 'auth/img/pencil.svg' %}" alt=""></a>
+                                    <a href="#" aria-label="Удалить" data-library-delete="{{ row.id }}"><img src="{% static 'auth/img/busket.svg' %}" alt=""></a>
                                 </span>
                             </td>
                         </tr>
@@ -302,8 +302,8 @@
                     </td>
                     <td>
                         <span class="admin-library-actions">
-                            <a href="#" aria-label="Редактировать" data-library-edit="${String(row.id || "")}"><img src="{% static 'auth/img/admin/Edit_Pencil_Line_01.svg' %}" alt=""></a>
-                            <a href="#" aria-label="Удалить" data-library-delete="${String(row.id || "")}"><img src="{% static 'auth/img/admin/Trash_Full.svg' %}" alt=""></a>
+                            <a href="#" aria-label="Редактировать" data-library-edit="${String(row.id || "")}"><img src="{% static 'auth/img/pencil.svg' %}" alt=""></a>
+                            <a href="#" aria-label="Удалить" data-library-delete="${String(row.id || "")}"><img src="{% static 'auth/img/busket.svg' %}" alt=""></a>
                         </span>
                     </td>
                 </tr>

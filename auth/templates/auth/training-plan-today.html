@@ -1,4 +1,4 @@
-{% extends 'auth/base.html' %}
+﻿{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}План тренировок на сегодня{% endblock %}
@@ -18,13 +18,30 @@
     {% include 'auth/components/profile_header.html' with name=shared_profile_name experience=shared_profile_experience %}
 
     <section class="plan-today-date">
-        <h2 class="plan-today-date__title">Расписание тренировок</h2>
         {% include 'auth/components/day_picker.html' with wrapper_class='plan-today-days' item_class='plan-today-days__item' day_items=plan_week_days %}
+        <div class="plan-today-date__bottom">
+            <div class="plan-top-filter" id="plan-top-direction-filter">
+                <button type="button" class="plan-top-filter__trigger" id="plan-top-direction-trigger" aria-haspopup="listbox" aria-expanded="false">
+                    <em id="plan-top-direction-value">Все направления</em>
+                    <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                </button>
+                <div class="plan-top-filter__menu" id="plan-top-direction-menu" role="listbox" hidden>
+                    <button type="button" class="plan-top-filter__option is-active" data-plan-direction-option="all" data-plan-direction-label="Все направления">Все направления</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="fbb" data-plan-direction-label="FBB">FBB</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="crossfit" data-plan-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="gymnastics" data-plan-direction-label="Гимнастика">Гимнастика</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="workout" data-plan-direction-label="Тренировка дня">Тренировка дня</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="functional" data-plan-direction-label="Функциональная тренировка">Функциональная тренировка</button>
+                    <button type="button" class="plan-top-filter__option" data-plan-direction-option="strength" data-plan-direction-label="Силовая тренировка">Силовая тренировка</button>
+                </div>
+            </div>
+            <h2 class="plan-today-date__title">План тренировок на сегодня</h2>
+        </div>
     </section>
 
     <div id="plan-cards-container">
         {% for card in plan_cards %}
-        <section class="plan-card plan-card--collapsed" data-plan-card data-training-id="{{ card.id }}">
+        <section class="plan-card plan-card--collapsed" data-plan-card data-training-id="{{ card.id }}" data-direction="{{ card.direction|default:'' }}">
             <div class="plan-card__head" data-plan-toggle role="button" tabindex="0" aria-expanded="false">
                 <span>{{ card.title }}</span>
                 <img src="{% static 'auth/img/calendar-plan-icon.svg' %}" alt="">
@@ -77,12 +94,19 @@
                     {% endfor %}
                 </div>
                 {% endfor %}
+                {% if card.comment %}
+                <div class="plan-card__comment">
+                    <h3>Комментарий тренера</h3>
+                    <p class="plan-card__comment-bubble">{{ card.comment|linebreaksbr }}</p>
+                </div>
+                {% endif %}
                 <button
                     type="button"
                     class="plan-card__add"
                     data-result-type-strength="{{ card.result_types.strength|default:'time' }}"
                     data-result-type-cardio="{{ card.result_types.cardio|default:'time' }}"
                     data-result-type-metabolic="{{ card.result_types.metabolic|default:'time' }}"
+                    data-result-sections="{{ card.result_sections|join:',' }}"
                 >Добавить результат</button>
             </div>
         </section>
@@ -153,6 +177,72 @@
                 window.location.href = "{% url 'auth:training_plan_today' %}?date=" + encodeURIComponent(date);
             });
         });
+    })();
+</script>
+<script>
+    (function () {
+        const filterWrap = document.getElementById("plan-top-direction-filter");
+        const filterTrigger = document.getElementById("plan-top-direction-trigger");
+        const filterValue = document.getElementById("plan-top-direction-value");
+        const filterMenu = document.getElementById("plan-top-direction-menu");
+        const filterOptions = Array.from(document.querySelectorAll("[data-plan-direction-option]"));
+        const cardsContainer = document.getElementById("plan-cards-container");
+        if (!filterWrap || !filterTrigger || !filterValue || !filterMenu || !cardsContainer) return;
+
+        let activeDirection = "all";
+
+        function setFilterMenuOpen(open) {
+            filterMenu.hidden = !open;
+            filterTrigger.setAttribute("aria-expanded", open ? "true" : "false");
+        }
+
+        function applyDirectionFilter() {
+            const cards = Array.from(cardsContainer.querySelectorAll("[data-plan-card][data-direction]"));
+            cards.forEach((card) => {
+                const cardDirection = String(card.getAttribute("data-direction") || "").trim().toLowerCase();
+                card.hidden = activeDirection !== "all" && cardDirection !== activeDirection;
+            });
+        }
+
+        function selectDirectionOption(value, label) {
+            activeDirection = String(value || "all").trim().toLowerCase() || "all";
+            filterValue.textContent = label || "Все направления";
+            filterOptions.forEach((optionButton) => {
+                const optionValue = String(optionButton.getAttribute("data-plan-direction-option") || "").trim().toLowerCase();
+                optionButton.classList.toggle("is-active", optionValue === activeDirection);
+            });
+            applyDirectionFilter();
+        }
+
+        filterTrigger.addEventListener("click", () => {
+            setFilterMenuOpen(filterMenu.hidden);
+        });
+
+        filterOptions.forEach((optionButton) => {
+            optionButton.addEventListener("click", () => {
+                const value = optionButton.getAttribute("data-plan-direction-option") || "all";
+                const label = optionButton.getAttribute("data-plan-direction-label") || "Все направления";
+                selectDirectionOption(value, label);
+                setFilterMenuOpen(false);
+            });
+        });
+
+        document.addEventListener("click", (event) => {
+            if (filterWrap.contains(event.target)) return;
+            setFilterMenuOpen(false);
+        });
+
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            setFilterMenuOpen(false);
+        });
+
+        const observer = new MutationObserver(() => {
+            applyDirectionFilter();
+        });
+        observer.observe(cardsContainer, { childList: true, subtree: true });
+
+        selectDirectionOption("all", "Все направления");
     })();
 </script>
 <script>
@@ -357,6 +447,7 @@
             { key: "cardio", title: "Кардио" },
             { key: "metabolic", title: "Метаболическая" }
         ];
+        let activeSectionKeys = sections.map((section) => section.key);
         const resultsDraft = {};
         let activeTrainingId = "";
 
@@ -470,7 +561,9 @@
 
         function renderSections() {
             if (!sectionsWrap) return;
-            sectionsWrap.innerHTML = sections.map((section) => {
+            sectionsWrap.innerHTML = sections
+                .filter((section) => activeSectionKeys.includes(section.key))
+                .map((section) => {
                 const config = getSectionConfig(section.key);
                 const stored = resultsDraft[section.key] || {};
                 const rxActive = (stored.mode || "rx") === "rx";
@@ -644,6 +737,15 @@
                 cardio: button.getAttribute("data-result-type-cardio") || defaults.cardio || "time",
                 metabolic: button.getAttribute("data-result-type-metabolic") || defaults.metabolic || "time"
             };
+            const rawSections = String(button.getAttribute("data-result-sections") || "")
+                .split(",")
+                .map((value) => value.trim().toLowerCase())
+                .filter(Boolean);
+            const validSectionKeys = sections.map((section) => section.key);
+            activeSectionKeys = rawSections.filter((key) => validSectionKeys.includes(key));
+            if (!activeSectionKeys.length) {
+                activeSectionKeys = [...validSectionKeys];
+            }
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
             renderSections();
             setModalVisible(myResultsModal, true);
@@ -913,5 +1015,7 @@
     })();
 </script>
 {% endblock %}
+
+
 
 

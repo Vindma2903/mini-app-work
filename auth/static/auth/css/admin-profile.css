@@ -296,3 +296,30 @@ body {
 .admin-profile-users__hint[data-kind="error"] {
     color: #b42318;
 }
+
+.admin-profile-top-toast {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 3000;
+    max-width: min(420px, calc(100vw - 24px));
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #b42318;
+    color: #fff;
+    font: 500 13px/18px Inter, Arial, sans-serif;
+    box-shadow: 0 10px 24px rgba(16, 24, 40, 0.24);
+    opacity: 0;
+    transform: translateY(-8px);
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.admin-profile-top-toast[data-kind="success"] {
+    background: #027a48;
+}
+
+.admin-profile-top-toast.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}

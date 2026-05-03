@@ -71,7 +71,7 @@ flex-shrink:0;
 .calendar-language-toggle__flag.is-en{background:url("/static/auth/img/us-flag.svg") center/32px 32px no-repeat}
 .calendar-language-toggle__flag.is-en::before{display:none}
 .calendar-language-toggle:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
-.calendar-list-desktop{display:grid;grid-template-columns:repeat(7,minmax(170px,1fr));column-gap:10px;flex:1;min-height:0;overflow:hidden;padding-right:8px}
+.calendar-list-desktop{display:grid;grid-template-columns:repeat(7,minmax(170px,1fr));column-gap:0;flex:1;min-height:0;overflow:hidden;padding-right:8px}
 .calendar-list-desktop__column{min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:16px;padding-right:6px;scrollbar-gutter:stable}
 .calendar-list-desktop__column{scrollbar-width:thin;scrollbar-color:#cbd5e1 transparent}
 .calendar-list-desktop__column::-webkit-scrollbar{width:6px}

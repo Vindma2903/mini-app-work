@@ -2243,11 +2243,11 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             if matched:
                 if matched['place'] in award_counts:
                     award_counts[matched['place']] += 1
-                place_label = f'Р В РЎС™Р В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў: {matched["place"]}'
+                place_label = f'Место: {matched["place"]}'
                 result_value = normalize_mojibake_text(matched['result_label'])
                 result_mode = normalize_mojibake_text(matched['mode'])
             else:
-                place_label = 'Р В РЎС™Р В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў: Р Р†Р вЂљРІР‚Сњ'
+                place_label = 'Место: —'
                 result_value = '--'
                 result_mode = '--'
 
@@ -2263,18 +2263,18 @@ class ProfileAwardWorkoutView(UserOnlyProtectedMixin, TemplateView):
             award_rows.append(
                 {
                     'data_date': today.isoformat(),
-                    'title': f'{training_direction_label} / {normalize_mojibake_text(section_payload["title"])}',
+                    'title': normalize_mojibake_text(section_payload['title']),
                     'date': today.strftime('%d.%m.%Y'),
-                    'result': f'{result_value} Р Р†Р вЂљРЎС› {place_label}',
+                    'result': result_value,
                 }
             )
 
         context['result_sections'] = result_sections
         context['award_rows'] = award_rows
         context['award_summary_rows'] = [
-            {'place': '1 Р В РЎВР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў', 'count': award_counts[1], 'icon': 'auth/img/award-first.svg'},
-            {'place': '2 Р В РЎВР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў', 'count': award_counts[2], 'icon': 'auth/img/award-second.svg'},
-            {'place': '3 Р В РЎВР В Р’ВµР РЋР С“Р РЋРІР‚С™Р В РЎвЂў', 'count': award_counts[3], 'icon': 'auth/img/award-third.svg'},
+            {'place': '1 место', 'count': award_counts[1], 'icon': 'auth/img/award-first.svg'},
+            {'place': '2 место', 'count': award_counts[2], 'icon': 'auth/img/award-second.svg'},
+            {'place': '3 место', 'count': award_counts[3], 'icon': 'auth/img/award-third.svg'},
         ]
         context['award_training_direction_label'] = training_direction_label
         return context
@@ -3017,11 +3017,21 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
             key=lambda pair: (-pair[1]['count'], pair[0][0]),
         )
         for index, (key, data) in enumerate(sorted_exercises):
+            current_exercise_name = normalize_mojibake_text(str(key[0] or '')).strip().lower()
             review_key = f'exercise_{index}'
             result_key = f'result_{index}'
             review_cards = []
             training_dates = sorted(data.get('dates') or [], reverse=True)
             selected_training_view = None
+
+            def training_contains_current_exercise(training_obj):
+                if not current_exercise_name:
+                    return False
+                for training_exercise in training_obj.exercises.all():
+                    exercise_name = normalize_mojibake_text(str(training_exercise.exercise_name or '')).strip().lower()
+                    if exercise_name == current_exercise_name:
+                        return True
+                return False
 
             def build_training_view_payload(training_obj):
                 training_exercises = []
@@ -3066,7 +3076,16 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                             item for item in date_trainings
                             if normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(item.direction, '')).strip() == current_direction
                         ]
-                        selected_training = matched_by_direction[0] if matched_by_direction else date_trainings[0]
+                        matched_same_exercise = [
+                            item for item in matched_by_direction
+                            if training_contains_current_exercise(item)
+                        ]
+                        if matched_same_exercise:
+                            selected_training = matched_same_exercise[0]
+                        elif matched_by_direction:
+                            selected_training = matched_by_direction[0]
+                        else:
+                            selected_training = date_trainings[0]
 
                     training_view = None
                     if selected_training:
@@ -3130,7 +3149,16 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
                         item for item in date_trainings
                         if normalize_mojibake_text(TRAINING_DIRECTION_LABELS.get(item.direction, '')).strip() == current_direction
                     ]
-                    fallback_training = matched_by_direction[0] if matched_by_direction else date_trainings[0]
+                    matched_same_exercise = [
+                        item for item in matched_by_direction
+                        if training_contains_current_exercise(item)
+                    ]
+                    if matched_same_exercise:
+                        fallback_training = matched_same_exercise[0]
+                    elif matched_by_direction:
+                        fallback_training = matched_by_direction[0]
+                    else:
+                        fallback_training = date_trainings[0]
                     if fallback_training:
                         selected_training_view = build_training_view_payload(fallback_training)
                         break
@@ -3341,16 +3369,16 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     PERIOD_OPTIONS = {'all', 'today', 'week', 'month'}
     DIRECTION_LABELS_RU = {
         AdminTraining.DIRECTION_FBB: 'FBB',
-        AdminTraining.DIRECTION_CROSSFIT: 'РљСЂРѕСЃСЃС„РёС‚ СЃ Р”РµРЅРёСЃРѕРј Р—Р°Р»РѕР·РЅРёРј',
-        AdminTraining.DIRECTION_GYMNASTICS: 'Р“РёРјРЅР°СЃС‚РёРєР°',
-        AdminTraining.DIRECTION_WORKOUT: 'РўСЂРµРЅРёСЂРѕРІРєР° РґРЅСЏ',
-        AdminTraining.DIRECTION_FUNCTIONAL: 'Р¤СѓРЅРєС†РёРѕРЅР°Р»СЊРЅР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°',
-        AdminTraining.DIRECTION_STRENGTH: 'РЎРёР»РѕРІР°СЏ С‚СЂРµРЅРёСЂРѕРІРєР°',
+        AdminTraining.DIRECTION_CROSSFIT: 'Кроссфит с Денисом Залозним',
+        AdminTraining.DIRECTION_GYMNASTICS: 'Гимнастика',
+        AdminTraining.DIRECTION_WORKOUT: 'Тренировка дня',
+        AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
+        AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
     }
     BLOCK_LABELS_RU = {
-        AdminTrainingExercise.BLOCK_STRENGTH: 'РЎРёР»РѕРІР°СЏ',
-        AdminTrainingExercise.BLOCK_CARDIO: 'РљР°СЂРґРёРѕ',
-        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Р“РёРјРЅР°СЃС‚РёРєР°',
+        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
+        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
+        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
     }
 
     @staticmethod
@@ -3368,7 +3396,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         sets = getattr(exercise, 'sets', None)
         reps = getattr(exercise, 'reps', None)
         if name and sets and reps:
-            return f'{name} x {sets} РїРѕРґС…РѕРґР° РїРѕ {reps}'
+            return f'{name} x {sets} подхода по {reps}'
         return name
 
     @classmethod
@@ -3377,7 +3405,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
             custom_name = str(exercise.block_custom_name or '').strip()
             if custom_name:
                 return normalize_mojibake_text(custom_name)
-        return normalize_mojibake_text(cls.BLOCK_LABELS_RU.get(exercise.block_type, 'Р‘Р»РѕРє'))
+        return normalize_mojibake_text(cls.BLOCK_LABELS_RU.get(exercise.block_type, 'Блок'))
 
     @staticmethod
     def _pick_training_for_rate(rate, candidates):
@@ -3397,6 +3425,29 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                 ).total_seconds()
             ),
         )
+
+    @staticmethod
+    def _training_matches_load_type(training, load_type):
+        if not training or load_type == 'all':
+            return True
+        if load_type not in {
+            AdminTrainingExercise.BLOCK_STRENGTH,
+            AdminTrainingExercise.BLOCK_CARDIO,
+            AdminTrainingExercise.BLOCK_GYMNASTICS,
+        }:
+            return True
+
+        if training.source_type == AdminTraining.SOURCE_MANUAL:
+            manual_block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
+            if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+                return load_type == AdminTrainingExercise.BLOCK_GYMNASTICS
+            return manual_block_type == load_type
+
+        try:
+            exercises = list(training.exercises.all())
+        except Exception:
+            return False
+        return any(getattr(exercise, 'block_type', None) == load_type for exercise in exercises)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -3451,6 +3502,8 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                 rate,
                 trainings_by_date.get(rate.training_date, []),
             )
+            if not self._training_matches_load_type(training, load_type):
+                continue
             training_key = f'rate-{rate.id}'
             training_title = normalize_mojibake_text(
                 self.DIRECTION_LABELS_RU.get(training.direction, 'HIIT Training')
@@ -3473,10 +3526,10 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
 
                 training_view_payload[training_key] = {
                     'training_id': training.id,
-                    'title': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
+                    'title': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
                     'date_label': training.training_date.strftime('%d.%m.%Y'),
-                    'direction': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'РўСЂРµРЅРёСЂРѕРІРєР°')),
-                    'visibility': 'РўРѕР»СЊРєРѕ РґР»СЏ С‚СЂРµРЅРµСЂРѕРІ' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Р”Р»СЏ РІСЃРµС…',
+                    'direction': normalize_mojibake_text(self.DIRECTION_LABELS_RU.get(training.direction, 'Тренировка')),
+                    'visibility': 'Только для тренеров' if training.visibility == AdminTraining.VISIBILITY_COACHES else 'Для всех',
                     'comment': normalize_mojibake_text(str(training.comment or '').strip()),
                     'color': training.color or 'blue',
                     'exercises': exercises,
@@ -3488,7 +3541,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
                     'training_title': normalize_mojibake_text(training_title),
                     'date_label': rate.training_date.strftime('%d.%m.%Y'),
                     'author_name': full_name,
-                    'comment': normalize_mojibake_text(rate.comment.strip()) or 'Р‘РµР· РєРѕРјРјРµРЅС‚Р°СЂРёСЏ',
+                    'comment': normalize_mojibake_text(rate.comment.strip()) or 'Без комментария',
                     'overall_stars': self._stars(rate.overall),
                     'strength_stars': self._stars(rate.strength),
                     'cardio_stars': self._stars(rate.cardio),

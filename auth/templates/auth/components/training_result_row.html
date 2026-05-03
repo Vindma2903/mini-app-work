@@ -1,13 +1,13 @@
 {% if tag == 'button' %}
 <button type="button" class="{{ row_class }}" {% if data_date %}data-date="{{ data_date }}"{% endif %}>
-    <p>{{ title }}</p>
-    <span>{{ date }}</span>
-    <b>{{ result }}</b>
+    <p class="training-result-row__line">
+        <span class="training-result-row__title">{{ title }}</span><span class="training-result-row__sep" aria-hidden="true"> | </span><span class="training-result-row__date">{{ date }}</span><span class="training-result-row__sep" aria-hidden="true"> | </span><span class="training-result-row__result">{{ result }}</span>
+    </p>
 </button>
 {% else %}
 <article class="{{ row_class }}" {% if data_date %}data-date="{{ data_date }}"{% endif %}>
-    <p>{{ title }}</p>
-    <span>{{ date }}</span>
-    <b>{{ result }}</b>
+    <p class="training-result-row__line">
+        <span class="training-result-row__title">{{ title }}</span><span class="training-result-row__sep" aria-hidden="true"> | </span><span class="training-result-row__date">{{ date }}</span><span class="training-result-row__sep" aria-hidden="true"> | </span><span class="training-result-row__result">{{ result }}</span>
+    </p>
 </article>
 {% endif %}

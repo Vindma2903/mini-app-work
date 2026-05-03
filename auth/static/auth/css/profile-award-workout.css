@@ -52,6 +52,7 @@ body {
 }
 
 .award-summary__row {
+    position: relative;
     height: 52px;
     background: var(--white);
     border-radius: var(--radius);
@@ -64,6 +65,9 @@ body {
 .award-summary__row img {
     width: 25px;
     height: 28px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .award-summary__row span,
@@ -73,8 +77,20 @@ body {
     color: rgba(25, 33, 38, 0.5);
 }
 
+.award-summary__row span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
 .award-summary__row strong {
     margin-left: auto;
+    position: relative;
+    z-index: 1;
 }
 
 .award-workout-list {
@@ -90,22 +106,37 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    padding: 0 24px;
+    padding: 0 16px;
     cursor: pointer;
 }
 
-.award-workout-list__item p,
-.award-workout-list__item span,
-.award-workout-list__item b {
+.award-workout-list__item .training-result-row__line {
     margin: 0;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
     font-size: 12px;
+    line-height: 16px;
     font-weight: 400;
+    text-align: center;
 }
 
-.award-workout-list__item p { color: #192126; }
-.award-workout-list__item span,
-.award-workout-list__item b { color: var(--muted); }
+.award-workout-list__item .training-result-row__sep {
+    margin: 0 2px;
+}
+
+.award-workout-list__item .training-result-row__title {
+    color: #192126;
+}
+
+.award-workout-list__item .training-result-row__sep,
+.award-workout-list__item .training-result-row__date,
+.award-workout-list__item .training-result-row__result {
+    color: var(--muted);
+}
 
 .award-modal {
     position: fixed;

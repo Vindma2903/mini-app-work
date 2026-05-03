@@ -51,6 +51,7 @@ body {
 }
 
 .award-summary__row {
+    position: relative;
     height: 52px;
     background: var(--white);
     border-radius: var(--radius);
@@ -63,6 +64,9 @@ body {
 .award-summary__row img {
     width: 25px;
     height: 28px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .award-summary__row span,
@@ -72,8 +76,20 @@ body {
     color: rgba(25, 33, 38, 0.5);
 }
 
+.award-summary__row span {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+}
+
 .award-summary__row strong {
     margin-left: auto;
+    position: relative;
+    z-index: 1;
 }
 
 .awards-list {
@@ -90,23 +106,34 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 20px;
-    padding: 0 24px;
+    padding: 0 16px;
     cursor: pointer;
-    text-align: left;
+    text-align: center;
 }
 
-.awards-list__item p,
-.awards-list__item span,
-.awards-list__item b {
+.awards-list__item .training-result-row__line {
     margin: 0;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
     font-size: 12px;
+    line-height: 16px;
     font-weight: 400;
+    text-align: center;
 }
 
-.awards-list__item p { color: #192126; }
-.awards-list__item span,
-.awards-list__item b { color: var(--muted); }
+.awards-list__item .training-result-row__title {
+    color: #192126;
+}
+
+.awards-list__item .training-result-row__sep,
+.awards-list__item .training-result-row__date,
+.awards-list__item .training-result-row__result {
+    color: var(--muted);
+}
 
 .award-modal {
     position: fixed;

@@ -33,7 +33,7 @@
         {% for row in award_rows %}
         {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date=row.data_date title=row.title date=row.date result=row.result %}
         {% empty %}
-        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='' title=award_training_direction_label|add:' / Силовая' date='--' result='--' %}
+        {% include 'auth/components/training_result_row.html' with row_class='award-workout-list__item' data_date='' title=award_training_direction_label date='--' result='--' %}
         {% endfor %}
     </section>
 
@@ -90,8 +90,8 @@
         list.addEventListener("click", function (event) {
             const row = event.target.closest(".award-workout-list__item");
             if (!row) return;
-            const rawTraining = row.querySelector("p").textContent || "";
-            detailsTraining.textContent = rawTraining.split("/")[0].trim() || "{{ award_training_direction_label|escapejs }}";
+            const titleNode = row.querySelector(".training-result-row__title");
+            detailsTraining.textContent = (titleNode?.textContent || "").trim() || "{{ award_training_direction_label|escapejs }}";
             selectedLeaderboardDate = row.dataset.date || "";
             detailsContent.hidden = true;
             trainingToggle.setAttribute("aria-expanded", "false");

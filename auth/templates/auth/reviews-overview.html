@@ -146,26 +146,6 @@
             </label>
 
             <label class="calendar-create-modal__field">
-                <span>Видимость</span>
-                <div class="calendar-create-modal__input reviews-training-view__input">
-                    <em id="reviews-training-view-visibility">--</em>
-                </div>
-            </label>
-
-            <div class="calendar-create-modal__colors reviews-training-view__colors">
-                <p>Цвет тренировки в админ панели</p>
-                <div>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--blue" aria-label="Синий" aria-pressed="false" data-reviews-view-color="blue"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--orange" aria-label="Оранжевый" aria-pressed="false" data-reviews-view-color="orange"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--green" aria-label="Зеленый" aria-pressed="false" data-reviews-view-color="green"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--pink" aria-label="Розовый" aria-pressed="false" data-reviews-view-color="pink"></button>
-                    <button type="button" class="calendar-create-modal__color calendar-create-modal__color--violet" aria-label="Фиолетовый" aria-pressed="false" data-reviews-view-color="violet"></button>
-                </div>
-                <input type="hidden" id="reviews-training-view-color-input" value="blue">
-                <small id="reviews-training-view-color-selected">Выбран цвет: Синий</small>
-            </div>
-
-            <label class="calendar-create-modal__field">
                 <span>Комментарий</span>
                 <textarea class="calendar-create-modal__textarea reviews-training-view__textarea" id="reviews-training-view-comment" readonly></textarea>
             </label>
@@ -201,16 +181,20 @@
         const trainingViewModal = document.getElementById("reviews-training-view-modal");
         const trainingViewDate = document.getElementById("reviews-training-view-date");
         const trainingViewDirection = document.getElementById("reviews-training-view-direction");
-        const trainingViewVisibility = document.getElementById("reviews-training-view-visibility");
-        const trainingViewColorInput = document.getElementById("reviews-training-view-color-input");
-        const trainingViewColorSelected = document.getElementById("reviews-training-view-color-selected");
-        const trainingViewColorButtons = Array.from(document.querySelectorAll("[data-reviews-view-color]"));
         const trainingViewComment = document.getElementById("reviews-training-view-comment");
         const trainingViewName = document.getElementById("reviews-training-view-name");
         const trainingViewExisting = document.getElementById("reviews-training-view-existing");
         const trainingViewEditButton = document.getElementById("reviews-training-edit-btn");
         const trainingViewPayloadEl = document.getElementById("reviews-training-view-payload");
-        const trainingViewPayload = trainingViewPayloadEl ? JSON.parse(trainingViewPayloadEl.textContent || "{}") : {};
+        let trainingViewPayload = {};
+        if (trainingViewPayloadEl) {
+            try {
+                trainingViewPayload = JSON.parse(trainingViewPayloadEl.textContent || "{}");
+            } catch (error) {
+                console.warn("Cannot parse training view payload", error);
+                trainingViewPayload = {};
+            }
+        }
         const calendarPageUrl = "{% url 'auth:calendar' %}";
         if (!wrap || !trigger || !menu || !value || !input) return;
 
@@ -276,6 +260,16 @@
             wrap.classList.toggle("is-open", open);
         }
 
+        function normalizeMojibake(value) {
+            const source = String(value || "");
+            if (!source || !/[РСÐÑ]/.test(source)) return source;
+            try {
+                return decodeURIComponent(escape(source));
+            } catch (error) {
+                return source;
+            }
+        }
+
         function escapeHtml(value) {
             return String(value || "")
                 .replaceAll("&", "&amp;")
@@ -294,39 +288,15 @@
             return "#8ec5ff";
         }
 
-        function getTrainingColorLabel(colorKey) {
-            const normalized = String(colorKey || "blue").trim().toLowerCase();
-            if (normalized === "orange") return "Оранжевый";
-            if (normalized === "green") return "Зеленый";
-            if (normalized === "pink") return "Розовый";
-            if (normalized === "violet") return "Фиолетовый";
-            return "Синий";
-        }
-
-        function renderTrainingColorView(colorKey) {
-            const normalized = String(colorKey || "blue").trim().toLowerCase();
-            if (trainingViewColorInput) {
-                trainingViewColorInput.value = normalized;
-            }
-            if (trainingViewColorSelected) {
-                trainingViewColorSelected.textContent = `Выбран цвет: ${getTrainingColorLabel(normalized)}`;
-            }
-            trainingViewColorButtons.forEach((button) => {
-                const isActive = button.getAttribute("data-reviews-view-color") === normalized;
-                button.classList.toggle("is-active", isActive);
-                button.setAttribute("aria-pressed", isActive ? "true" : "false");
-            });
-        }
-
         function renderTrainingView(payload) {
             if (!payload || !trainingViewExisting) return;
             const color = String(payload.color || "blue").trim().toLowerCase();
             const accentColor = getTrainingColorAccent(color);
             const groups = new Map();
             (payload.exercises || []).forEach((item) => {
-                const groupName = String(item.block || "Блок");
+                const groupName = normalizeMojibake(String(item.block || "Блок"));
                 if (!groups.has(groupName)) groups.set(groupName, []);
-                groups.get(groupName).push(String(item.text || ""));
+                groups.get(groupName).push(normalizeMojibake(String(item.text || "")));
             });
 
             trainingViewExisting.innerHTML = Array.from(groups.entries()).map(([title, items]) => `
@@ -345,12 +315,10 @@
             if (!trainingViewModal) return;
             const payload = trainingViewPayload[trainingKey] || null;
             if (!payload) return;
-            if (trainingViewDate) trainingViewDate.textContent = payload.date_label || "--";
-            if (trainingViewDirection) trainingViewDirection.textContent = payload.direction || "--";
-            if (trainingViewVisibility) trainingViewVisibility.textContent = payload.visibility || "--";
-            renderTrainingColorView(payload.color || "blue");
-            if (trainingViewComment) trainingViewComment.value = payload.comment || "";
-            if (trainingViewName) trainingViewName.textContent = payload.title || "Тренировка";
+            if (trainingViewDate) trainingViewDate.textContent = normalizeMojibake(payload.date_label || "--");
+            if (trainingViewDirection) trainingViewDirection.textContent = normalizeMojibake(payload.direction || "--");
+            if (trainingViewComment) trainingViewComment.value = normalizeMojibake(payload.comment || "");
+            if (trainingViewName) trainingViewName.textContent = normalizeMojibake(payload.title || "Тренировка");
             if (trainingViewEditButton) {
                 const trainingId = Number(payload.training_id || 0);
                 trainingViewEditButton.disabled = !trainingId;

@@ -252,6 +252,8 @@
                 }
 
                 activityValues.week.goal = formatTrainingCount(payload.weekly_goal);
+                activityValues.month.goal = formatTrainingCount(payload.weekly_goal * 3);
+                activityValues.year.goal = formatTrainingCount(payload.weekly_goal * 3 * 12);
                 const activityTabs = document.querySelector("[data-tabs='activity']");
                 if (activityTabs) {
                     activateTab(activityTabs, "week");

@@ -7,27 +7,47 @@
 }
 
 .admin-library-header {
+    flex: 0 0 89px;
     height: 89px;
     background: #fff;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--line);
     border-radius: 1px;
-    padding: 16px 32px 1px;
     display: flex;
-    align-items: center;
+    align-items: stretch;
     justify-content: space-between;
+    padding: 6px;
     margin-bottom: 32px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+
+.admin-library-header > div:first-child {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 0;
+    padding-left: 20px;
 }
 
 .admin-library-header h1 {
     margin: 0;
-    font: 600 24px/32px Montserrat, Inter, Arial, sans-serif;
+    font: 600 24px/32px Montserrat, Arial, sans-serif;
     color: #101828;
 }
 
 .admin-library-header p {
     margin: 4px 0 0;
+    color: var(--muted);
     font: 400 14px/20px Inter, Arial, sans-serif;
-    color: #6a7282;
+}
+
+.admin-library-page .calendar-content__user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 0;
+    padding-right: 20px;
 }
 
 .admin-library-card {

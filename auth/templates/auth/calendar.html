@@ -48,12 +48,11 @@
                 <div class="calendar-create-menu-wrap">
                     <div class="calendar-top-filter" id="calendar-top-direction-filter">
                         <button type="button" class="calendar-top-filter__trigger" id="calendar-top-direction-trigger" aria-haspopup="listbox" aria-expanded="false">
-                            <em id="calendar-top-direction-value">Все направления</em>
+                            <em id="calendar-top-direction-value">FBB</em>
                             <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                         </button>
                         <div class="calendar-top-filter__menu" id="calendar-top-direction-menu" role="listbox" hidden>
-                            <button type="button" class="calendar-top-filter__option is-active" data-top-direction-option="all" data-top-direction-label="Все направления">Все направления</button>
-                            <button type="button" class="calendar-top-filter__option" data-top-direction-option="fbb" data-top-direction-label="FBB">FBB</button>
+                            <button type="button" class="calendar-top-filter__option is-active" data-top-direction-option="fbb" data-top-direction-label="FBB">FBB</button>
                             <button type="button" class="calendar-top-filter__option" data-top-direction-option="crossfit" data-top-direction-label="Кроссфит с Денисом Залозним">Кроссфит с Денисом Залозним</button>
                             <button type="button" class="calendar-top-filter__option" data-top-direction-option="gymnastics" data-top-direction-label="Гимнастика">Гимнастика</button>
                             <button type="button" class="calendar-top-filter__option" data-top-direction-option="workout" data-top-direction-label="Тренировка дня">Тренировка дня</button>
@@ -579,7 +578,7 @@
             ? JSON.parse(parsedTrainingsPayload)
             : parsedTrainingsPayload;
         let trainingsStore = Array.isArray(initialTrainings) ? initialTrainings : [];
-        let activeCalendarDirectionFilter = "all";
+        let activeCalendarDirectionFilter = "fbb";
         let activeCalendarLanguage = (window.localStorage.getItem("calendar_language") || "ru").toLowerCase() === "en" ? "en" : "ru";
         let editingTrainingId = null;
         let deletingTrainingId = null;
@@ -1011,7 +1010,7 @@
             render();
         });
         updateRangeLabel();
-        selectTopDirectionOption("all", "Все направления");
+        selectTopDirectionOption("fbb", "FBB");
         renderCalendarList();
         updateLanguageToggleUi();
         languageToggleButton?.addEventListener("click", () => {
@@ -2286,9 +2285,9 @@
         }
 
         function selectTopDirectionOption(nextValue, nextLabel) {
-            const normalizedValue = String(nextValue || "all").trim().toLowerCase();
-            activeCalendarDirectionFilter = normalizedValue || "all";
-            if (topDirectionValue) topDirectionValue.textContent = nextLabel || "Все направления";
+            const normalizedValue = String(nextValue || "fbb").trim().toLowerCase();
+            activeCalendarDirectionFilter = normalizedValue || "fbb";
+            if (topDirectionValue) topDirectionValue.textContent = nextLabel || "FBB";
             topDirectionOptions.forEach((btn) => {
                 if (!(btn instanceof HTMLElement)) return;
                 const btnValue = String(btn.getAttribute("data-top-direction-option") || "").trim().toLowerCase();
@@ -2309,8 +2308,8 @@
 
         topDirectionOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
-                const nextValue = optionButton.getAttribute("data-top-direction-option") || "all";
-                const nextLabel = optionButton.getAttribute("data-top-direction-label") || "Все направления";
+                const nextValue = optionButton.getAttribute("data-top-direction-option") || "fbb";
+                const nextLabel = optionButton.getAttribute("data-top-direction-label") || "FBB";
                 selectTopDirectionOption(nextValue, nextLabel);
                 closeTopDirectionMenu();
             });
@@ -3358,7 +3357,6 @@
                 const itemDate = String(item.date || "").trim();
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(itemDate)) return false;
                 if (!(itemDate >= rangeStartIso && itemDate <= rangeEndIso)) return false;
-                if (activeCalendarDirectionFilter === "all") return true;
                 return String(item.direction || "").trim().toLowerCase() === activeCalendarDirectionFilter;
             });
             const sorted = [...filtered].sort((a, b) => {

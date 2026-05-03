@@ -1,7 +1,24 @@
 .statistics-page{background:#eef3f9;min-height:100vh;height:auto;overflow:visible}
 .statistics-page .calendar-sidebar{position:fixed;left:0;top:0;bottom:0;height:100vh}
 .statistics-page .calendar-content{position:relative;left:265px;top:0;right:auto;height:auto;min-height:100vh;overflow:visible;padding:0 24px 24px 0;width:calc(100% - 265px)}
-.statistics-page .calendar-content__header{position:sticky;top:0;z-index:5;border-radius:1px}
+.statistics-page .calendar-content__header{
+flex:0 0 89px;
+height:89px;
+background:#fff;
+border-bottom:1px solid var(--line);
+border-radius:1px;
+display:flex;
+justify-content:space-between;
+align-items:stretch;
+padding:6px;
+position:sticky;
+top:0;
+z-index:5;
+}
+.statistics-page .calendar-content__header>div:first-child{display:flex;flex-direction:column;justify-content:center;min-height:0;padding-left:20px}
+.statistics-page .calendar-content__header h1{margin:0;font:600 24px/32px Montserrat,Arial,sans-serif}
+.statistics-page .calendar-content__header p{margin:4px 0 0;color:var(--muted);font:400 14px/20px Inter,Arial,sans-serif}
+.statistics-page .calendar-content__user{display:flex;align-items:center;gap:12px;min-height:0;padding-right:20px}
 html,body{overflow-y:auto!important;overflow-x:hidden}
 .statistics-content{width:auto;max-width:none}
 .statistics-card{margin-top:20px;background:#fff;border:1px solid #dbe2ea;border-radius:1px;padding:16px 16px 20px;box-shadow:0 1px 2px -1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.08)}

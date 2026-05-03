@@ -272,6 +272,19 @@ def get_plan_result_type_map(trainings):
     }
 
     for training in trainings:
+        if training.source_type == AdminTraining.SOURCE_MANUAL:
+            manual_block_type = str(training.manual_block_type or '').strip().lower()
+            manual_result_type = str(training.manual_result_type or '').strip().lower() or TrainingResult.RESULT_TIME
+            if manual_result_type not in {TrainingResult.RESULT_TIME, TrainingResult.RESULT_WEIGHT, TrainingResult.RESULT_REPS}:
+                manual_result_type = TrainingResult.RESULT_TIME
+
+            if manual_block_type == AdminTrainingExercise.BLOCK_STRENGTH:
+                result_map[TrainingResult.SECTION_STRENGTH] = manual_result_type
+            elif manual_block_type == AdminTrainingExercise.BLOCK_CARDIO:
+                result_map[TrainingResult.SECTION_CARDIO] = manual_result_type
+            elif manual_block_type in {AdminTrainingExercise.BLOCK_GYMNASTICS, AdminTrainingExercise.BLOCK_CUSTOM}:
+                result_map[TrainingResult.SECTION_METABOLIC] = manual_result_type
+
         for exercise in training.exercises.all():
             section_key = block_to_section.get(exercise.block_type)
             if not section_key:
@@ -820,8 +833,14 @@ class LoginView(FormView):
     success_url = reverse_lazy('auth:profile')
 
     def dispatch(self, request, *args, **kwargs):
+        switch_account = str(request.GET.get('switch') or request.POST.get('switch') or '').strip().lower() in {
+            '1',
+            'true',
+            'yes',
+            'on',
+        }
         user, _ = resolve_request_user(request)
-        if user is not None and user.is_active:
+        if user is not None and user.is_active and not switch_account:
             redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
             return redirect(redirect_url)
         return super().dispatch(request, *args, **kwargs)
@@ -1032,7 +1051,13 @@ class AdminLoginView(FormView):
     success_url = reverse_lazy('auth:calendar')
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and user_has_admin_panel_access(request.user):
+        switch_account = str(request.GET.get('switch') or request.POST.get('switch') or '').strip().lower() in {
+            '1',
+            'true',
+            'yes',
+            'on',
+        }
+        if request.user.is_authenticated and user_has_admin_panel_access(request.user) and not switch_account:
             return redirect(self.success_url)
         return super().dispatch(request, *args, **kwargs)
 
@@ -5035,7 +5060,9 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
         context['plan_week_days'] = build_week_days(selected_date)
         context['plan_selected_date_iso'] = selected_date.isoformat()
         context['plan_selected_date_label'] = selected_date.strftime('%d.%m.%Y')
-        context['plan_today_iso'] = timezone.localdate().isoformat()
+        today = timezone.localdate()
+        context['plan_today_iso'] = today.isoformat()
+        context['plan_can_add_result'] = selected_date == today
         context['plan_is_user'] = role == UserProfile.ROLE_USER
 
         trainings_query = AdminTraining.objects.filter(training_date=selected_date)

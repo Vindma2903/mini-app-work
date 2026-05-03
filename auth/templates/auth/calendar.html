@@ -131,7 +131,7 @@
                     <input type="hidden" name="training_direction" id="calendar-direction-input" value="fbb">
                 </div>
             </label>
-            <div class="calendar-create-modal__field">
+            <div class="calendar-create-modal__field" id="calendar-training-block-field">
                 <span>Блок тренировки</span>
                 <div class="calendar-create-modal__dropdown" id="calendar-training-block-dropdown">
                     <button type="button" class="calendar-create-modal__input" id="calendar-training-block-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -139,15 +139,15 @@
                         <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                     </button>
                     <div class="calendar-create-modal__dropdown-menu" id="calendar-training-block-menu" role="listbox" hidden>
-                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-training-block-option="strength" data-training-block-label="Силовая">Силовая</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="cardio" data-training-block-label="Кардио">Кардио</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="gymnastics" data-training-block-label="Гимнастика">Гимнастика</button>
-                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="custom" data-training-block-label="Свое название">Свое название</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option is-active" data-training-block-option="strength" data-training-block-label="Силовая часть">Силовая часть</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="cardio" data-training-block-label="Скилл / навык">Скилл / навык</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="gymnastics" data-training-block-label="Комплекс дня">Комплекс дня</button>
+                        <button type="button" class="calendar-create-modal__dropdown-option" data-training-block-option="custom" data-training-block-label="Подсобная работа">Подсобная работа</button>
                     </div>
                     <input type="hidden" id="calendar-training-block-input" value="strength">
                 </div>
                 <label class="calendar-create-modal__field calendar-create-modal__field--nested" id="calendar-training-block-custom-wrap" hidden>
-                    <span>Свое название</span>
+                    <span>Подсобная работа</span>
                     <input class="calendar-create-modal__text-input" id="calendar-training-block-custom-input" type="text" placeholder="Введите свое название">
                 </label>
             </div>
@@ -206,33 +206,32 @@
 
                 <label class="calendar-create-modal__field calendar-create-modal__field--manual-result">
                     <div class="calendar-create-modal__result-row">
-                        <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
-                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-manual-result-type-value">Время</em>
-                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
-                            </button>
-                            <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="time" data-result-type-label="Время">Время</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
-                            </div>
-                            <input type="hidden" name="manual_result_type" id="calendar-manual-result-type-input" value="time">
-                        </div>
+                        <input type="hidden" name="manual_result_type" id="calendar-manual-result-type-input" value="reps">
                     </div>
-                    <div class="calendar-create-modal__result-row" id="calendar-manual-time-fields">
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-time-fields" hidden style="display:none">
                         <input class="calendar-create-modal__text-input" id="calendar-manual-minutes-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Минуты">
                         <small>:</small>
                         <input class="calendar-create-modal__text-input" id="calendar-manual-seconds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Секунды">
                     </div>
-                    <div class="calendar-create-modal__result-row" id="calendar-manual-weight-fields" hidden>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-weight-fields" hidden style="display:none">
                         <input class="calendar-create-modal__text-input" id="calendar-manual-weight-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Кг">
                     </div>
-                    <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields" hidden>
+                    <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields">
                         <span class="calendar-create-modal__reps-label calendar-create-modal__reps-label--sets">Подходов</span>
-                        <span class="calendar-create-modal__reps-label calendar-create-modal__reps-label--result">Результат</span>
                         <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
                         <small>по</small>
-                        <input class="calendar-create-modal__text-input" id="calendar-manual-reps-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений">
+                        <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
+                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                <em id="calendar-manual-result-type-value">Кол-во повторений</em>
+                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                            </button>
+                            <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Результат">Результат</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="time" data-result-type-label="Время">Время</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
+                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
+                            </div>
+                        </div>
                     </div>
                 </label>
             </div>
@@ -476,6 +475,7 @@
         const directionInput = document.getElementById("calendar-direction-input");
         const directionOptions = directionMenu?.querySelectorAll("[data-direction-option]") || [];
         const trainingBlockDropdown = document.getElementById("calendar-training-block-dropdown");
+        const trainingBlockField = document.getElementById("calendar-training-block-field");
         const trainingBlockTrigger = document.getElementById("calendar-training-block-trigger");
         const trainingBlockMenu = document.getElementById("calendar-training-block-menu");
         const trainingBlockValue = document.getElementById("calendar-training-block-value");
@@ -500,7 +500,6 @@
         const manualDescriptionRuInput = document.getElementById("calendar-manual-description-ru-input");
         const manualDescriptionEnInput = document.getElementById("calendar-manual-description-en-input");
         const manualSetsInput = document.getElementById("calendar-manual-sets-input");
-        const manualRepsInput = document.getElementById("calendar-manual-reps-input");
         const manualMinutesInput = document.getElementById("calendar-manual-minutes-input");
         const manualSecondsInput = document.getElementById("calendar-manual-seconds-input");
         const manualWeightInput = document.getElementById("calendar-manual-weight-input");
@@ -598,7 +597,6 @@
         let activeExerciseEditIndex = null;
         if (!openBtn || !modal || !grid || !monthLabel || !rangeLabel) return;
         enforceIntegerOnlyInput(manualSetsInput);
-        enforceIntegerOnlyInput(manualRepsInput);
         enforceIntegerOnlyInput(manualMinutesInput);
         enforceIntegerOnlyInput(manualSecondsInput);
         enforceIntegerOnlyInput(manualWeightInput);
@@ -647,10 +645,10 @@
 
         function getBlockTypeLabel(blockTypeValue) {
             const normalized = String(blockTypeValue || "strength").trim().toLowerCase();
-            if (normalized === "cardio") return "Кардио";
-            if (normalized === "gymnastics") return "Метаболическая";
-            if (normalized === "custom") return "Свое название";
-            return "Силовые";
+            if (normalized === "cardio") return "Скилл / навык";
+            if (normalized === "gymnastics") return "Комплекс дня";
+            if (normalized === "custom") return "Подсобная работа";
+            return "Силовая часть";
         }
 
         function getResultTypeLabel(resultTypeValue) {
@@ -660,34 +658,22 @@
             return "Время";
         }
 
-        function toggleManualResultInputs(resultTypeValue) {
-            const normalized = String(resultTypeValue || "time").trim().toLowerCase();
-            const isTime = normalized === "time";
-            const isWeight = normalized === "weight";
-            const isReps = normalized === "reps";
+        function toggleManualResultInputs() {
             if (manualTimeFields) {
-                manualTimeFields.hidden = !isTime;
-                manualTimeFields.style.display = isTime ? "grid" : "none";
+                manualTimeFields.hidden = true;
+                manualTimeFields.style.display = "none";
             }
             if (manualWeightFields) {
-                manualWeightFields.hidden = !isWeight;
-                manualWeightFields.style.display = isWeight ? "grid" : "none";
+                manualWeightFields.hidden = true;
+                manualWeightFields.style.display = "none";
             }
             if (manualRepsFields) {
-                manualRepsFields.hidden = !isReps;
-                manualRepsFields.style.display = isReps ? "grid" : "none";
+                manualRepsFields.hidden = false;
+                manualRepsFields.style.display = "grid";
             }
-            if (!isTime) {
-                if (manualMinutesInput) manualMinutesInput.value = "";
-                if (manualSecondsInput) manualSecondsInput.value = "";
-            }
-            if (!isWeight && manualWeightInput) {
-                manualWeightInput.value = "";
-            }
-            if (!isReps) {
-                if (manualSetsInput) manualSetsInput.value = "";
-                if (manualRepsInput) manualRepsInput.value = "";
-            }
+            if (manualMinutesInput) manualMinutesInput.value = "";
+            if (manualSecondsInput) manualSecondsInput.value = "";
+            if (manualWeightInput) manualWeightInput.value = "";
         }
 
         function getTrainingColorAccent(colorKey) {
@@ -797,9 +783,9 @@
 
             if (createSetsInput) createSetsInput.value = "";
             if (createRepsInput) createRepsInput.value = "";
-            if (resultTypeInput) resultTypeInput.value = "time";
+            if (resultTypeInput) resultTypeInput.value = "reps";
             if (resultTypeValue) resultTypeValue.textContent = "Результат";
-            setActiveOption(resultTypeOptions, "data-result-type-option", "time");
+            setActiveOption(resultTypeOptions, "data-result-type-option", "reps");
 
             toggleCustomBlockField("default");
             syncExerciseTitle(primaryCard);
@@ -825,7 +811,7 @@
 
             if (createSetsInput) createSetsInput.value = normalized.sets || "";
             if (createRepsInput) createRepsInput.value = normalized.reps || "";
-            if (resultTypeInput) resultTypeInput.value = normalized.result_type || "time";
+            if (resultTypeInput) resultTypeInput.value = normalized.result_type || "reps";
             if (resultTypeValue) resultTypeValue.textContent = normalized.result_type_label || getResultTypeLabel(normalized.result_type);
             setActiveOption(resultTypeOptions, "data-result-type-option", resultTypeInput?.value || "time");
 
@@ -847,7 +833,7 @@
             editingExercisesBuffer.forEach((exercise, index) => {
                 const blockType = String(exercise.block_type || "strength").trim().toLowerCase();
                 const groupTitle = blockType === "custom"
-                    ? (String(exercise.block_custom_name || "").trim() || "Свое название")
+                    ? (String(exercise.block_custom_name || "").trim() || "Подсобная работа")
                     : getBlockTypeLabel(blockType);
                 if (!grouped.has(groupTitle)) {
                     grouped.set(groupTitle, []);
@@ -1052,13 +1038,12 @@
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = "";
             if (manualSetsInput) manualSetsInput.value = "";
-            if (manualRepsInput) manualRepsInput.value = "";
             if (manualMinutesInput) manualMinutesInput.value = "";
             if (manualSecondsInput) manualSecondsInput.value = "";
             if (manualWeightInput) manualWeightInput.value = "";
-            if (resultTypeInput) resultTypeInput.value = "time";
-            if (resultTypeValue) resultTypeValue.textContent = "Время";
-            toggleManualResultInputs("time");
+            if (resultTypeInput) resultTypeInput.value = "reps";
+            if (resultTypeValue) resultTypeValue.textContent = "Кол-во повторений";
+            toggleManualResultInputs("reps");
             selectedLibraryItems.clear();
             Object.keys(libraryExerciseParamsById).forEach((key) => delete libraryExerciseParamsById[key]);
             clearCreateFormErrors();
@@ -1068,7 +1053,7 @@
             }
 
             selectDirectionOption("fbb", "FBB");
-            setTrainingBlockOption("strength", "Силовая");
+            setTrainingBlockOption("strength", "Силовая часть");
             if (trainingBlockCustomInput) trainingBlockCustomInput.value = "";
             if (visibilityInput) visibilityInput.value = "all";
             if (visibilityValue) visibilityValue.textContent = "Для всех";
@@ -1115,7 +1100,7 @@
                 }
                 if (benchmarkInputNode) benchmarkInputNode.value = "";
 
-                if (resultTypeInputNode) resultTypeInputNode.value = "time";
+                if (resultTypeInputNode) resultTypeInputNode.value = "reps";
                 if (resultTypeValueNode) resultTypeValueNode.textContent = "Результат";
 
                 firstCard.querySelectorAll("[data-block-option]").forEach((button) => {
@@ -1392,7 +1377,10 @@
                 btn.classList.toggle("is-active", isCurrent);
             });
             if (trainingBlockInput) trainingBlockInput.value = normalized;
-            if (trainingBlockValue) trainingBlockValue.textContent = nextLabel || "Силовая";
+            if (trainingBlockValue) trainingBlockValue.textContent = nextLabel || "Силовая часть";
+            if (normalized === "custom" && trainingBlockCustomInput && !String(trainingBlockCustomInput.value || "").trim()) {
+                trainingBlockCustomInput.value = "Подсобная работа";
+            }
             toggleTrainingBlockCustomInput(normalized);
             updateCreatePreviewContent();
             closeTrainingBlockMenu();
@@ -1402,10 +1390,10 @@
             const blockType = String(trainingBlockInput?.value || "strength").trim().toLowerCase();
             if (blockType === "custom") {
                 const custom = String(trainingBlockCustomInput?.value || "").trim();
-                return custom || "Свое название";
+                return custom || "Подсобная работа";
             }
-            const label = String(trainingBlockValue?.textContent || "Силовая").trim() || "Силовая";
-            return `${label} часть`;
+            const label = String(trainingBlockValue?.textContent || "Силовая часть").trim() || "Силовая часть";
+            return label;
         }
 
         function buildCreatePreviewLines() {
@@ -1425,7 +1413,7 @@
                 const reps = String(params.reps || "").trim();
                 if (item?.section === "exercises") {
                     if (sets && reps) {
-                        return `${title} ${sets} повторений по ${reps} раз`;
+                        return `${title} ${reps} повторений по ${sets} раз`;
                     }
                 }
                 return title;
@@ -1497,6 +1485,11 @@
                 const showManual = normalized === "manual";
                 createManualBlock.hidden = !showManual;
                 createManualBlock.style.display = showManual ? "" : "none";
+            }
+            if (trainingBlockField) {
+                const showTrainingBlockField = normalized === "library";
+                trainingBlockField.hidden = !showTrainingBlockField;
+                trainingBlockField.style.display = showTrainingBlockField ? "" : "none";
             }
             updateCreatePreviewContent();
         }
@@ -1910,7 +1903,7 @@
         loadLibraryItems().then(() => renderLibraryList());
         applyLibraryTabMode();
         setCreateSourceMode("library");
-        toggleManualResultInputs(resultTypeInput?.value || "time");
+        toggleManualResultInputs(resultTypeInput?.value || "reps");
         existingExercisesWrap?.addEventListener("click", (event) => {
             const target = event.target;
             if (!(target instanceof Element)) return;
@@ -2329,7 +2322,7 @@
         trainingBlockOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-training-block-option") || "strength";
-                const nextLabel = optionButton.getAttribute("data-training-block-label") || "Силовая";
+                const nextLabel = optionButton.getAttribute("data-training-block-label") || "Силовая часть";
                 setTrainingBlockOption(nextValue, nextLabel);
             });
         });
@@ -2519,7 +2512,7 @@
         blockOptions.forEach((optionButton) => {
             optionButton.addEventListener("click", () => {
                 const nextValue = optionButton.getAttribute("data-block-option") || "strength";
-                const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
+                const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая часть";
 
                 blockOptions.forEach((btn) => btn.classList.remove("is-active"));
                 optionButton.classList.add("is-active");
@@ -2896,7 +2889,7 @@
             localBlockOptions.forEach((optionButton) => {
                 optionButton.addEventListener("click", () => {
                     const nextValue = optionButton.getAttribute("data-block-option") || "strength";
-                    const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая";
+                    const nextLabel = optionButton.getAttribute("data-block-label") || "Силовая часть";
                     localBlockOptions.forEach((button) => button.classList.remove("is-active"));
                     optionButton.classList.add("is-active");
                     if (localBlockValue) localBlockValue.textContent = nextLabel;
@@ -3194,6 +3187,7 @@
         function buildCalendarCardMarkup(training, options = {}) {
             const showDayHead = options.showDayHead !== false;
             const colorClass = `calendar-day--${training.color || "blue"}`;
+            const isManualSource = String(training.source_type || "").trim().toLowerCase() === "manual";
             const sectionsHtml = (training.sections || []).map((section) => {
                 const rawSectionItems = activeCalendarLanguage === "en"
                     ? (section.items_en || section.items_ru || section.items || [])
@@ -3235,6 +3229,13 @@
                     }
                     return `<span class="calendar-event__item">${escapeHtml(item)}</span>`;
                 }).join("");
+                if (isManualSource) {
+                    return `
+                        <div class="calendar-event__section">
+                            <p class="calendar-event__section-lines">${sectionItemsMarkup}</p>
+                        </div>
+                    `;
+                }
                 return `
                     <div class="calendar-event__section">
                         <h4>
@@ -3407,15 +3408,8 @@
             const selectedRows = Array.from(selectedLibraryItems.values());
             const selectedBlockType = trainingBlockInput?.value || "strength";
             const selectedBlockCustomName = (trainingBlockCustomInput?.value || "").trim();
-            const manualResultType = resultTypeInput?.value || "time";
-            let manualSetsValue = "";
-            if (manualResultType === "reps") {
-                manualSetsValue = (manualSetsInput?.value || "").trim();
-            } else if (manualResultType === "weight") {
-                manualSetsValue = (manualWeightInput?.value || "").trim();
-            } else {
-                manualSetsValue = (manualMinutesInput?.value || "").trim();
-            }
+            const manualResultType = resultTypeInput?.value || "reps";
+            const manualSetsValue = (manualSetsInput?.value || "").trim();
             const exercises = activeCreateSourceType === "library"
                 ? selectedRows.map((item, index) => {
                     const params = libraryExerciseParamsById[item.id] || {};
@@ -3588,19 +3582,16 @@
             if (manualDescriptionRuInput) manualDescriptionRuInput.value = training.manual_description_ru || "";
             if (manualDescriptionEnInput) manualDescriptionEnInput.value = training.manual_description_en || "";
             if (manualSetsInput) manualSetsInput.value = "";
-            if (manualRepsInput) manualRepsInput.value = "";
             if (manualMinutesInput) manualMinutesInput.value = "";
             if (manualSecondsInput) manualSecondsInput.value = "";
             if (manualWeightInput) manualWeightInput.value = "";
             if (resultTypeInput && training.manual_result_type) resultTypeInput.value = training.manual_result_type;
             if (resultTypeValue && training.manual_result_type) resultTypeValue.textContent = getResultTypeLabel(training.manual_result_type);
-            const restoredManualResultType = training.manual_result_type || "time";
-            if (restoredManualResultType === "reps") {
-                if (manualSetsInput) manualSetsInput.value = training.manual_sets || "";
-            } else if (restoredManualResultType === "weight") {
-                if (manualWeightInput) manualWeightInput.value = training.manual_sets || "";
-            } else {
-                if (manualMinutesInput) manualMinutesInput.value = training.manual_sets || "";
+            const restoredManualResultType = training.manual_result_type || "reps";
+            if (manualSetsInput) {
+                manualSetsInput.value = training.manual_sets != null && training.manual_sets !== ""
+                    ? String(training.manual_sets)
+                    : "";
             }
             toggleManualResultInputs(restoredManualResultType);
             setCreateColor(training.color || "blue");
@@ -3615,12 +3606,12 @@
                 const firstExercise = editingExercisesBuffer[0];
                 const blockType = String(firstExercise.block_type || "strength").trim().toLowerCase();
                 const blockLabel = blockType === "cardio"
-                    ? "Кардио"
+                    ? "Скилл / навык"
                     : blockType === "gymnastics"
-                        ? "Гимнастика"
+                        ? "Комплекс дня"
                         : blockType === "custom"
-                            ? "Свое название"
-                            : "Силовая";
+                            ? "Подсобная работа"
+                            : "Силовая часть";
                 setTrainingBlockOption(blockType, blockLabel);
                 if (blockType === "custom" && trainingBlockCustomInput) {
                     trainingBlockCustomInput.value = String(firstExercise.block_custom_name || "").trim();
@@ -3631,12 +3622,12 @@
                     ? manualBlockType
                     : "strength";
                 const manualBlockLabel = normalizedBlockType === "cardio"
-                    ? "Кардио"
+                    ? "Скилл / навык"
                     : normalizedBlockType === "gymnastics"
-                        ? "Гимнастика"
+                        ? "Комплекс дня"
                         : normalizedBlockType === "custom"
-                            ? "Свое название"
-                            : "Силовая";
+                            ? "Подсобная работа"
+                            : "Силовая часть";
                 setTrainingBlockOption(normalizedBlockType, manualBlockLabel);
                 if (trainingBlockCustomInput) {
                     trainingBlockCustomInput.value = normalizedBlockType === "custom"

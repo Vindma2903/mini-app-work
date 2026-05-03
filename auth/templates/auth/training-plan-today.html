@@ -107,8 +107,8 @@
                     data-result-type-cardio="{{ card.result_types.cardio|default:'time' }}"
                     data-result-type-metabolic="{{ card.result_types.metabolic|default:'time' }}"
                     data-result-sections="{{ card.result_sections|join:',' }}"
-                    {% if card.has_result %}disabled aria-disabled="true"{% endif %}
-                >{% if card.has_result %}Результат добавлен{% else %}Добавить результат{% endif %}</button>
+                    {% if card.has_result or not plan_can_add_result %}disabled aria-disabled="true"{% endif %}
+                >{% if card.has_result %}Результат добавлен{% elif not plan_can_add_result %}Добавление недоступно{% else %}Добавить результат{% endif %}</button>
             </div>
         </section>
         {% empty %}

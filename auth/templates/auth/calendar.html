@@ -3708,6 +3708,8 @@
                     section: isBenchmark ? "benchmarks" : "exercises",
                     movement_group: String(exercise.library_movement_group || "").trim().toLowerCase(),
                     category: String(exercise.library_category || "").trim().toLowerCase(),
+                    desc_ru: normalizeLineBreaks(exercise.library_desc_ru || ""),
+                    desc_en: normalizeLineBreaks(exercise.library_desc_en || ""),
                 });
                 libraryExerciseParamsById[itemId] = {
                     sets: exercise.sets || "",

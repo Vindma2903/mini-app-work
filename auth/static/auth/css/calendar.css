@@ -156,6 +156,12 @@ box-shadow:none;
 background:transparent;
 color:#4a5565;
 }
+.calendar-card .calendar-event__item:not(.calendar-event__item--benchmark-desc){
+font-size:12px;
+line-height:16px;
+font-weight:400;
+color:#4a5565;
+}
 .calendar-event__section--compact h4{font-size:14px;line-height:20px}
 .calendar-event__section-toggle{width:100%;border:0;background:none;padding:0;cursor:pointer;text-align:left;appearance:none;-webkit-appearance:none;box-shadow:none}
 .calendar-card .calendar-event__section-toggle{height:auto;border:0!important;border-radius:0!important;background:transparent!important;color:inherit!important;padding:0!important;display:block;gap:0}

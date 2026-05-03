@@ -366,6 +366,16 @@ def serialize_admin_training(training):
                 if item.library_item_id and item.library_item
                 else ''
             ),
+            'library_desc_ru': (
+                normalize_mojibake_text(str(getattr(item.library_item, 'desc_ru', '') or ''))
+                if item.library_item_id and item.library_item
+                else ''
+            ),
+            'library_desc_en': (
+                normalize_mojibake_text(str(getattr(item.library_item, 'desc_en', '') or ''))
+                if item.library_item_id and item.library_item
+                else ''
+            ),
             'block_type': item.block_type,
             'block_custom_name': normalize_mojibake_text(item.block_custom_name or ''),
             'block_label': block_label,

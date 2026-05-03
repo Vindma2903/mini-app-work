@@ -841,8 +841,7 @@ class LoginView(FormView):
         }
         user, _ = resolve_request_user(request)
         if user is not None and user.is_active and not switch_account:
-            redirect_url = reverse('auth:calendar') if user_has_admin_panel_access(user) else reverse('auth:profile')
-            return redirect(redirect_url)
+            return redirect(reverse('auth:profile'))
         return super().dispatch(request, *args, **kwargs)
 
     def get_form_kwargs(self):

@@ -1397,6 +1397,30 @@
         }
 
         function buildCreatePreviewLines() {
+            function formatApproachWord(value) {
+                const num = Number.parseInt(String(value || "").trim(), 10);
+                if (!Number.isFinite(num)) return "Подходов";
+                const absNum = Math.abs(num);
+                const mod100 = absNum % 100;
+                const mod10 = absNum % 10;
+                if (mod100 >= 11 && mod100 <= 14) return "Подходов";
+                if (mod10 === 1) return "Подход";
+                if (mod10 >= 2 && mod10 <= 4) return "Подхода";
+                return "Подходов";
+            }
+
+            function formatRepsWord(value) {
+                const num = Number.parseInt(String(value || "").trim(), 10);
+                if (!Number.isFinite(num)) return "повторений";
+                const absNum = Math.abs(num);
+                const mod100 = absNum % 100;
+                const mod10 = absNum % 10;
+                if (mod100 >= 11 && mod100 <= 14) return "повторений";
+                if (mod10 === 1) return "повторение";
+                if (mod10 >= 2 && mod10 <= 4) return "повторения";
+                return "повторений";
+            }
+
             if (activeCreateSourceType === "manual") {
                 const manualRu = String(manualDescriptionRuInput?.value || "").replace(/\r/g, "").trim();
                 const manualEn = String(manualDescriptionEnInput?.value || "").replace(/\r/g, "").trim();
@@ -1413,11 +1437,19 @@
                 const reps = String(params.reps || "").trim();
                 if (item?.section === "exercises") {
                     if (sets && reps) {
-                        return `${title} ${reps} повторений по ${sets} раз`;
+                        return `${title} ${sets} ${formatApproachWord(sets)} по ${reps} ${formatRepsWord(reps)}`;
                     }
                 }
                 return title;
             }).filter(Boolean);
+        }
+
+        function formatBenchmarkPreviewTitle(rawTitle) {
+            const t = String(rawTitle || "").trim();
+            if (!t) return "";
+            const parts = t.split(" / ").map((p) => p.trim()).filter(Boolean);
+            if (parts.length >= 2) return parts[parts.length - 1];
+            return t;
         }
 
         function buildBenchmarkPreviewRows() {
@@ -1427,6 +1459,7 @@
             return rows.map((item) => {
                 const isExpanded = expandedBenchmarkItems.has(item.id);
                 const detailLines = getBenchmarkDetailLines(item);
+                const previewTitle = formatBenchmarkPreviewTitle(item.title);
                 const details = isExpanded
                     ? `<div class="calendar-create-modal__preview-benchmark-lines">
                             ${detailLines.length
@@ -1436,10 +1469,10 @@
                        </div>`
                     : "";
                 return `<li class="calendar-create-modal__preview-benchmark-row">
-                            <div class="calendar-create-modal__preview-benchmark-head">
-                                <span>${escapeHtml(item.title)}</span>
-                                <img src="{% static 'auth/img/chevron-down (1).svg' %}" alt="" class="calendar-create-modal__preview-benchmark-chevron${isExpanded ? " is-expanded" : ""}">
-                            </div>
+                            <button type="button" class="calendar-create-modal__preview-benchmark-head" data-preview-benchmark-toggle="${escapeHtml(item.id)}" aria-expanded="${isExpanded ? "true" : "false"}" aria-label="${escapeHtml(previewTitle || item.title)}, подробнее">
+                                <span class="calendar-create-modal__preview-benchmark-title">${escapeHtml(previewTitle || item.title)}</span>
+                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="" class="calendar-create-modal__preview-benchmark-chevron${isExpanded ? " is-expanded" : ""}" width="16" height="16" decoding="async">
+                            </button>
                             ${details}
                         </li>`;
             }).join("");
@@ -1493,6 +1526,21 @@
             }
             updateCreatePreviewContent();
         }
+
+        createPreviewCard?.addEventListener("click", (event) => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            const toggleButton = target.closest("[data-preview-benchmark-toggle]");
+            if (!(toggleButton instanceof HTMLButtonElement)) return;
+            const benchmarkId = String(toggleButton.getAttribute("data-preview-benchmark-toggle") || "").trim();
+            if (!benchmarkId) return;
+            if (expandedBenchmarkItems.has(benchmarkId)) {
+                expandedBenchmarkItems.delete(benchmarkId);
+            } else {
+                expandedBenchmarkItems.add(benchmarkId);
+            }
+            updateCreatePreviewContent();
+        });
 
         function renderLibraryChips() {
             const chipCatalog = getActiveChipCatalog();
@@ -1593,7 +1641,17 @@
         }
 
         function getBenchmarkDetailLines(item) {
-            const sourceText = normalizeLineBreaks(item?.desc_ru || item?.desc_en || "");
+            let sourceText = normalizeLineBreaks(item?.desc_ru || item?.desc_en || "");
+            if (!sourceText) {
+                const lookupId = String(item?.library_item_id || item?.id || "").trim();
+                if (lookupId) {
+                    const benchmarkCache = Array.isArray(libraryItemsCache.benchmark) ? libraryItemsCache.benchmark : [];
+                    const cachedItem = benchmarkCache.find((row) => String(row?.library_item_id || row?.id || "").trim() === lookupId);
+                    if (cachedItem) {
+                        sourceText = normalizeLineBreaks(cachedItem.desc_ru || cachedItem.desc_en || "");
+                    }
+                }
+            }
             return sourceText
                 .split("\n")
                 .map((line) => String(line || "").trim())
@@ -1641,6 +1699,7 @@
             const activeChip = getActiveLibraryChip();
             return activeLibraryTab === "benchmark"
                 ? list.filter((item) => {
+                    if (isLibraryItemSelected(item.id)) return true;
                     const itemCategory = String(item.category || "").trim().toLowerCase();
                     const chipCategory = chipToBenchmarkCategory(activeChip);
                     return !itemCategory || itemCategory === chipCategory;
@@ -3366,7 +3425,7 @@
                 }
                 return a.date > b.date ? 1 : -1;
             });
-            const mergedTrainings = mergeTrainingsForCalendarList(sorted);
+            const mergedTrainings = sorted;
             const columns = Array.from({ length: 7 }, () => []);
             const trainingsByDate = new Map();
             mergedTrainings.forEach((item) => {

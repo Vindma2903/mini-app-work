@@ -19,7 +19,12 @@
     </header>
 
     <section class="settings-user">
-        <div class="settings-user__avatar"></div>
+        <div class="settings-user__avatar-wrap">
+            <div class="settings-user__avatar" role="img" aria-label="Фото профиля"></div>
+            <button type="button" class="settings-user__avatar-edit" aria-label="Изменить фото профиля">
+                <img src="{% static 'auth/img/edit-photo.svg' %}" alt="" width="18" height="18" decoding="async">
+            </button>
+        </div>
         <h1 data-settings-full-name>{{ settings_name }}</h1>
         <p>{{ settings_email }}</p>
         {% if telegram_linked %}

@@ -8,7 +8,7 @@
 {% endblock %}
 
 {% block content %}
-<main class="exercise-screen exercise-screen--tv">
+<main class="exercise-screen">
     <header class="exercise-header">
         <a href="{% url 'auth:statistics' %}" class="exercise-header__back" aria-label="Назад">Назад</a>
         <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ leaderboard_selected_date_iso }}" class="exercise-header__close" aria-label="Обычный режим">WEB</a>

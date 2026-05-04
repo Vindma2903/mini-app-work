@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}{{ exercise.title }}{% endblock %}
@@ -168,6 +168,9 @@
                     alert("Не удалось сохранить результат.");
                     return;
                 }
+                try {
+                    window.sessionStorage.setItem("achievements_refresh_required", "1");
+                } catch (_error) {}
                 window.location.href = "{% url 'auth:achievements' %}";
             } catch (_error) {
                 alert("Ошибка сети. Попробуйте еще раз.");

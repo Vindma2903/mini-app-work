@@ -1,4 +1,4 @@
-﻿import secrets
+import secrets
 import logging
 import json
 import re
@@ -5393,6 +5393,12 @@ class TrainingPlanVersionView(UserOnlyProtectedMixin, View):
 class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/achievements.html'
 
+    def dispatch(self, request, *args, **kwargs):
+        response = super().dispatch(request, *args, **kwargs)
+        if getattr(response, 'status_code', None) == 200:
+            response['Cache-Control'] = 'private, no-store, max-age=0, must-revalidate'
+        return response
+
     @staticmethod
     def _build_library_exercise_slug(item_id):
         return f'library-item-{item_id}'
@@ -5457,6 +5463,7 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
             'girls': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_GIRLS],
             'heroes': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_HEROES],
             'gymnastics': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_GYMNASTICS],
+            'total': [serialize_benchmark(item) for item in benchmark_items if item.benchmark_category == AdminLibraryItem.CATEGORY_TOTAL],
         }
         return context
 

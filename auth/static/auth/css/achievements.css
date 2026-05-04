@@ -172,32 +172,52 @@ body {
     margin-right: auto;
 }
 
-.achievements-bench-tabs {
+.achievements-bench-tabs-scroll {
     width: 100%;
+    margin-top: 10px;
+    margin-bottom: 32px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.achievements-bench-tabs-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.achievements-bench-tabs {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    width: calc(400% / 3);
     height: 39px;
     border-radius: 0;
     background: #d9d9d9;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: center;
-    margin-top: 10px;
-    margin-bottom: 32px;
     gap: 0;
 }
 
 .achievements-bench-tabs__item {
     position: relative;
     z-index: 0;
+    flex: 0 0 25%;
+    width: 25%;
+    box-sizing: border-box;
     border: 0;
     background: transparent;
-    width: 100%;
     height: 39px;
     margin: 0;
+    padding: 0;
     border-radius: 0;
     font-size: 14px;
     line-height: 17px;
     color: #9b9b9b;
     cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .achievements-bench-tabs__item--active {

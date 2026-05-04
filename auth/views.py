@@ -5408,8 +5408,8 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
         barbell_items = list(
             AdminLibraryItem.objects
             .filter(section__in=[AdminLibraryItem.SECTION_EXERCISES, AdminLibraryItem.SECTION_BARBELL])
-            .only('id', 'name_ru', 'name_en')
-            .order_by('name_ru', 'name_en', 'id')
+            .only('id', 'name_ru', 'name_en', 'movement_group')
+            .order_by('movement_group', 'name_ru', 'name_en', 'id')
         )
 
         slug_map = {self._build_library_exercise_slug(item.id): item for item in barbell_items}
@@ -5421,14 +5421,39 @@ class AchievementsView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templat
             )
         }
 
-        context['barbell_exercises'] = [
-            {
+        movement_keys = {key for key, _ in AdminLibraryItem.MOVEMENT_GROUP_CHOICES}
+        by_movement = {key: [] for key in movement_keys}
+        uncategorized_rows = []
+
+        for slug, item in slug_map.items():
+            mg = (getattr(item, 'movement_group', None) or '').strip()
+            row = {
                 'slug': slug,
                 'title': (item.name_ru or item.name_en or '').strip() or f'Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљРІР‚СњР В Р’В Р В Р вЂ№Р В Р’В Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В°Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’В¶Р В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’ВµР В Р’В Р вЂ™Р’В Р В Р’В Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’В Р В Р Р‹Р Р†Р вЂљР’ВР В Р’В Р вЂ™Р’В Р В РІР‚в„ўР вЂ™Р’Вµ {item.id}',
                 'value': profiles[slug].rep_1 if slug in profiles else None,
             }
-            for slug, item in slug_map.items()
-        ]
+            if mg in movement_keys:
+                by_movement[mg].append(row)
+            else:
+                uncategorized_rows.append(row)
+
+        barbell_exercise_groups = []
+        for key, label in AdminLibraryItem.MOVEMENT_GROUP_CHOICES:
+            exercises = by_movement.get(key) or []
+            if exercises:
+                barbell_exercise_groups.append({
+                    'group_key': key,
+                    'group_label': label,
+                    'exercises': exercises,
+                })
+        if uncategorized_rows:
+            barbell_exercise_groups.append({
+                'group_key': 'other',
+                'group_label': 'Прочее',
+                'exercises': uncategorized_rows,
+            })
+
+        context['barbell_exercise_groups'] = barbell_exercise_groups
 
         benchmark_items = list(
             AdminLibraryItem.objects

@@ -1,4 +1,4 @@
-﻿import json
+import json
 import os
 import shutil
 import tempfile
@@ -439,8 +439,9 @@ class AchievementsViewTests(TestCase):
         response = self.client.get(reverse('auth:achievements'))
         self.assertEqual(response.status_code, 200)
 
-        rows = response.context['barbell_exercises']
-        row = next(entry for entry in rows if entry['slug'] == f'library-item-{item.id}')
+        groups = response.context['barbell_exercise_groups']
+        exercises_flat = [ex for g in groups for ex in g['exercises']]
+        row = next(entry for entry in exercises_flat if entry['slug'] == f'library-item-{item.id}')
         self.assertEqual(row['value'], 123)
 
 

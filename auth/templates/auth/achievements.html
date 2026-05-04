@@ -27,26 +27,32 @@
     </header>
 
     <div data-achievements-panel="barbell">
-        <section class="achievements-block">
-            <h2>Упражнения</h2>
-            <div class="achievements-card">
-                {% for exercise in barbell_exercises %}
-                    <article class="achievements-row achievements-row--link" data-achievement-row-url="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
-                        <span class="achievements-row__name">
-                            {{ exercise.title }}
-                        </span>
-                        <span class="achievements-row__value-link">
-                            {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
-                        </span>
-                    </article>
-                {% empty %}
+        {% for group in barbell_exercise_groups %}
+            <section class="achievements-block">
+                <h2>{{ group.group_label }}</h2>
+                <div class="achievements-card">
+                    {% for exercise in group.exercises %}
+                        <article class="achievements-row achievements-row--link" data-achievement-row-url="{% url 'auth:achievement_exercise' exercise_slug=exercise.slug %}">
+                            <span class="achievements-row__name">
+                                {{ exercise.title }}
+                            </span>
+                            <span class="achievements-row__value-link">
+                                {% if exercise.value %}{{ exercise.value }}{% else %}--{% endif %}
+                            </span>
+                        </article>
+                    {% endfor %}
+                </div>
+            </section>
+        {% empty %}
+            <section class="achievements-block">
+                <div class="achievements-card">
                     <article class="achievements-row achievements-row--bench">
-                        <p>Нет упражнений в разделе Упражнения</p>
+                        <p>Нет упражнений в библиотеке</p>
                         <span>--</span>
                     </article>
-                {% endfor %}
-            </div>
-        </section>
+                </div>
+            </section>
+        {% endfor %}
     </div>
 
     <div data-achievements-panel="benchmarks" hidden>

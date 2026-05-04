@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Поддержка{% endblock %}
@@ -27,7 +27,7 @@
             <h2>Служба поддержки</h2>
         </div>
         <p>Здесь вы можете написать любые свои жалобы, предложения или вопросы</p>
-        <p>Мы ответим в течение 24 часов</p>
+        <p>Ответ придёт на указанные контактные данные в течение 24 часов</p>
     </section>
 
     <form class="support-form-card" method="post" action="{% url 'auth:support_send' %}">

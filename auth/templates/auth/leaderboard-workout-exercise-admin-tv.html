@@ -4,11 +4,11 @@
 {% block title %}{{ workout_title }}{% endblock %}
 
 {% block styles %}
-<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-tv-2">
+<link rel="stylesheet" href="{% static 'auth/css/leaderboard-day.css' %}?v=leaderboard-day-desktop-1">
 {% endblock %}
 
 {% block content %}
-<main class="exercise-screen exercise-screen--tv">
+<main class="exercise-screen">
     <header class="exercise-header exercise-header--compact">
         <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
         <a href="{% url 'auth:leaderboard_day_admin_tv' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>

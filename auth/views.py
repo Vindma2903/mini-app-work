@@ -4686,6 +4686,7 @@ class LeaderboardWorkoutDetailAdminView(AdminProtectedMixin, TemplateView):
                     block_groups.append(
                         {
                             'title': block_label,
+                            'block_type': exercise.block_type,
                             'exercises': [],
                         }
                     )
@@ -4737,6 +4738,10 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
         training_id = None
         if raw_training_id.isdigit():
             training_id = int(raw_training_id)
+        requested_block_type = str(self.request.GET.get('block_type') or '').strip().lower()
+        allowed_block_types = {key for key, _ in AdminTrainingExercise.BLOCK_CHOICES}
+        if requested_block_type not in allowed_block_types:
+            requested_block_type = ''
 
         trainings = list(
             AdminTraining.objects
@@ -4759,6 +4764,13 @@ class LeaderboardWorkoutExerciseAdminView(AdminProtectedMixin, TemplateView):
             return context
 
         ordered_exercises = sorted(selected_training.exercises.all(), key=lambda item: (item.order, item.id))
+        if requested_block_type:
+            filtered_exercises = [
+                exercise for exercise in ordered_exercises
+                if str(exercise.block_type or '').strip().lower() == requested_block_type
+            ]
+            if filtered_exercises:
+                ordered_exercises = filtered_exercises
         context['workout_title'] = normalize_mojibake_text(get_admin_training_title(
             selected_training.direction,
             selected_training.source_type,

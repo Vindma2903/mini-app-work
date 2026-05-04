@@ -12,37 +12,31 @@
     <header class="exercise-header">
         <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__back" aria-label="Назад">Назад</a>
         <a href="{% url 'auth:leaderboard_day_admin' %}?date={{ workout_selected_date_iso }}" class="exercise-header__close" aria-label="Закрыть">×</a>
-        <h1>
-            <a href="{% url 'auth:leaderboard_day_workout_exercise' %}?training_id={{ workout_training_id }}&date={{ workout_selected_date_iso }}">
-                {{ workout_title }}
-            </a>
-        </h1>
+        <h1>{{ workout_title }}</h1>
     </header>
 
-    <section class="exercise-grid">
-        <article class="exercise-card exercise-card--wide">
-            <div class="exercise-card__icon">
-                <img src="{% static 'auth/img/admin/kettlebell.svg' %}" alt="" aria-hidden="true">
-            </div>
-            <h2>{{ workout_direction_label }}</h2>
-        </article>
-
+    <section class="exercise-detail">
         {% if workout_block_groups %}
             {% for block in workout_block_groups %}
-                <article class="exercise-card">
-                    <h3>{{ block.title }}</h3>
-                    <ul>
-                        {% for exercise in block.exercises %}
-                            <li>
-                                <b>{{ exercise.title }}</b>
-                                <span>{% if exercise.meta %}{{ exercise.meta }}{% else %}--{% endif %}</span>
-                            </li>
-                        {% endfor %}
-                    </ul>
-                </article>
+                <a
+                    class="exercise-detail__block-link"
+                    href="{% url 'auth:leaderboard_day_workout_exercise' %}?training_id={{ workout_training_id }}&date={{ workout_selected_date_iso }}&block_type={{ block.block_type|urlencode }}"
+                >
+                    <article class="exercise-detail__block">
+                        <h3>{{ block.title }}</h3>
+                        <ul>
+                            {% for exercise in block.exercises %}
+                                <li>
+                                    <b>{{ exercise.title }}</b>
+                                    <span>{% if exercise.meta %}{{ exercise.meta }}{% else %}--{% endif %}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </article>
+                </a>
             {% endfor %}
         {% else %}
-            <article class="exercise-card">
+            <article class="exercise-detail__block">
                 <h3>Нет блоков</h3>
                 <ul>
                     <li><b>Упражнения</b><span>--</span></li>

@@ -47,14 +47,17 @@
                     <div class="reviews-toolbar__filters">
                         <div class="reviews-select-wrap" id="reviews-load-type-filter">
                             <button type="button" class="reviews-select" id="reviews-select-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <span id="reviews-select-value">Общая</span>
+                                <span id="reviews-select-value">
+                                    {% if selected_load_type == 'strength' %}Силовая часть{% elif selected_load_type == 'cardio' %}Скилл / навык{% elif selected_load_type == 'gymnastics' %}Комплекс дня{% elif selected_load_type == 'custom' %}Подсобная работа{% else %}Общая{% endif %}
+                                </span>
                                 <span class="reviews-select__chevron"><img src="{% static 'auth/img/admin/chevron-down.svg' %}" alt="" aria-hidden="true"></span>
                             </button>
                             <div class="reviews-select-menu" id="reviews-select-menu" role="listbox" hidden>
                                 <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'all' %} is-active{% endif %}" data-load-type="all" data-load-label="Общая">Общая</button>
-                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="Кардио">Кардио</button>
-                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'metabolic' %} is-active{% endif %}" data-load-type="metabolic" data-load-label="Метаболическая">Метаболическая</button>
-                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="Силовая">Силовая</button>
+                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="Силовая часть">Силовая часть</button>
+                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="Скилл / навык">Скилл / навык</button>
+                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'gymnastics' %} is-active{% endif %}" data-load-type="gymnastics" data-load-label="Комплекс дня">Комплекс дня</button>
+                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'custom' %} is-active{% endif %}" data-load-type="custom" data-load-label="Подсобная работа">Подсобная работа</button>
                             </div>
                             <input type="hidden" id="reviews-select-input" name="load_type" value="{{ selected_load_type|default:'all' }}">
                         </div>
@@ -207,9 +210,10 @@
         };
         const labelsByLoadType = {
             all: "Общая",
-            cardio: "Кардио",
-            metabolic: "Метаболическая",
-            strength: "Силовая"
+            strength: "Силовая часть",
+            cardio: "Скилл / навык",
+            gymnastics: "Комплекс дня",
+            custom: "Подсобная работа"
         };
         const labelsByOrder = {
             rating_desc: "По убыванию",

@@ -3377,6 +3377,8 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         'all': 'overall',
         'strength': 'strength',
         'cardio': 'cardio',
+        'gymnastics': 'metabolic',
+        'custom': 'metabolic',
         'metabolic': 'metabolic',
     }
     PERIOD_OPTIONS = {'all', 'today', 'week', 'month'}
@@ -3439,17 +3441,26 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
     def _training_matches_load_type(training, load_type):
         if not training or load_type == 'all':
             return True
+
+        # Legacy query value from older UI.
+        if load_type == 'metabolic':
+            return (
+                ReviewsOverviewView._training_matches_load_type(training, AdminTrainingExercise.BLOCK_GYMNASTICS)
+                or ReviewsOverviewView._training_matches_load_type(training, AdminTrainingExercise.BLOCK_CUSTOM)
+            )
+
         if load_type not in {
             AdminTrainingExercise.BLOCK_STRENGTH,
             AdminTrainingExercise.BLOCK_CARDIO,
             AdminTrainingExercise.BLOCK_GYMNASTICS,
+            AdminTrainingExercise.BLOCK_CUSTOM,
         }:
             return True
 
         if training.source_type == AdminTraining.SOURCE_MANUAL:
             manual_block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
-            if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM:
-                return load_type == AdminTrainingExercise.BLOCK_GYMNASTICS
+            if manual_block_type == 'default':
+                manual_block_type = AdminTrainingExercise.BLOCK_STRENGTH
             return manual_block_type == load_type
 
         try:
@@ -3465,6 +3476,8 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         period = (self.request.GET.get('period') or 'all').strip().lower()
         search_query = str(self.request.GET.get('q') or '').strip()
         search_query_folded = search_query.casefold()
+        if load_type == 'metabolic':
+            load_type = 'gymnastics'
         if load_type not in self.LOAD_TYPE_TO_FIELD:
             load_type = 'all'
         if order_by in {'rating_asc', 'asc'}:

@@ -186,6 +186,27 @@ body {
     font-size: 13px;
     line-height: 16px;
     color: #5f6570;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.leaderboard-plan__exercise-part {
+    display: inline-flex;
+    align-items: center;
+}
+
+.leaderboard-plan__exercise-sep {
+    color: #b0b6c1;
+    font-weight: 600;
+}
+
+.leaderboard-plan__exercise-line img {
+    width: 14px;
+    height: 14px;
+    vertical-align: text-bottom;
+    margin-left: 4px;
 }
 
 .leaderboard-group {

@@ -261,6 +261,16 @@ def cleanup_leaderboard_exercise_title(value):
     return cleaned or 'Упражнение'
 
 
+def extract_leaderboard_exercise_name(value):
+    text = normalize_mojibake_text(str(value or '').strip())
+    if not text:
+        return 'Упражнение'
+    parts = [part.strip() for part in re.split(r'\s*/\s*', text) if part.strip()]
+    if not parts:
+        return 'Упражнение'
+    return parts[0]
+
+
 def get_plan_result_type_map(trainings):
     result_map = {
         TrainingResult.SECTION_STRENGTH: TrainingResult.RESULT_TIME,
@@ -4415,10 +4425,25 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             exercise_lines = []
             for exercise in ordered_exercises:
                 block_label = TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
-                volume_label = format_admin_training_volume(exercise)
+                exercise_name = extract_leaderboard_exercise_name(exercise.exercise_name)
+                volume_label = format_admin_training_volume_by_name(exercise_name, exercise.sets, exercise.reps)
+                section_key = block_to_section.get(exercise.block_type)
+                section_entries = sections_by_key.get(section_key, {}).get('entries', []) if section_key else []
+                my_entry = next((entry for entry in section_entries if entry.get('user_id') == current_user_id), None)
+                if not my_entry:
+                    continue
+                user_name = str(my_entry.get('user_name') or '').strip()
+                result_label = str(my_entry.get('result_label') or '').strip()
+                place_label = str(my_entry.get('place_label') or '').strip()
+                if not user_name or not result_label or not place_label:
+                    continue
                 exercise_lines.append({
+                    'user_name': user_name,
                     'block': block_label,
                     'value': volume_label,
+                    'result_label': result_label,
+                    'place_label': place_label,
+                    'medal': my_entry.get('medal'),
                 })
 
             group_sections = []

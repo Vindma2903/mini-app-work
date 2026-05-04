@@ -35,7 +35,28 @@
             {% if training_group.exercise_lines %}
             <div class="leaderboard-plan__exercises" aria-label="Упражнения тренировки">
                 {% for line in training_group.exercise_lines %}
-                <p class="leaderboard-plan__exercise-line"><b>{{ line.block }}</b>: {{ line.value }}</p>
+                <p class="leaderboard-plan__exercise-line">
+                    <span class="leaderboard-plan__exercise-part"><b>{{ line.user_name }}</b></span>
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part"><b>{{ line.block }}</b>: {{ line.value }}</span>
+                    {% if line.result_label %}
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part">{{ line.result_label }}</span>
+                    {% if line.medal == 'gold' %}
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part"><img src="{% static 'auth/img/cup1.png' %}" alt="1 ?????"></span>
+                    {% elif line.medal == 'silver' %}
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part"><img src="{% static 'auth/img/cup2.png' %}" alt="2 ?????"></span>
+                    {% elif line.medal == 'bronze' %}
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part"><img src="{% static 'auth/img/cup3.png' %}" alt="3 ?????"></span>
+                    {% elif line.place_label %}
+                    <span class="leaderboard-plan__exercise-sep" aria-hidden="true">|</span>
+                    <span class="leaderboard-plan__exercise-part">{{ line.place_label }}</span>
+                    {% endif %}
+                    {% endif %}
+                </p>
                 {% endfor %}
             </div>
             {% endif %}

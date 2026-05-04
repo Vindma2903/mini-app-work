@@ -1500,7 +1500,10 @@ class UserOnlyProtectedMixin(UserProtectedMixin):
 class SharedProfileHeaderMixin:
     @staticmethod
     def _build_profile_name(user):
-        return f'{user.first_name} {user.last_name}'.strip() or user.email
+        first_name = str(getattr(user, 'first_name', '') or '').strip()
+        last_name = str(getattr(user, 'last_name', '') or '').strip()
+        email = str(getattr(user, 'email', '') or '').strip()
+        return f'{first_name} {last_name}'.strip() or email or 'Гость'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -4399,12 +4402,16 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             .annotate(total=Count('id'))
             .values_list('target_user_id', 'total')
         )
-        my_reacted_user_ids = set(
-            CommunityReaction.objects
-            .filter(training_date=selected_date, sender=self.request.user)
-            .values_list('target_user_id', flat=True)
-        )
-        current_user_id = self.request.user.id
+        if self.request.user.is_authenticated:
+            my_reacted_user_ids = set(
+                CommunityReaction.objects
+                .filter(training_date=selected_date, sender=self.request.user)
+                .values_list('target_user_id', flat=True)
+            )
+            current_user_id = self.request.user.id
+        else:
+            my_reacted_user_ids = set()
+            current_user_id = None
         for section in leaderboard['sections']:
             for entry in section.get('entries', []):
                 target_user_id = entry.get('user_id')
@@ -4577,6 +4584,10 @@ class LeaderboardDayAdminView(AdminProtectedMixin, LeaderboardDayView):
 class LeaderboardDayAdminTvView(AdminProtectedMixin, LeaderboardDayView):
     template_name = 'auth/leaderboard-day-admin-tv.html'
     allow_admin_panel_access = True
+
+    # TV mode should be accessible by direct URL without login.
+    def dispatch(self, request, *args, **kwargs):
+        return TemplateView.dispatch(self, request, *args, **kwargs)
 
     @staticmethod
     def _parse_refresh_seconds(raw_value):
@@ -4904,10 +4915,18 @@ class LeaderboardWorkoutDetailAdminTvView(LeaderboardWorkoutDetailAdminView):
     template_name = 'auth/leaderboard-workout-detail-admin-tv.html'
     allow_admin_panel_access = True
 
+    # TV mode should be accessible by direct URL without login.
+    def dispatch(self, request, *args, **kwargs):
+        return TemplateView.dispatch(self, request, *args, **kwargs)
+
 
 class LeaderboardWorkoutExerciseAdminTvView(LeaderboardWorkoutExerciseAdminView):
     template_name = 'auth/leaderboard-workout-exercise-admin-tv.html'
     allow_admin_panel_access = True
+
+    # TV mode should be accessible by direct URL without login.
+    def dispatch(self, request, *args, **kwargs):
+        return TemplateView.dispatch(self, request, *args, **kwargs)
 
 
 class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):

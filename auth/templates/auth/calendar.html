@@ -230,7 +230,6 @@
                                     <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
                                 </button>
                                 <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
-                                    <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Результат">Результат</button>
                                     <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="time" data-result-type-label="Время">Время</button>
                                     <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
                                     <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
@@ -789,7 +788,7 @@
             if (createSetsInput) createSetsInput.value = "";
             if (createRepsInput) createRepsInput.value = "";
             if (resultTypeInput) resultTypeInput.value = "reps";
-            if (resultTypeValue) resultTypeValue.textContent = "Результат";
+            if (resultTypeValue) resultTypeValue.textContent = "Кол-во повторений";
             setActiveOption(resultTypeOptions, "data-result-type-option", "reps");
 
             toggleCustomBlockField("default");
@@ -1106,7 +1105,7 @@
                 if (benchmarkInputNode) benchmarkInputNode.value = "";
 
                 if (resultTypeInputNode) resultTypeInputNode.value = "reps";
-                if (resultTypeValueNode) resultTypeValueNode.textContent = "Результат";
+                if (resultTypeValueNode) resultTypeValueNode.textContent = "Кол-во повторений";
 
                 firstCard.querySelectorAll("[data-block-option]").forEach((button) => {
                     button.classList.toggle("is-active", (button.getAttribute("data-block-option") || "") === "default");
@@ -2231,7 +2230,7 @@
             const clonedBlockValue = clone.querySelector("#calendar-block-value");
             if (clonedBlockValue) clonedBlockValue.textContent = "Блок";
             const clonedResultTypeValue = clone.querySelector("#calendar-result-type-value");
-            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Результат";
+            if (clonedResultTypeValue) clonedResultTypeValue.textContent = "Кол-во повторений";
             const clonedExerciseKindValue = clone.querySelector("#calendar-exercise-kind-value");
             if (clonedExerciseKindValue) clonedExerciseKindValue.textContent = "Упражнение";
             const clonedCustomWrap = clone.querySelector("#calendar-block-custom-wrap");

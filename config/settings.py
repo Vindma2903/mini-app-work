@@ -153,6 +153,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 USE_MANIFEST_STATIC_FILES = (
     os.getenv('USE_MANIFEST_STATIC_FILES', 'false' if DEBUG else 'true').strip().lower() == 'true'
 )
+USE_S3 = os.getenv('USE_S3', 'false').strip().lower() == 'true'
 
 STORAGES = {
     'default': {
@@ -166,6 +167,65 @@ STORAGES = {
         ),
     },
 }
+
+if USE_S3:
+    selectel_access_key = os.getenv('SELECTEL_ACCESS_KEY', '').strip()
+    selectel_secret_key = os.getenv('SELECTEL_SECRET_KEY', '').strip()
+    selectel_bucket_name = os.getenv('SELECTEL_BUCKET_NAME', 'ktfit').strip()
+    selectel_endpoint_url = os.getenv('SELECTEL_ENDPOINT_URL', 'https://s3.ru-3.storage.selcloud.ru').strip()
+    selectel_region_name = os.getenv('SELECTEL_REGION_NAME', 'ru-3').strip()
+    selectel_custom_domain = os.getenv('SELECTEL_CUSTOM_DOMAIN', '').strip()
+
+    s3_common_options = {
+        'access_key': selectel_access_key,
+        'secret_key': selectel_secret_key,
+        'bucket_name': selectel_bucket_name,
+        'endpoint_url': selectel_endpoint_url,
+        'region_name': selectel_region_name,
+        'signature_version': 's3v4',
+        'default_acl': 'public-read',
+        'querystring_auth': False,
+        'verify': True,
+        'file_overwrite': False,
+    }
+
+    if selectel_custom_domain:
+        s3_common_options['custom_domain'] = selectel_custom_domain
+
+    STORAGES = {
+        'default': {
+            'BACKEND': 'storages.backends.s3.S3Storage',
+            'OPTIONS': {
+                **s3_common_options,
+                'location': 'media',
+            },
+        },
+        'staticfiles': {
+            'BACKEND': (
+                'django.contrib.staticfiles.storage.ManifestStaticFilesStorage'
+                if USE_MANIFEST_STATIC_FILES
+                else 'storages.backends.s3.S3Storage'
+            ),
+            'OPTIONS': {
+                **s3_common_options,
+                'location': 'static',
+                'file_overwrite': True,
+            },
+        },
+    }
+
+    if selectel_custom_domain:
+        MEDIA_URL = f'https://{selectel_custom_domain}/media/'
+        STATIC_URL = f'https://{selectel_custom_domain}/static/'
+    else:
+        base_media = f'{selectel_endpoint_url}/{selectel_bucket_name}/media/'
+        base_static = f'{selectel_endpoint_url}/{selectel_bucket_name}/static/'
+        MEDIA_URL = base_media
+        STATIC_URL = base_static
+
+    AWS_S3_REGION_NAME = selectel_region_name
+    AWS_S3_USE_SSL = True
+    AWS_S3_MAX_MEMORY_SIZE = int(os.getenv('AWS_S3_MAX_MEMORY_SIZE', str(100 * 1024 * 1024)))
 
 SITE_ID = 1
 
@@ -257,3 +317,7 @@ LOGGING = {
         },
     },
 }
+
+# Upload limits for larger files (for example videos)
+DATA_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv('DATA_UPLOAD_MAX_MEMORY_SIZE', str(100 * 1024 * 1024)))
+FILE_UPLOAD_MAX_MEMORY_SIZE = int(os.getenv('FILE_UPLOAD_MAX_MEMORY_SIZE', str(100 * 1024 * 1024)))

@@ -7,3 +7,5 @@ djangorestframework-simplejwt
 drf-spectacular
 pillow
 requests
+django-storages[s3]
+boto3

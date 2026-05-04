@@ -203,7 +203,7 @@ body {
     border-radius: 12px;
     background: var(--card);
     display: grid;
-    grid-template-columns: 1.6fr 0.95fr 0.5fr 0.45fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
     align-items: center;
     padding: 0 12px;
 }
@@ -217,17 +217,24 @@ body {
 
 .leaderboard-item__cell + .leaderboard-item__cell {
     border-left: 1px solid var(--line);
-    padding-left: 10px;
-    margin-left: 10px;
+    padding-left: 18px;
+    margin-left: 23px;
 }
 
 .leaderboard-item__cell--time {
     color: #9fa3a9;
+    text-align: center;
 }
 
 .leaderboard-item__cell--award {
     text-align: center;
     font-size: 14px;
+}
+
+.leaderboard-item__cell--name {
+    text-align: center;
+    padding-right: 22px;
+    box-sizing: border-box;
 }
 
 .leaderboard-item__cell--award img {

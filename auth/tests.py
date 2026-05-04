@@ -2229,7 +2229,7 @@ class LeaderboardAwardsTests(TestCase):
         self.assertTemplateUsed(response, 'auth/leaderboard-workout-exercise-admin.html')
         self.assertContains(response, 'Бег на дорожке')
         self.assertContains(response, '3 подхода / 11 повторений')
-        self.assertEqual(response.context['workout_kind_badge'], 'Кардио')
+        self.assertEqual(response.context['workout_kind_badge'], 'Скилл / навык')
 
     def test_workout_exercise_page_renders_real_leader_rows(self):
         training = AdminTraining.objects.create(

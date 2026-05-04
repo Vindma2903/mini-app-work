@@ -1,4 +1,4 @@
-﻿{% extends 'auth/base.html' %}
+{% extends 'auth/base.html' %}
 {% load static %}
 
 {% block title %}Календарь{% endblock %}
@@ -146,10 +146,7 @@
                     </div>
                     <input type="hidden" id="calendar-training-block-input" value="strength">
                 </div>
-                <label class="calendar-create-modal__field calendar-create-modal__field--nested" id="calendar-training-block-custom-wrap" hidden>
-                    <span>Подсобная работа</span>
-                    <input class="calendar-create-modal__text-input" id="calendar-training-block-custom-input" type="text" placeholder="Введите свое название">
-                </label>
+                <input id="calendar-training-block-custom-input" type="hidden" value="Подсобная работа">
             </div>
 
 <label class="calendar-create-modal__field">
@@ -208,7 +205,7 @@
                     <div class="calendar-create-modal__result-row">
                         <input type="hidden" name="manual_result_type" id="calendar-manual-result-type-input" value="reps">
                     </div>
-                    <div class="calendar-create-modal__result-row" id="calendar-manual-time-fields" hidden style="display:none">
+                    <div class="calendar-create-modal__result-row calendar-create-modal__result-row--triple" id="calendar-manual-time-fields" hidden style="display:none">
                         <input class="calendar-create-modal__text-input" id="calendar-manual-minutes-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Минуты">
                         <small>:</small>
                         <input class="calendar-create-modal__text-input" id="calendar-manual-seconds-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Секунды">
@@ -216,20 +213,28 @@
                     <div class="calendar-create-modal__result-row" id="calendar-manual-weight-fields" hidden style="display:none">
                         <input class="calendar-create-modal__text-input" id="calendar-manual-weight-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Кг">
                     </div>
-                    <div class="calendar-create-modal__result-row" id="calendar-manual-reps-fields">
-                        <span class="calendar-create-modal__reps-label calendar-create-modal__reps-label--sets">Подходов</span>
-                        <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
-                        <small>по</small>
-                        <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
-                            <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
-                                <em id="calendar-manual-result-type-value">Кол-во повторений</em>
-                                <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
-                            </button>
-                            <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Результат">Результат</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="time" data-result-type-label="Время">Время</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
-                                <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
+                    <div class="calendar-create-modal__result-row calendar-create-modal__result-row--triple" id="calendar-manual-reps-fields">
+                        <div class="calendar-create-modal__triple-cell">
+                            <p class="calendar-create-modal__triple-label">Подходов</p>
+                            <input class="calendar-create-modal__text-input" id="calendar-manual-sets-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов">
+                        </div>
+                        <div class="calendar-create-modal__triple-cell">
+                            <p class="calendar-create-modal__triple-label" aria-hidden="true">&nbsp;</p>
+                            <small>по</small>
+                        </div>
+                        <div class="calendar-create-modal__triple-cell">
+                            <p class="calendar-create-modal__triple-label">Результат</p>
+                            <div class="calendar-create-modal__dropdown" id="calendar-manual-result-type-dropdown">
+                                <button type="button" class="calendar-create-modal__input calendar-create-modal__input--sm" id="calendar-manual-result-type-trigger" aria-haspopup="listbox" aria-expanded="false">
+                                    <em id="calendar-manual-result-type-value">Кол-во повторений</em>
+                                    <img src="{% static 'auth/img/calendar-chevron-down-mini.svg' %}" alt="">
+                                </button>
+                                <div class="calendar-create-modal__dropdown-menu" id="calendar-manual-result-type-menu" role="listbox" hidden>
+                                    <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="reps" data-result-type-label="Результат">Результат</button>
+                                    <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="time" data-result-type-label="Время">Время</button>
+                                    <button type="button" class="calendar-create-modal__dropdown-option" data-result-type-option="weight" data-result-type-label="Вес">Вес</button>
+                                    <button type="button" class="calendar-create-modal__dropdown-option is-active" data-result-type-option="reps" data-result-type-label="Кол-во повторений">Кол-во повторений</button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1767,12 +1772,12 @@
                 const exerciseParams = libraryExerciseParamsById[selectedEntryKey || item.id] || { sets: "", reps: "", result_type: "time" };
                 const metaMarkup = item.section === "exercises" && isActive
                     ? `<div class="calendar-create-modal__library-item-meta">
-                            <div class="calendar-create-modal__reps-head">
+                            <div class="calendar-create-modal__reps-head calendar-create-modal__reps-head--triple">
                                 <span class="calendar-create-modal__reps-head-label calendar-create-modal__reps-head-label--sets">Подходов</span>
                                 <span class="calendar-create-modal__reps-head-spacer" aria-hidden="true"></span>
                                 <span class="calendar-create-modal__reps-head-label calendar-create-modal__reps-head-label--reps">Повторений</span>
                             </div>
-                            <div class="calendar-create-modal__result-row">
+                            <div class="calendar-create-modal__result-row calendar-create-modal__result-row--triple">
                                 <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Подходов" value="${exerciseParams.sets || ""}" data-library-item-sets="${item.id}">
                                 <small>по</small>
                                 <input class="calendar-create-modal__text-input" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="Повторений" value="${exerciseParams.reps || ""}" data-library-item-reps="${item.id}">

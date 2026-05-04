@@ -127,10 +127,10 @@ TRAINING_DIRECTION_LABELS = {
 }
 
 TRAINING_BLOCK_LABELS = {
-    AdminTrainingExercise.BLOCK_STRENGTH: '\u0421\u0438\u043b\u043e\u0432\u0430\u044f',
-    AdminTrainingExercise.BLOCK_CARDIO: '\u041a\u0430\u0440\u0434\u0438\u043e',
-    AdminTrainingExercise.BLOCK_GYMNASTICS: '\u0413\u0438\u043c\u043d\u0430\u0441\u0442\u0438\u043a\u0430',
-    AdminTrainingExercise.BLOCK_CUSTOM: '\u0421\u0432\u043e\u0435 \u043d\u0430\u0437\u0432\u0430\u043d\u0438\u0435',
+    AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая часть',
+    AdminTrainingExercise.BLOCK_CARDIO: 'Скилл / навык',
+    AdminTrainingExercise.BLOCK_GYMNASTICS: 'Комплекс дня',
+    AdminTrainingExercise.BLOCK_CUSTOM: 'Подсобная работа',
 }
 
 TRAINING_RESULT_TYPE_LABELS = {
@@ -213,7 +213,9 @@ def resolve_manual_block_label(training):
             return custom_name
     if block_type in TRAINING_BLOCK_LABELS:
         return normalize_mojibake_text(TRAINING_BLOCK_LABELS[block_type])
-    return normalize_mojibake_text(TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'Силовая'))
+    return normalize_mojibake_text(
+        TRAINING_BLOCK_LABELS.get(AdminTrainingExercise.BLOCK_STRENGTH, 'Силовая часть'),
+    )
 
 
 def normalize_mojibake_text(value):
@@ -586,9 +588,9 @@ def build_admin_training_results_payload(training):
 
 
 LEADERBOARD_SECTION_META = [
-    (TrainingResult.SECTION_STRENGTH, 'Силовая'),
-    (TrainingResult.SECTION_CARDIO, 'Кардио'),
-    (TrainingResult.SECTION_METABOLIC, 'Метаболическая'),
+    (TrainingResult.SECTION_STRENGTH, 'Силовая часть'),
+    (TrainingResult.SECTION_CARDIO, 'Скилл / навык'),
+    (TrainingResult.SECTION_METABOLIC, 'Комплекс дня'),
 ]
 
 
@@ -1794,6 +1796,7 @@ class SupportSubmitView(UserOnlyProtectedMixin, View):
             body,
             settings.DEFAULT_FROM_EMAIL,
             [recipient],
+            reply_to=[payload['user_email']] if payload['user_email'] and payload['user_email'] != '-' else None,
             fail_silently=False,
         )
         logger.info('Support email sent to=%s user_email=%s', recipient, payload['user_email'])
@@ -3375,11 +3378,7 @@ class ReviewsOverviewView(AdminProtectedMixin, TemplateView):
         AdminTraining.DIRECTION_FUNCTIONAL: 'Функциональная тренировка',
         AdminTraining.DIRECTION_STRENGTH: 'Силовая тренировка',
     }
-    BLOCK_LABELS_RU = {
-        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
-        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
-        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
-    }
+    BLOCK_LABELS_RU = TRAINING_BLOCK_LABELS
 
     @staticmethod
     def _stars(value):
@@ -3754,7 +3753,7 @@ class AdminTrainingBaseView(AdminProtectedMixin, View):
             if manual_block_type not in valid_block_values:
                 field_errors['training_block'] = 'invalid_block_type'
             if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM and not manual_block_custom_name:
-                field_errors['training_block_custom'] = 'block_custom_name_required'
+                manual_block_custom_name = 'Подсобная работа'
             if not manual_description_ru:
                 field_errors['manual_description_ru'] = 'manual_description_ru_required'
             if not manual_description_en:
@@ -4415,11 +4414,7 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
             ordered_exercises = sorted(training.exercises.all(), key=lambda item: (item.order, item.id))
             exercise_lines = []
             for exercise in ordered_exercises:
-                block_label = (
-                    exercise.block_custom_name.strip()
-                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Р‘Р»РѕРє')
-                )
+                block_label = TRAINING_BLOCK_LABELS.get(exercise.block_type, 'Блок')
                 volume_label = format_admin_training_volume(exercise)
                 exercise_lines.append({
                     'block': block_label,
@@ -4433,9 +4428,8 @@ class LeaderboardDayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Templ
                 if not section_key:
                     continue
                 section_title = (
-                    exercise.block_custom_name.strip()
-                    if exercise.block_type == AdminTrainingExercise.BLOCK_CUSTOM and exercise.block_custom_name.strip()
-                    else dict(LEADERBOARD_SECTION_META).get(section_key, 'Р Р°Р·РґРµР»')
+                    TRAINING_BLOCK_LABELS.get(exercise.block_type)
+                    or dict(LEADERBOARD_SECTION_META).get(section_key, 'Раздел')
                 )
                 section_identity = f'{section_key}:{section_title}'
                 if section_identity in seen_sections:
@@ -5023,11 +5017,7 @@ class ToggleCommunityReactionView(View):
 
 class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateView):
     template_name = 'auth/training-plan-today.html'
-    PLAN_BLOCK_TITLES_RU = {
-        AdminTrainingExercise.BLOCK_STRENGTH: 'Силовая',
-        AdminTrainingExercise.BLOCK_CARDIO: 'Кардио',
-        AdminTrainingExercise.BLOCK_GYMNASTICS: 'Гимнастика',
-    }
+    PLAN_BLOCK_TITLES_RU = TRAINING_BLOCK_LABELS
 
     @staticmethod
     def _normalized_text(value):

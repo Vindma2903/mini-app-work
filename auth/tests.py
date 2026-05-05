@@ -2232,6 +2232,59 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         self.assertContains(response, 'data-result-label-cardio="Скилл / навык"', html=False)
 
 
+    def test_training_plan_rating_sections_use_primary_training_only_when_direction_is_merged(self):
+        old_training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='old-strength',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=old_training,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            exercise_name='Back squat',
+            sets=3,
+            reps=8,
+            result_type=AdminTrainingExercise.RESULT_REPS,
+            order=0,
+        )
+
+        primary_training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='fbb',
+            visibility='all',
+            comment='new-custom',
+            color='blue',
+            source_type='library',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=primary_training,
+            block_type=AdminTrainingExercise.BLOCK_CUSTOM,
+            block_custom_name='Подсобная работа',
+            exercise_name='Bike sprint',
+            sets=4,
+            reps=12,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['plan_cards']
+        target_card = next((item for item in cards if item['direction'] == 'fbb'), None)
+        self.assertIsNotNone(target_card)
+        self.assertEqual(target_card['id'], primary_training.id)
+        self.assertEqual(target_card['result_sections'], [TrainingResult.SECTION_METABOLIC])
+        self.assertNotIn(TrainingResult.SECTION_STRENGTH, target_card['result_sections'])
+        self.assertEqual(target_card['result_section_labels']['metabolic'], 'Подсобная работа')
+
+
 class LeaderboardAwardsTests(TestCase):
     def setUp(self):
         self.user_a = User.objects.create_user(

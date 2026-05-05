@@ -5455,6 +5455,7 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                 continue
             primary_training = direction_trainings[0]
             primary_training_ids.append(primary_training.id)
+            primary_sections = build_sections_for_training(primary_training)
 
             merged_sections = []
             merged_section_index = {}
@@ -5468,8 +5469,6 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                     merged_sections[merged_section_index[section_title]]['lines'].extend(section.get('lines') or [])
 
             comments = []
-            result_sections = []
-            result_section_labels = {}
             for training in direction_trainings:
                 if role == UserProfile.ROLE_USER:
                     preferred_comment = str(training.comment_for_athletes or '').strip()
@@ -5480,19 +5479,19 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                 comment_value = normalize_mojibake_text(preferred_comment or fallback_comment)
                 if comment_value and comment_value not in comments:
                     comments.append(comment_value)
-                for section_key in resolve_training_section_keys_for_rate(training):
-                    if section_key not in result_sections:
-                        result_sections.append(section_key)
-                for section_key, section_label in resolve_training_section_labels_for_rate(training).items():
-                    if section_key not in result_section_labels and section_label:
-                        result_section_labels[section_key] = section_label
+
+            # Result modal/rating rows must be tied to the same training id that
+            # receives saved results/rating (primary_training), not to aggregated
+            # trainings in the merged card.
+            result_sections = list(resolve_training_section_keys_for_rate(primary_training))
+            result_section_labels = dict(resolve_training_section_labels_for_rate(primary_training))
 
             # When the card contains a single visible section, use the actual rendered
             # section title from the card as the rating/results label. This keeps the
             # user-facing modals aligned with the training block name shown in UI,
             # including custom labels from manually created trainings.
-            if len(result_sections) == 1 and merged_sections:
-                single_section_title = normalize_mojibake_text(str(merged_sections[0].get('title') or '').strip())
+            if len(result_sections) == 1 and primary_sections:
+                single_section_title = normalize_mojibake_text(str(primary_sections[0].get('title') or '').strip())
                 if single_section_title:
                     result_section_labels[result_sections[0]] = single_section_title
 
@@ -5509,7 +5508,7 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                     ),
                     'sections': merged_sections,
                     'comment': '\n'.join(comments),
-                    'result_types': get_plan_result_type_map(direction_trainings),
+                    'result_types': get_plan_result_type_map([primary_training]),
                     'result_sections': result_sections,
                     'result_section_labels': result_section_labels,
                     'result_section_labels_json': json.dumps(result_section_labels, ensure_ascii=False),

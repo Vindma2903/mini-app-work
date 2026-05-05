@@ -48,18 +48,17 @@
                         <div class="reviews-select-wrap" id="reviews-load-type-filter">
                             <button type="button" class="reviews-select" id="reviews-select-trigger" aria-haspopup="listbox" aria-expanded="false">
                                 <span id="reviews-select-value">
-                                    {% if selected_load_type == 'strength' %}Силовая часть{% elif selected_load_type == 'cardio' %}Скилл / навык{% elif selected_load_type == 'gymnastics' %}Комплекс дня{% elif selected_load_type == 'custom' %}Подсобная работа{% else %}Общая{% endif %}
+                                    {% if selected_load_type == 'strength' %}Силовая часть{% elif selected_load_type == 'cardio' %}Скилл / навык{% elif selected_load_type == 'gymnastics' %}Комплекс дня{% elif selected_load_type == 'custom' %}Подсобная работа{% else %}Силовая часть{% endif %}
                                 </span>
                                 <span class="reviews-select__chevron"><img src="{% static 'auth/img/admin/chevron-down.svg' %}" alt="" aria-hidden="true"></span>
                             </button>
                             <div class="reviews-select-menu" id="reviews-select-menu" role="listbox" hidden>
-                                <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'all' %} is-active{% endif %}" data-load-type="all" data-load-label="Общая">Общая</button>
                                 <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'strength' %} is-active{% endif %}" data-load-type="strength" data-load-label="Силовая часть">Силовая часть</button>
                                 <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'cardio' %} is-active{% endif %}" data-load-type="cardio" data-load-label="Скилл / навык">Скилл / навык</button>
                                 <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'gymnastics' %} is-active{% endif %}" data-load-type="gymnastics" data-load-label="Комплекс дня">Комплекс дня</button>
                                 <button type="button" class="reviews-select-menu__item{% if selected_load_type == 'custom' %} is-active{% endif %}" data-load-type="custom" data-load-label="Подсобная работа">Подсобная работа</button>
                             </div>
-                            <input type="hidden" id="reviews-select-input" name="load_type" value="{{ selected_load_type|default:'all' }}">
+                            <input type="hidden" id="reviews-select-input" name="load_type" value="{{ selected_load_type|default:'strength' }}">
                         </div>
                         <div class="reviews-select-wrap" id="reviews-period-filter">
                             <button type="button" class="reviews-select" id="reviews-period-trigger" aria-haspopup="listbox" aria-expanded="false">
@@ -106,9 +105,9 @@
 
                     <div class="reviews-card__ratings">
                         <div><span>Общая:</span><b>{{ card.overall_stars }}</b><strong>{{ card.overall_value }}</strong></div>
-                        <div><span>Силовая</span><b>{{ card.strength_stars }}</b><strong>{{ card.strength_value }}</strong></div>
-                        <div><span>Кардио</span><b>{{ card.cardio_stars }}</b><strong>{{ card.cardio_value }}</strong></div>
-                        <div><span>Метабол.</span><b>{{ card.metabolic_stars }}</b><strong>{{ card.metabolic_value }}</strong></div>
+                        {% for row in card.rating_rows %}
+                        <div><span>{{ row.label }}</span><b>{{ row.stars }}</b><strong>{{ row.value }}</strong></div>
+                        {% endfor %}
                     </div>
 
                     <div class="reviews-card__text">{{ card.comment }}</div>
@@ -209,7 +208,6 @@
             month: "За месяц"
         };
         const labelsByLoadType = {
-            all: "Общая",
             strength: "Силовая часть",
             cardio: "Скилл / навык",
             gymnastics: "Комплекс дня",
@@ -253,8 +251,8 @@
             }
         }
 
-        const initialLoadType = (input.value || "all").toLowerCase();
-        value.textContent = labelsByLoadType[initialLoadType] || "Общая";
+        const initialLoadType = (input.value || "strength").toLowerCase();
+        value.textContent = labelsByLoadType[initialLoadType] || "Силовая часть";
 
         const options = menu.querySelectorAll(".reviews-select-menu__item");
 
@@ -338,7 +336,7 @@
         }
 
         function applyFilters() {
-            params.set("load_type", input.value || "all");
+            params.set("load_type", input.value || "strength");
             params.set("order_by", filterInput?.value || "rating_desc");
             params.set("period", periodInput?.value || "all");
             const searchValue = (searchInput?.value || "").trim();
@@ -356,8 +354,8 @@
 
         options.forEach(function (option) {
             option.addEventListener("click", function () {
-                const nextValue = option.getAttribute("data-load-type") || "all";
-                const nextLabel = option.getAttribute("data-load-label") || "Общая";
+                const nextValue = option.getAttribute("data-load-type") || "strength";
+                const nextLabel = option.getAttribute("data-load-label") || "Силовая часть";
                 options.forEach(function (item) {
                     item.classList.remove("is-active");
                 });

@@ -163,6 +163,7 @@
     window.planIsUser = {% if plan_is_user %}true{% else %}false{% endif %};
 </script>
 {{ plan_result_types_json|json_script:"plan-result-types-json" }}
+{{ plan_result_section_labels_by_training_json|json_script:"plan-result-section-labels-by-training-json" }}
 <script>
     (function () {
         const dayButtons = Array.from(document.querySelectorAll(".plan-today-days__item[data-iso-date]"));
@@ -442,13 +443,25 @@
             }
         }
 
+        function getPlanResultSectionLabelsByTraining() {
+            const node = document.getElementById("plan-result-section-labels-by-training-json");
+            if (!node?.textContent) return {};
+            try {
+                return JSON.parse(node.textContent);
+            } catch (_error) {
+                return {};
+            }
+        }
+
         let activeSectionResultTypes = { ...getCurrentDefaultSectionResultTypes() };
+        const sectionLabelsByTraining = getPlanResultSectionLabelsByTraining();
         const sections = [
             { key: "strength", title: "Силовая" },
             { key: "cardio", title: "Кардио" },
             { key: "metabolic", title: "Метаболическая" }
         ];
         let activeSectionKeys = sections.map((section) => section.key);
+        let activeSectionLabels = {};
         const resultsDraft = {};
         let activeTrainingId = "";
 
@@ -474,6 +487,15 @@
         trainingRateModal.querySelectorAll("[data-rating-category]").forEach((row) => {
             const category = row.getAttribute("data-rating-category") || "";
             ratingStarsByCategory[category] = Array.from(row.querySelectorAll(".training-rate-modal__star"));
+        });
+        const ratingRowsByCategory = {};
+        const ratingRowBaseLabels = {};
+        trainingRateModal.querySelectorAll("[data-rating-row]").forEach((row) => {
+            const category = row.getAttribute("data-rating-row") || "";
+            if (!category) return;
+            ratingRowsByCategory[category] = row;
+            const labelNode = row.querySelector("[data-rating-label]");
+            ratingRowBaseLabels[category] = labelNode ? String(labelNode.textContent || "").trim() : "";
         });
 
         const shareDateLabel = shareResultsModal?.querySelector("[data-share-date]");
@@ -514,6 +536,15 @@
             const parsed = Number.parseInt(normalized, 10);
             if (!Number.isFinite(parsed) || parsed < 0) return null;
             return parsed;
+        }
+
+        function escapeHtml(value) {
+            return String(value || "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#39;");
         }
 
         function getSectionConfig(sectionKey) {
@@ -566,11 +597,12 @@
                 .filter((section) => activeSectionKeys.includes(section.key))
                 .map((section) => {
                 const config = getSectionConfig(section.key);
+                const sectionTitle = String(activeSectionLabels[section.key] || section.title || "").trim() || section.title;
                 const stored = resultsDraft[section.key] || {};
                 const rxActive = (stored.mode || "rx") === "rx";
                 return `
                     <article class="my-results-modal__section" data-results-section="${section.key}">
-                        <h4 class="my-results-modal__section-title">${section.title}</h4>
+                        <h4 class="my-results-modal__section-title">${escapeHtml(sectionTitle)}</h4>
                         <div class="my-results-modal__inputs${config.showSecondary ? "" : " my-results-modal__inputs--single"}">
                             <label class="my-results-modal__field">
                                 <span>${config.primaryLabel}</span>
@@ -701,11 +733,31 @@
             if (rateComment) rateComment.value = "";
         }
 
+        function applyRateSectionConfig() {
+            const knownCategories = ["strength", "cardio", "metabolic"];
+            knownCategories.forEach((category) => {
+                const row = ratingRowsByCategory[category];
+                if (!row) return;
+                const visible = activeSectionKeys.includes(category);
+                row.hidden = !visible;
+                const labelNode = row.querySelector("[data-rating-label]");
+                if (labelNode) {
+                    labelNode.textContent = activeSectionLabels[category] || ratingRowBaseLabels[category] || labelNode.textContent;
+                }
+            });
+        }
+
         function extractRatings() {
-            const ratings = {};
+            const ratings = { overall: 4, strength: 1, cardio: 1, metabolic: 1 };
             Object.entries(ratingStarsByCategory).forEach(([category, stars]) => {
                 const activeCount = stars.filter((star) => star.classList.contains("training-rate-modal__star--active")).length;
-                ratings[category] = activeCount || 1;
+                if (category === "overall") {
+                    ratings.overall = activeCount || 1;
+                    return;
+                }
+                if (activeSectionKeys.includes(category)) {
+                    ratings[category] = activeCount || 1;
+                }
             });
             return ratings;
         }
@@ -748,8 +800,10 @@
             if (!activeSectionKeys.length) {
                 activeSectionKeys = [...validSectionKeys];
             }
+            activeSectionLabels = sectionLabelsByTraining[activeTrainingId] || {};
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
             renderSections();
+            applyRateSectionConfig();
             setModalVisible(myResultsModal, true);
         });
 
@@ -806,6 +860,7 @@
 
         openRateButton?.addEventListener("click", () => {
             initializeRateStars();
+            applyRateSectionConfig();
             setModalVisible(resultSavedModal, false);
             setModalVisible(trainingRateModal, true);
         });

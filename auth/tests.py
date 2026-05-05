@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import tempfile
-from datetime import timedelta
+from datetime import date, timedelta
 
 from allauth.account.models import EmailAddress
 from django.contrib.auth.models import User
@@ -560,6 +560,151 @@ class ReviewsOverviewViewTests(TestCase):
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]['author_name'], 'Р’РёРєР° РџРµС‚СЂРѕРІР°')
 
+    def _create_training_with_block(self, *, date_value, block_type, direction='fbb', source_type='manual'):
+        training = AdminTraining.objects.create(
+            training_date=date_value,
+            direction=direction,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            comment='',
+            color=AdminTraining.COLOR_BLUE,
+            source_type=source_type,
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=block_type,
+            exercise_name=f'Exercise {block_type}',
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        return training
+
+    def test_reviews_card_kept_for_load_type_when_any_training_of_day_matches(self):
+        rate_date = date(2026, 4, 12)
+        TrainingRate.objects.create(
+            user=self.user_a,
+            training_date=rate_date,
+            overall=4,
+            strength=4,
+            cardio=5,
+            metabolic=3,
+            comment='Cardio day',
+        )
+        self._create_training_with_block(
+            date_value=rate_date,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            direction=AdminTraining.DIRECTION_STRENGTH,
+        )
+        self._create_training_with_block(
+            date_value=rate_date,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            direction=AdminTraining.DIRECTION_CROSSFIT,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('auth:reviews_overview'), {'load_type': 'cardio'})
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['review_cards']
+        self.assertEqual(len(cards), 1)
+
+    def test_reviews_card_hidden_for_load_type_when_no_training_of_day_matches(self):
+        rate_date = date(2026, 4, 13)
+        TrainingRate.objects.create(
+            user=self.user_a,
+            training_date=rate_date,
+            overall=4,
+            strength=5,
+            cardio=1,
+            metabolic=2,
+            comment='No cardio block in trainings',
+        )
+        self._create_training_with_block(
+            date_value=rate_date,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            direction=AdminTraining.DIRECTION_STRENGTH,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('auth:reviews_overview'), {'load_type': 'cardio'})
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['review_cards']
+        self.assertEqual(len(cards), 0)
+
+    def test_reviews_prefers_matching_training_for_preview_payload(self):
+        rate_date = date(2026, 4, 14)
+        rate = TrainingRate.objects.create(
+            user=self.user_a,
+            training_date=rate_date,
+            overall=5,
+            strength=4,
+            cardio=5,
+            metabolic=3,
+            comment='Preview should open cardio training',
+        )
+        strength_training = self._create_training_with_block(
+            date_value=rate_date,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            direction=AdminTraining.DIRECTION_STRENGTH,
+        )
+        cardio_training = self._create_training_with_block(
+            date_value=rate_date,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            direction=AdminTraining.DIRECTION_CROSSFIT,
+        )
+        self.assertNotEqual(strength_training.id, cardio_training.id)
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('auth:reviews_overview'), {'load_type': 'cardio'})
+        self.assertEqual(response.status_code, 200)
+
+        payload = response.context['reviews_training_view_json']
+        training_key = f'rate-{rate.id}'
+        self.assertIn(training_key, payload)
+        self.assertEqual(payload[training_key]['training_id'], cardio_training.id)
+
+    def test_reviews_card_shows_only_training_sections_with_admin_labels(self):
+        rate_date = date(2026, 4, 15)
+        TrainingRate.objects.create(
+            user=self.user_a,
+            training_date=rate_date,
+            overall=5,
+            strength=4,
+            cardio=3,
+            metabolic=2,
+            comment='Only two sections should be visible',
+        )
+        training = AdminTraining.objects.create(
+            training_date=rate_date,
+            direction=AdminTraining.DIRECTION_FBB,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            source_type=AdminTraining.SOURCE_LIBRARY,
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            exercise_name='Strength movement',
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Skill movement',
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=1,
+        )
+
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('auth:reviews_overview'))
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['review_cards']
+        self.assertEqual(len(cards), 1)
+        rating_rows = cards[0]['rating_rows']
+        self.assertEqual(len(rating_rows), 2)
+        self.assertEqual(rating_rows[0]['section_key'], TrainingResult.SECTION_STRENGTH)
+        self.assertEqual(rating_rows[1]['section_key'], TrainingResult.SECTION_CARDIO)
+
 class ProfileActivityVisitsTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -587,17 +732,44 @@ class ProfileActivityVisitsTests(TestCase):
         self.assertEqual(self._extract_count(activity['month']['visits']), 0)
         self.assertEqual(self._extract_count(activity['year']['visits']), 0)
         self.assertEqual(self._extract_count(activity['week']['goal']), 6)
-        self.assertEqual(self._extract_count(activity['month']['goal']), 18)
-        self.assertEqual(self._extract_count(activity['year']['goal']), 216)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 288)
 
-    def test_profile_activity_counts_unique_dates_and_is_user_scoped(self):
+    def test_profile_activity_counts_unique_trainings_and_is_user_scoped(self):
         today = timezone.localdate()
-        within_month_date = today - timedelta(days=10)
-        outside_month_date = today - timedelta(days=40)
+        month_start = today.replace(day=1)
+        year_start = today.replace(month=1, day=1)
+        within_month_date = month_start
+        outside_month_date = month_start - timedelta(days=1)
+        training_today_a = AdminTraining.objects.create(
+            training_date=today,
+            direction=AdminTraining.DIRECTION_FBB,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
+        training_today_b = AdminTraining.objects.create(
+            training_date=today,
+            direction=AdminTraining.DIRECTION_CROSSFIT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
+        training_month = AdminTraining.objects.create(
+            training_date=within_month_date,
+            direction=AdminTraining.DIRECTION_WORKOUT,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
+        training_outside_month = AdminTraining.objects.create(
+            training_date=outside_month_date,
+            direction=AdminTraining.DIRECTION_FUNCTIONAL,
+            visibility=AdminTraining.VISIBILITY_ALL,
+            created_by=self.user,
+        )
 
         TrainingResult.objects.create(
             user=self.user,
             training_date=today,
+            training=training_today_a,
             section=TrainingResult.SECTION_STRENGTH,
             minutes=10,
             seconds=20,
@@ -606,6 +778,7 @@ class ProfileActivityVisitsTests(TestCase):
         TrainingResult.objects.create(
             user=self.user,
             training_date=today,
+            training=training_today_a,
             section=TrainingResult.SECTION_CARDIO,
             minutes=11,
             seconds=21,
@@ -613,7 +786,17 @@ class ProfileActivityVisitsTests(TestCase):
         )
         TrainingResult.objects.create(
             user=self.user,
+            training_date=today,
+            training=training_today_b,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=9,
+            seconds=19,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.user,
             training_date=within_month_date,
+            training=training_month,
             section=TrainingResult.SECTION_METABOLIC,
             minutes=12,
             seconds=22,
@@ -622,6 +805,7 @@ class ProfileActivityVisitsTests(TestCase):
         TrainingResult.objects.create(
             user=self.user,
             training_date=outside_month_date,
+            training=training_outside_month,
             section=TrainingResult.SECTION_STRENGTH,
             minutes=13,
             seconds=23,
@@ -641,12 +825,43 @@ class ProfileActivityVisitsTests(TestCase):
         self.assertEqual(response.status_code, 200)
 
         activity = json.loads(response.context['profile_activity_values_json'])
-        self.assertEqual(self._extract_count(activity['week']['visits']), 1)
-        self.assertEqual(self._extract_count(activity['month']['visits']), 2)
-        self.assertEqual(self._extract_count(activity['year']['visits']), 3)
+        expected_week_visits = 2
+        expected_month_visits = 3
+        expected_year_visits = 3 + (1 if year_start <= outside_month_date <= today else 0)
+        self.assertEqual(self._extract_count(activity['week']['visits']), expected_week_visits)
+        self.assertEqual(self._extract_count(activity['month']['visits']), expected_month_visits)
+        self.assertEqual(self._extract_count(activity['year']['visits']), expected_year_visits)
         self.assertEqual(self._extract_count(activity['week']['goal']), 6)
-        self.assertEqual(self._extract_count(activity['month']['goal']), 18)
-        self.assertEqual(self._extract_count(activity['year']['goal']), 216)
+        self.assertEqual(self._extract_count(activity['month']['goal']), 24)
+        self.assertEqual(self._extract_count(activity['year']['goal']), 288)
+
+    def test_profile_activity_fallbacks_to_date_when_training_missing(self):
+        today = timezone.localdate()
+        TrainingResult.objects.create(
+            user=self.user,
+            training_date=today,
+            training=None,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=10,
+            seconds=20,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.user,
+            training_date=today,
+            training=None,
+            section=TrainingResult.SECTION_CARDIO,
+            minutes=11,
+            seconds=21,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:profile'))
+        self.assertEqual(response.status_code, 200)
+
+        activity = json.loads(response.context['profile_activity_values_json'])
+        self.assertEqual(self._extract_count(activity['week']['visits']), 1)
 
 
 class CommunityReactionApiTests(TestCase):

@@ -120,6 +120,8 @@
 <script>
     (function () {
         const initialWeeklyGoal = Number.parseInt("{{ profile_week_goal|default:6 }}", 10) || 6;
+        const monthGoalMultiplier = Number.parseInt("{{ profile_month_goal_multiplier|default:4 }}", 10) || 4;
+        const yearGoalMultiplier = Number.parseInt("{{ profile_year_goal_multiplier|default:52 }}", 10) || 52;
         const activityValues = {{ profile_activity_values_json|safe }};
 
         const statsValues = {{ profile_stats_values_json|safe }};
@@ -252,8 +254,16 @@
                 }
 
                 activityValues.week.goal = formatTrainingCount(payload.weekly_goal);
-                activityValues.month.goal = formatTrainingCount(payload.weekly_goal * 3);
-                activityValues.year.goal = formatTrainingCount(payload.weekly_goal * 3 * 12);
+                activityValues.month.goal = formatTrainingCount(
+                    Number.isFinite(Number(payload.month_goal))
+                        ? Number(payload.month_goal)
+                        : (payload.weekly_goal * monthGoalMultiplier)
+                );
+                activityValues.year.goal = formatTrainingCount(
+                    Number.isFinite(Number(payload.year_goal))
+                        ? Number(payload.year_goal)
+                        : (payload.weekly_goal * yearGoalMultiplier)
+                );
                 const activityTabs = document.querySelector("[data-tabs='activity']");
                 if (activityTabs) {
                     activateTab(activityTabs, "week");

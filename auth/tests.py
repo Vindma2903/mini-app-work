@@ -1073,6 +1073,175 @@ class CommunityViewDateFilterTests(TestCase):
         self.assertEqual(len(cards), 1)
         self.assertEqual(cards[0]['target_user_id'], self.target.id)
 
+    def test_community_uses_training_block_label_and_shows_only_filled_sections(self):
+        training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='community-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type=AdminTrainingExercise.BLOCK_CUSTOM,
+            block_custom_name='Подсобная работа',
+            exercise_name='Bike sprint',
+            sets=4,
+            reps=12,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        TrainingResult.objects.create(
+            user=self.target,
+            training=training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_METABOLIC,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=3,
+            seconds=33,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.viewer)
+        response = self.client.get(reverse('auth:community'))
+
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['community_cards']
+        self.assertEqual(len(cards), 1)
+        self.assertEqual(cards[0]['target_user_id'], self.target.id)
+        self.assertEqual(len(cards[0]['sections']), 1)
+        self.assertEqual(cards[0]['sections'][0]['title'], 'Подсобная работа')
+
+    def test_community_shows_four_rows_when_custom_and_gymnastics_exist(self):
+        strength_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='strength-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=strength_training,
+            block_type=AdminTrainingExercise.BLOCK_STRENGTH,
+            exercise_name='Back squat',
+            sets=3,
+            reps=10,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        cardio_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='cardio-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=cardio_training,
+            block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            exercise_name='Bike',
+            sets=3,
+            reps=10,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        gymnastics_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='gymnastics-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=gymnastics_training,
+            block_type=AdminTrainingExercise.BLOCK_GYMNASTICS,
+            exercise_name='Metcon',
+            sets=3,
+            reps=10,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        custom_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='custom-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=custom_training,
+            block_type=AdminTrainingExercise.BLOCK_CUSTOM,
+            block_custom_name='Подсобная работа',
+            exercise_name='Accessory',
+            sets=3,
+            reps=10,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+
+        TrainingResult.objects.create(
+            user=self.target,
+            training=strength_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_STRENGTH,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=3,
+            seconds=0,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.target,
+            training=cardio_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_CARDIO,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=3,
+            seconds=33,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.target,
+            training=gymnastics_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_METABOLIC,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=8,
+            seconds=8,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.target,
+            training=custom_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_METABOLIC,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=6,
+            seconds=6,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.viewer)
+        response = self.client.get(reverse('auth:community'))
+
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['community_cards']
+        self.assertEqual(len(cards), 1)
+        section_titles = [item['title'] for item in cards[0]['sections']]
+        self.assertEqual(
+            section_titles,
+            ['Силовая часть', 'Скилл / навык', 'Комплекс дня', 'Подсобная работа']
+        )
+
 
 class AdminTrainingCrudTests(TestCase):
     def setUp(self):

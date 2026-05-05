@@ -686,9 +686,9 @@ def build_admin_training_results_payload(training):
 
 
 LEADERBOARD_SECTION_META = [
-    (TrainingResult.SECTION_STRENGTH, 'РЎРёР»РѕРІР°СЏ С‡Р°СЃС‚СЊ'),
-    (TrainingResult.SECTION_CARDIO, 'РЎРєРёР»Р» / РЅР°РІС‹Рє'),
-    (TrainingResult.SECTION_METABOLIC, 'РљРѕРјРїР»РµРєСЃ РґРЅСЏ'),
+    (TrainingResult.SECTION_STRENGTH, 'Силовая часть'),
+    (TrainingResult.SECTION_CARDIO, 'Скилл / навык'),
+    (TrainingResult.SECTION_METABOLIC, 'Комплекс дня'),
 ]
 
 
@@ -696,10 +696,10 @@ def format_training_duration_ru(minutes, seconds):
     if minutes is None and seconds is None:
         return '--'
     if minutes is None:
-        return f'{seconds} СЃРµРє'
+        return f'{seconds} сек'
     if seconds is None:
-        return f'{minutes} РјРёРЅ'
-    return f'{minutes} РјРёРЅ {seconds} СЃРµРє'
+        return f'{minutes} мин'
+    return f'{minutes} мин {seconds} сек'
 
 def format_count_with_word_ru(value, one, few, many):
     if value is None:
@@ -726,16 +726,16 @@ def format_training_result_value(result_type, primary_value, secondary_value):
     if result_type == TrainingResult.RESULT_WEIGHT:
         if primary_value is None:
             return '--'
-        return f'{primary_value} РєРі'
+        return f'{primary_value} кг'
 
     if result_type == TrainingResult.RESULT_REPS:
         if primary_value is None and secondary_value is not None:
-            return format_count_with_word_ru(secondary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
+            return format_count_with_word_ru(secondary_value, 'раз', 'раза', 'раз')
         if primary_value is not None and secondary_value is None:
-            return format_count_with_word_ru(primary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
-        approaches = format_count_with_word_ru(primary_value, 'РїРѕРґС…РѕРґ', 'РїРѕРґС…РѕРґР°', 'РїРѕРґС…РѕРґРѕРІ')
-        reps = format_count_with_word_ru(secondary_value, 'СЂР°Р·', 'СЂР°Р·Р°', 'СЂР°Р·')
-        return f'{approaches} РїРѕ {reps}'
+            return format_count_with_word_ru(primary_value, 'раз', 'раза', 'раз')
+        approaches = format_count_with_word_ru(primary_value, 'подход', 'подхода', 'подходов')
+        reps = format_count_with_word_ru(secondary_value, 'раз', 'раза', 'раз')
+        return f'{approaches} по {reps}'
 
     return format_training_duration_ru(primary_value, secondary_value)
 
@@ -5097,7 +5097,8 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             f'{self.request.user.first_name} {self.request.user.last_name}'.strip()
             or self.request.user.email
         )
-        context['community_experience'] = context.get('shared_profile_experience') or '8 Р»РµС‚'
+        shared_experience = normalize_mojibake_text(str(context.get('shared_profile_experience') or '').strip())
+        context['community_experience'] = shared_experience or '8 лет'
 
         raw_date = str(self.request.GET.get('date') or '').strip()
         if raw_date:
@@ -5108,12 +5109,13 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
         else:
             selected_date = timezone.localdate()
 
-        section_meta = [
-            (TrainingResult.SECTION_STRENGTH, 'РЎРёР»РѕРІР°СЏ'),
-            (TrainingResult.SECTION_CARDIO, 'РљР°СЂРґРёРѕ'),
-            (TrainingResult.SECTION_METABOLIC, 'РњРµС‚Р°Р±РѕР»РёС‡РµСЃРєР°СЏ'),
-        ]
-        section_titles = dict(section_meta)
+        section_order = ['strength', 'cardio', 'gymnastics', 'custom']
+        default_titles = {
+            'strength': 'Силовая часть',
+            'cardio': 'Скилл / навык',
+            'gymnastics': 'Комплекс дня',
+            'custom': 'Подсобная работа',
+        }
         reaction_counts = dict(
             CommunityReaction.objects
             .filter(training_date=selected_date)
@@ -5130,10 +5132,59 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
         grouped = {}
         day_results = (
             TrainingResult.objects
-            .select_related('user')
+            .select_related('user', 'training')
             .filter(training_date=selected_date)
             .order_by('-updated_at', '-id', 'user_id', 'section')
         )
+        training_ids = {item.training_id for item in day_results if item.training_id}
+        training_meta_by_id = {}
+        if training_ids:
+            trainings = (
+                AdminTraining.objects
+                .filter(id__in=training_ids)
+                .prefetch_related('exercises')
+            )
+            for training in trainings:
+                labels_by_section = resolve_training_section_labels_for_rate(training)
+                exercises = list(training.exercises.all())
+                manual_block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
+                metabolic_display_key = 'gymnastics'
+                if manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+                    metabolic_display_key = 'custom'
+                elif manual_block_type == AdminTrainingExercise.BLOCK_GYMNASTICS:
+                    metabolic_display_key = 'gymnastics'
+                else:
+                    block_types = {str(exercise.block_type or '').strip().lower() for exercise in exercises}
+                    if AdminTrainingExercise.BLOCK_CUSTOM in block_types and AdminTrainingExercise.BLOCK_GYMNASTICS not in block_types:
+                        metabolic_display_key = 'custom'
+                training_meta_by_id[training.id] = {
+                    'labels_by_section': labels_by_section,
+                    'metabolic_display_key': metabolic_display_key,
+                }
+
+        def resolve_display_bucket(result_item):
+            section_key = str(result_item.section or '').strip().lower()
+            training_meta = training_meta_by_id.get(result_item.training_id or 0, {})
+            labels_by_section = training_meta.get('labels_by_section') or {}
+
+            if section_key == TrainingResult.SECTION_STRENGTH:
+                display_key = 'strength'
+                title = labels_by_section.get(TrainingResult.SECTION_STRENGTH) or default_titles[display_key]
+                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+
+            if section_key == TrainingResult.SECTION_CARDIO:
+                display_key = 'cardio'
+                title = labels_by_section.get(TrainingResult.SECTION_CARDIO) or default_titles[display_key]
+                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+
+            if section_key == TrainingResult.SECTION_METABOLIC:
+                display_key = str(training_meta.get('metabolic_display_key') or 'gymnastics').strip().lower()
+                if display_key not in {'gymnastics', 'custom'}:
+                    display_key = 'gymnastics'
+                title = labels_by_section.get(TrainingResult.SECTION_METABOLIC) or default_titles[display_key]
+                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+
+            return '', ''
         for item in day_results:
             user_id = item.user_id
             if user_id not in grouped:
@@ -5143,30 +5194,35 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                 grouped[user_id] = {
                     'target_user_id': user_id,
                     'user_name': user_name,
-                    'sections': {key: {'title': title, 'value': '--', 'mode': '--'} for key, title in section_meta},
+                    'sections_by_key': {},
                 }
 
-            if grouped[user_id]['sections'][item.section]['value'] != '--':
+            display_key, section_title = resolve_display_bucket(item)
+            if not display_key:
                 continue
-            grouped[user_id]['sections'][item.section] = {
-                'title': normalize_mojibake_text(section_titles[item.section]),
+            if display_key in grouped[user_id]['sections_by_key']:
+                continue
+
+            grouped[user_id]['sections_by_key'][display_key] = {
+                'title': section_title,
                 'value': normalize_mojibake_text(self._format_training_value(item)),
                 'mode': normalize_mojibake_text(item.get_mode_display()),
             }
 
         cards = []
         for payload in grouped.values():
+            sections = []
+            for section_key in section_order:
+                section_payload = payload['sections_by_key'].get(section_key)
+                if section_payload:
+                    sections.append(section_payload)
             cards.append(
                 {
                     'target_user_id': payload['target_user_id'],
                     'user_name': payload['user_name'],
                     'reactions_count': reaction_counts.get(payload['target_user_id'], 0),
                     'reacted_by_me': payload['target_user_id'] in my_reacted_user_ids,
-                    'sections': [
-                        payload['sections'][TrainingResult.SECTION_STRENGTH],
-                        payload['sections'][TrainingResult.SECTION_CARDIO],
-                        payload['sections'][TrainingResult.SECTION_METABOLIC],
-                    ],
+                    'sections': sections,
                 }
             )
 

@@ -29,10 +29,17 @@
                     <p>Онлайн</p>
                 </div>
             </div>
-            <p class="community-card__heading">Результаты тренировки:</p>
             {% for section in card.sections %}
-            <div class="community-card__type">{{ section.title }}</div>
-            <div class="community-card__line"><span>Результат</span><b>{{ section.value }} ({{ section.mode }})</b></div>
+            {% if section.direction_label %}
+            <div class="community-card__direction">{{ section.direction_label }}</div>
+            {% endif %}
+            <div class="community-card__line">
+                <span class="community-card__block">{{ section.title }}</span>
+                <b>{{ section.value }} ({{ section.mode }})</b>
+            </div>
+            {% if section.description %}
+            <div class="community-card__desc">{{ section.description }}</div>
+            {% endif %}
             {% endfor %}
             <a
                 href="#"

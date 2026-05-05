@@ -1242,6 +1242,79 @@ class CommunityViewDateFilterTests(TestCase):
             ['Силовая часть', 'Скилл / навык', 'Комплекс дня', 'Подсобная работа']
         )
 
+    def test_community_rows_include_direction_and_group_by_direction(self):
+        fbb_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='fbb',
+            visibility='all',
+            comment='fbb-training',
+            color='blue',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=fbb_training,
+            block_type=AdminTrainingExercise.BLOCK_GYMNASTICS,
+            exercise_name='Metcon A',
+            sets=4,
+            reps=10,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+        crossfit_training = AdminTraining.objects.create(
+            training_date=self.today,
+            direction='crossfit',
+            visibility='all',
+            comment='crossfit-training',
+            color='green',
+            source_type='library',
+            created_by=self.viewer,
+        )
+        AdminTrainingExercise.objects.create(
+            training=crossfit_training,
+            block_type=AdminTrainingExercise.BLOCK_CUSTOM,
+            block_custom_name='Подсобная работа',
+            exercise_name='Accessory B',
+            sets=3,
+            reps=12,
+            result_type=AdminTrainingExercise.RESULT_TIME,
+            order=0,
+        )
+
+        TrainingResult.objects.create(
+            user=self.target,
+            training=fbb_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_METABOLIC,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=8,
+            seconds=8,
+            mode=TrainingResult.MODE_RX,
+        )
+        TrainingResult.objects.create(
+            user=self.target,
+            training=crossfit_training,
+            training_date=self.today,
+            section=TrainingResult.SECTION_METABOLIC,
+            result_type=TrainingResult.RESULT_TIME,
+            minutes=6,
+            seconds=6,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.viewer)
+        response = self.client.get(reverse('auth:community'))
+
+        self.assertEqual(response.status_code, 200)
+        cards = response.context['community_cards']
+        self.assertEqual(len(cards), 1)
+        sections = cards[0]['sections']
+        self.assertEqual(len(sections), 2)
+        self.assertEqual(sections[0]['direction_label'], 'FBB')
+        self.assertEqual(sections[0]['title'], 'Комплекс дня')
+        self.assertEqual(sections[1]['direction_label'], 'Кроссфит с Денисом Залозним')
+        self.assertEqual(sections[1]['title'], 'Подсобная работа')
+
 
 class AdminTrainingCrudTests(TestCase):
     def setUp(self):
@@ -1423,6 +1496,52 @@ class AdminTrainingCrudTests(TestCase):
                 training__isnull=True,
             ).count(),
             1,
+        )
+
+    def test_admin_delete_training_removes_linked_results_instead_of_nulling_training(self):
+        training = AdminTraining.objects.create(
+            training_date='2026-04-11',
+            direction='fbb',
+            visibility='all',
+            comment='initial',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='Присед',
+            result_type='time',
+            order=0,
+        )
+        linked_result = TrainingResult.objects.create(
+            user=self.user,
+            training=training,
+            training_date=training.training_date,
+            section=TrainingResult.SECTION_STRENGTH,
+            minutes=1,
+            seconds=10,
+            mode=TrainingResult.MODE_RX,
+        )
+
+        self.client.force_login(self.admin)
+        delete_response = self.client.post(
+            reverse('auth:calendar_admin_training_delete', kwargs={'training_id': training.id}),
+            data={},
+            content_type='application/json',
+        )
+
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertFalse(AdminTraining.objects.filter(id=training.id).exists())
+        self.assertFalse(TrainingResult.objects.filter(id=linked_result.id).exists())
+        self.assertEqual(
+            TrainingResult.objects.filter(
+                user=self.user,
+                training_date=training.training_date,
+                section=TrainingResult.SECTION_STRENGTH,
+            ).count(),
+            0,
         )
 
     def test_admin_delete_training_removes_training_rates_for_same_date(self):

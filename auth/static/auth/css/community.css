@@ -111,13 +111,14 @@ body {
     width: 366px;
     max-width: 100%;
     margin: 0;
-    height: 373px;
+    min-height: 373px;
+    height: auto;
     background: var(--community-white);
     border-radius: 12px;
     box-shadow: var(--community-shadow);
     padding: 24px;
     position: relative;
-    overflow-y: auto;
+    overflow: visible;
 }
 
 .community-card__profile {
@@ -156,25 +157,56 @@ body {
 
 .community-card__type {
     margin-top: 10px;
-    font-size: 10px;
-    line-height: 12px;
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
     font-weight: 500;
+    color: #192126;
 }
 
 .community-card__line {
-    margin-top: 6px;
+    margin-top: 16px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     gap: 6px;
 }
 
-.community-card__line span,
-.community-card__line b {
-    font-size: 9px;
+.community-card__block {
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
+    font-weight: 500;
+    color: #192126;
+}
+
+.community-card__direction {
+    display: block;
+    margin-top: 10px;
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
+    font-weight: 500;
+    color: #192126;
+}
+
+.community-card__desc {
+    display: block;
+    margin: 12px 0 0;
+    padding-right: 120px;
+    font-size: 10px;
     line-height: 12px;
     font-weight: 400;
     color: var(--community-muted);
+}
+
+.community-card__line b {
+    font-family: "Montserrat", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 14px;
+    font-weight: 500;
+    color: #192126;
+    white-space: nowrap;
 }
 
 .community-card__reactions {

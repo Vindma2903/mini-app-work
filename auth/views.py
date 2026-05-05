@@ -4127,24 +4127,7 @@ class AdminTrainingDeleteView(AdminProtectedMixin, View):
             TrainingRate.objects.select_for_update().filter(
                 training_date=training.training_date
             ).delete()
-            linked_results = list(
-                TrainingResult.objects
-                .select_for_update()
-                .filter(training=training)
-                .order_by('id')
-            )
-            for result in linked_results:
-                legacy_exists = TrainingResult.objects.filter(
-                    user_id=result.user_id,
-                    training_date=result.training_date,
-                    section=result.section,
-                    training__isnull=True,
-                ).exclude(pk=result.pk).exists()
-                if legacy_exists:
-                    result.delete()
-                else:
-                    result.training = None
-                    result.save(update_fields=['training', 'updated_at'])
+            TrainingResult.objects.select_for_update().filter(training=training).delete()
             training.delete()
         return JsonResponse({'ok': True, 'training_id': training_id})
 
@@ -5110,6 +5093,15 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
             selected_date = timezone.localdate()
 
         section_order = ['strength', 'cardio', 'gymnastics', 'custom']
+        direction_order = {
+            AdminTraining.DIRECTION_FBB: 0,
+            AdminTraining.DIRECTION_CROSSFIT: 1,
+            AdminTraining.DIRECTION_GYMNASTICS: 2,
+            AdminTraining.DIRECTION_WORKOUT: 3,
+            AdminTraining.DIRECTION_FUNCTIONAL: 4,
+            AdminTraining.DIRECTION_STRENGTH: 5,
+            '': 99,
+        }
         default_titles = {
             'strength': 'Силовая часть',
             'cardio': 'Скилл / навык',
@@ -5138,6 +5130,51 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
         )
         training_ids = {item.training_id for item in day_results if item.training_id}
         training_meta_by_id = {}
+        def build_descriptions_by_display_key(training):
+            descriptions = {'strength': '', 'cardio': '', 'gymnastics': '', 'custom': ''}
+
+            if training.source_type == AdminTraining.SOURCE_MANUAL:
+                manual_lines = split_manual_description_lines(
+                    getattr(training, 'manual_description_ru', ''),
+                    getattr(training, 'manual_description_en', ''),
+                )
+                manual_description = normalize_mojibake_text(' • '.join([line for line in manual_lines if line]).strip())
+                manual_block_type = str(getattr(training, 'manual_block_type', '') or '').strip().lower()
+                if manual_block_type == AdminTrainingExercise.BLOCK_CARDIO:
+                    descriptions['cardio'] = manual_description
+                elif manual_block_type == AdminTrainingExercise.BLOCK_GYMNASTICS:
+                    descriptions['gymnastics'] = manual_description
+                elif manual_block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+                    descriptions['custom'] = manual_description
+                else:
+                    descriptions['strength'] = manual_description
+                return descriptions
+
+            lines_by_key = {
+                'strength': [],
+                'cardio': [],
+                'gymnastics': [],
+                'custom': [],
+            }
+            for exercise in training.exercises.all():
+                block_type = str(getattr(exercise, 'block_type', '') or '').strip().lower()
+                if block_type == AdminTrainingExercise.BLOCK_CARDIO:
+                    display_key = 'cardio'
+                elif block_type == AdminTrainingExercise.BLOCK_GYMNASTICS:
+                    display_key = 'gymnastics'
+                elif block_type == AdminTrainingExercise.BLOCK_CUSTOM:
+                    display_key = 'custom'
+                else:
+                    display_key = 'strength'
+
+                line_text = normalize_mojibake_text(format_admin_training_volume(exercise))
+                if line_text and line_text not in lines_by_key[display_key]:
+                    lines_by_key[display_key].append(line_text)
+
+            for key, lines in lines_by_key.items():
+                descriptions[key] = normalize_mojibake_text(' • '.join(lines))
+            return descriptions
+
         if training_ids:
             trainings = (
                 AdminTraining.objects
@@ -5160,31 +5197,110 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                 training_meta_by_id[training.id] = {
                     'labels_by_section': labels_by_section,
                     'metabolic_display_key': metabolic_display_key,
+                    'descriptions_by_display_key': build_descriptions_by_display_key(training),
+                    'direction_key': str(getattr(training, 'direction', '') or '').strip().lower(),
+                    'direction_label': normalize_mojibake_text(
+                        TRAINING_DIRECTION_LABELS.get(
+                            str(getattr(training, 'direction', '') or '').strip().lower(),
+                            'FBB',
+                        )
+                    ),
+                }
+
+        fallback_meta_by_display_key = {}
+        fallback_trainings = (
+            AdminTraining.objects
+            .filter(training_date=selected_date)
+            .prefetch_related('exercises')
+            .order_by('-updated_at', '-id')
+        )
+        for training in fallback_trainings:
+            descriptions_by_display_key = build_descriptions_by_display_key(training)
+            if not descriptions_by_display_key:
+                continue
+            for display_key in ('strength', 'cardio', 'gymnastics', 'custom'):
+                if display_key in fallback_meta_by_display_key:
+                    continue
+                description = normalize_mojibake_text(str(descriptions_by_display_key.get(display_key) or '').strip())
+                if not description:
+                    continue
+                fallback_meta_by_display_key[display_key] = {
+                    'title': default_titles[display_key],
+                    'description': description,
+                    'direction_key': str(getattr(training, 'direction', '') or '').strip().lower(),
+                    'direction_label': normalize_mojibake_text(
+                        TRAINING_DIRECTION_LABELS.get(
+                            str(getattr(training, 'direction', '') or '').strip().lower(),
+                            'FBB',
+                        )
+                    ),
                 }
 
         def resolve_display_bucket(result_item):
             section_key = str(result_item.section or '').strip().lower()
             training_meta = training_meta_by_id.get(result_item.training_id or 0, {})
             labels_by_section = training_meta.get('labels_by_section') or {}
+            descriptions_by_display_key = training_meta.get('descriptions_by_display_key') or {}
+            direction_key = str(training_meta.get('direction_key') or '').strip().lower()
+            direction_label = normalize_mojibake_text(str(training_meta.get('direction_label') or '').strip())
 
             if section_key == TrainingResult.SECTION_STRENGTH:
                 display_key = 'strength'
                 title = labels_by_section.get(TrainingResult.SECTION_STRENGTH) or default_titles[display_key]
-                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+                description = descriptions_by_display_key.get(display_key) or ''
+                if not description:
+                    fallback = fallback_meta_by_display_key.get(display_key, {})
+                    description = fallback.get('description') or ''
+                    title = title or fallback.get('title') or default_titles[display_key]
+                    direction_key = direction_key or str(fallback.get('direction_key') or '').strip().lower()
+                    direction_label = direction_label or normalize_mojibake_text(str(fallback.get('direction_label') or '').strip())
+                return (
+                    display_key,
+                    normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key],
+                    normalize_mojibake_text(str(description or '').strip()),
+                    direction_key,
+                    direction_label,
+                )
 
             if section_key == TrainingResult.SECTION_CARDIO:
                 display_key = 'cardio'
                 title = labels_by_section.get(TrainingResult.SECTION_CARDIO) or default_titles[display_key]
-                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+                description = descriptions_by_display_key.get(display_key) or ''
+                if not description:
+                    fallback = fallback_meta_by_display_key.get(display_key, {})
+                    description = fallback.get('description') or ''
+                    title = title or fallback.get('title') or default_titles[display_key]
+                    direction_key = direction_key or str(fallback.get('direction_key') or '').strip().lower()
+                    direction_label = direction_label or normalize_mojibake_text(str(fallback.get('direction_label') or '').strip())
+                return (
+                    display_key,
+                    normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key],
+                    normalize_mojibake_text(str(description or '').strip()),
+                    direction_key,
+                    direction_label,
+                )
 
             if section_key == TrainingResult.SECTION_METABOLIC:
                 display_key = str(training_meta.get('metabolic_display_key') or 'gymnastics').strip().lower()
                 if display_key not in {'gymnastics', 'custom'}:
                     display_key = 'gymnastics'
                 title = labels_by_section.get(TrainingResult.SECTION_METABOLIC) or default_titles[display_key]
-                return display_key, normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key]
+                description = descriptions_by_display_key.get(display_key) or ''
+                if not description:
+                    fallback = fallback_meta_by_display_key.get(display_key, {})
+                    description = fallback.get('description') or ''
+                    title = title or fallback.get('title') or default_titles[display_key]
+                    direction_key = direction_key or str(fallback.get('direction_key') or '').strip().lower()
+                    direction_label = direction_label or normalize_mojibake_text(str(fallback.get('direction_label') or '').strip())
+                return (
+                    display_key,
+                    normalize_mojibake_text(str(title or '').strip()) or default_titles[display_key],
+                    normalize_mojibake_text(str(description or '').strip()),
+                    direction_key,
+                    direction_label,
+                )
 
-            return '', ''
+            return '', '', '', '', ''
         for item in day_results:
             user_id = item.user_id
             if user_id not in grouped:
@@ -5194,17 +5310,22 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
                 grouped[user_id] = {
                     'target_user_id': user_id,
                     'user_name': user_name,
-                    'sections_by_key': {},
+                    'entries_by_key': {},
                 }
 
-            display_key, section_title = resolve_display_bucket(item)
+            display_key, section_title, section_description, section_direction_key, section_direction_label = resolve_display_bucket(item)
             if not display_key:
                 continue
-            if display_key in grouped[user_id]['sections_by_key']:
+            entry_key = f'{section_direction_key}:{display_key}' if section_direction_key else display_key
+            if entry_key in grouped[user_id]['entries_by_key']:
                 continue
 
-            grouped[user_id]['sections_by_key'][display_key] = {
+            grouped[user_id]['entries_by_key'][entry_key] = {
                 'title': section_title,
+                'description': section_description,
+                'display_key': display_key,
+                'direction_key': section_direction_key,
+                'direction_label': section_direction_label,
                 'value': normalize_mojibake_text(self._format_training_value(item)),
                 'mode': normalize_mojibake_text(item.get_mode_display()),
             }
@@ -5212,10 +5333,14 @@ class CommunityView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, TemplateVi
         cards = []
         for payload in grouped.values():
             sections = []
-            for section_key in section_order:
-                section_payload = payload['sections_by_key'].get(section_key)
-                if section_payload:
-                    sections.append(section_payload)
+            for section_payload in payload['entries_by_key'].values():
+                sections.append(section_payload)
+            sections.sort(
+                key=lambda entry: (
+                    direction_order.get(str(entry.get('direction_key') or '').strip().lower(), 99),
+                    section_order.index(entry.get('display_key')) if entry.get('display_key') in section_order else 99,
+                )
+            )
             cards.append(
                 {
                     'target_user_id': payload['target_user_id'],

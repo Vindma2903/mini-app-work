@@ -1,0 +1,52 @@
+﻿﻿
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sign In</title>
+    <link rel="stylesheet" href="/static/auth/css/components-bottom-nav.css">
+    
+<link rel="stylesheet" href="/static/auth/css/admin-login.css">
+
+</head>
+<body>
+    
+<main class="admin-auth-screen">
+    <section class="admin-auth-card" aria-label="Admin login">
+        <div class="admin-auth-card__illustration" aria-hidden="true">
+            <img src="/static/auth/img/admin-login-illustration.svg" alt="">
+        </div>
+
+        <div class="admin-auth-form-wrap">
+            <h1 class="admin-auth-title">Авторизация</h1>
+            <form class="admin-auth-form" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="b5emjRNPjuv02lIXSEyVF0df7T3Q3Q1y5Q7ci8HCMfqG2HhPnhEL3k0yisQJ4c1w">
+            
+                <label class="admin-auth-form__field">
+                    <span class="admin-auth-form__label">Email</span>
+                    <span class="admin-auth-form__input-wrap">
+                        <input class="admin-auth-form__input" type="email" name="email" value="" placeholder="Введите свой email" required>
+                        <img class="admin-auth-form__icon" src="/static/auth/img/admin-login-envelope.svg" alt="">
+                    </span>
+                </label>
+
+                <label class="admin-auth-form__field">
+                    <span class="admin-auth-form__label">Пароль</span>
+                    <span class="admin-auth-form__input-wrap">
+                        <input class="admin-auth-form__input" type="password" name="password" placeholder="Введите свой пароль" required>
+                        <img class="admin-auth-form__icon" src="/static/auth/img/admin-login-lock.svg" alt="">
+                    </span>
+                </label>
+
+                <button class="admin-auth-form__submit" type="submit">Войти</button>
+            </form>
+
+            <a class="admin-auth-form__forgot" href="/admin-auth/password-reset/">Не получается войти? <span class="admin-auth-form__forgot-accent">Забыли пароль</span></a>
+        </div>
+    </section>
+</main>
+
+</body>
+</html>
+

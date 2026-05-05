@@ -526,6 +526,26 @@
             };
         }
 
+        function normalizeSectionKey(value) {
+            const normalized = String(value || "").trim().toLowerCase();
+            if (normalized === "gymnastics" || normalized === "custom") return "metabolic";
+            return normalized;
+        }
+
+        function normalizeLabelForCompare(value) {
+            return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+        }
+
+        function resolveSectionKeyByTitle(title, knownLabels) {
+            const normalizedTitle = normalizeLabelForCompare(title);
+            if (!normalizedTitle) return "";
+            const byExact = Object.entries(knownLabels).find(([, label]) => normalizeLabelForCompare(label) === normalizedTitle)?.[0];
+            if (byExact) return byExact;
+            if (normalizedTitle.includes("силов")) return "strength";
+            if (normalizedTitle.includes("скилл") || normalizedTitle.includes("навык") || normalizedTitle.includes("кардио")) return "cardio";
+            return "metabolic";
+        }
+
         function getCsrfToken() {
             const chunks = document.cookie.split(";").map((chunk) => chunk.trim());
             for (const chunk of chunks) {
@@ -775,11 +795,58 @@
                 if (!row) return;
                 const visible = activeSectionKeys.includes(category);
                 row.hidden = !visible;
+                row.style.display = visible ? "flex" : "none";
+                row.setAttribute("aria-hidden", visible ? "false" : "true");
                 const labelNode = row.querySelector("[data-rating-label]");
                 if (labelNode) {
                     labelNode.textContent = activeSectionLabels[category] || ratingRowBaseLabels[category] || labelNode.textContent;
                 }
             });
+        }
+
+        function syncActiveSectionsFromRenderedResults() {
+            const validSectionKeys = sections.map((section) => section.key);
+            const sectionNodes = Array.from(sectionsWrap?.querySelectorAll("[data-results-section]") || []);
+            if (!sectionNodes.length) return;
+
+            const nextKeys = [];
+            const nextLabels = { ...activeSectionLabels };
+
+            sectionNodes.forEach((sectionNode) => {
+                const sectionKey = normalizeSectionKey(sectionNode.getAttribute("data-results-section"));
+                if (!validSectionKeys.includes(sectionKey) || nextKeys.includes(sectionKey)) return;
+                nextKeys.push(sectionKey);
+                const titleNode = sectionNode.querySelector(".my-results-modal__section-title");
+                const titleText = String(titleNode?.textContent || "").trim();
+                if (titleText) nextLabels[sectionKey] = titleText;
+            });
+
+            if (nextKeys.length) activeSectionKeys = nextKeys;
+            activeSectionLabels = nextLabels;
+        }
+
+        function extractSectionsFromPlanCard(card, knownLabels) {
+            const validSectionKeys = sections.map((section) => section.key);
+            const sectionTitleNodes = Array.from(card?.querySelectorAll(".plan-card__block > h2") || []);
+            if (!sectionTitleNodes.length) return null;
+
+            const nextKeys = [];
+            const nextLabels = { ...activeSectionLabels };
+
+            sectionTitleNodes.forEach((node) => {
+                const titleText = String(node.textContent || "").trim();
+                if (!titleText) return;
+                const sectionKey = resolveSectionKeyByTitle(titleText, knownLabels);
+                if (!validSectionKeys.includes(sectionKey) || nextKeys.includes(sectionKey)) return;
+                nextKeys.push(sectionKey);
+                nextLabels[sectionKey] = titleText;
+            });
+
+            if (!nextKeys.length) return null;
+            return {
+                keys: nextKeys,
+                labels: nextLabels
+            };
         }
 
         function extractRatings() {
@@ -828,10 +895,10 @@
             };
             const rawSections = String(button.getAttribute("data-result-sections") || "")
                 .split(",")
-                .map((value) => value.trim().toLowerCase())
+                .map((value) => normalizeSectionKey(value))
                 .filter(Boolean);
             const validSectionKeys = sections.map((section) => section.key);
-            activeSectionKeys = rawSections.filter((key) => validSectionKeys.includes(key));
+            activeSectionKeys = rawSections.filter((key, index) => validSectionKeys.includes(key) && rawSections.indexOf(key) === index);
             if (!activeSectionKeys.length) {
                 activeSectionKeys = [...validSectionKeys];
             }
@@ -839,8 +906,14 @@
                 ...getSectionLabelsFromButton(button),
                 ...(sectionLabelsByTraining[activeTrainingId] || {})
             };
+            const extractedFromCard = extractSectionsFromPlanCard(card, activeSectionLabels);
+            if (extractedFromCard) {
+                activeSectionKeys = extractedFromCard.keys;
+                activeSectionLabels = extractedFromCard.labels;
+            }
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
             renderSections();
+            syncActiveSectionsFromRenderedResults();
             applyRateSectionConfig();
             setModalVisible(myResultsModal, true);
         });
@@ -897,6 +970,7 @@
         });
 
         openRateButton?.addEventListener("click", () => {
+            syncActiveSectionsFromRenderedResults();
             initializeRateStars();
             applyRateSectionConfig();
             setModalVisible(resultSavedModal, false);

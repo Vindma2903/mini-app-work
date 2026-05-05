@@ -1256,6 +1256,48 @@ class AdminTrainingCrudTests(TestCase):
             1,
         )
 
+    def test_admin_delete_training_removes_training_rates_for_same_date(self):
+        training = AdminTraining.objects.create(
+            training_date='2026-04-10',
+            direction='fbb',
+            visibility='all',
+            comment='initial',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='Присед',
+            result_type='time',
+            order=0,
+        )
+        TrainingRate.objects.create(
+            user=self.user,
+            training_date=training.training_date,
+            overall=4,
+            strength=5,
+            cardio=4,
+            metabolic=3,
+            comment='rate',
+        )
+
+        self.client.force_login(self.admin)
+        delete_response = self.client.post(
+            reverse('auth:calendar_admin_training_delete', kwargs={'training_id': training.id}),
+            data={},
+            content_type='application/json',
+        )
+
+        self.assertEqual(delete_response.status_code, 200)
+        self.assertFalse(
+            TrainingRate.objects.filter(
+                user=self.user,
+                training_date=training.training_date,
+            ).exists()
+        )
+
     def test_admin_create_saves_multiple_exercises_and_fields(self):
         self.client.force_login(self.admin)
         payload = self._payload()
@@ -2163,6 +2205,31 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         self.assertEqual(card['result_section_labels']['metabolic'], 'Финишер')
         self.assertContains(response, 'data-result-label-strength="Силовая часть"', html=False)
         self.assertContains(response, 'data-result-label-metabolic="Финишер"', html=False)
+
+    def test_training_plan_uses_manual_block_label_for_rating_modal(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='workout',
+            visibility='all',
+            comment='manual-cardio-training',
+            color='blue',
+            source_type='manual',
+            manual_description_ru='Bike 12 min',
+            manual_description_en='Bike 12 min',
+            manual_block_type=AdminTrainingExercise.BLOCK_CARDIO,
+            manual_sets=1,
+            manual_result_type=AdminTrainingExercise.RESULT_TIME,
+            created_by=self.admin,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+
+        self.assertEqual(response.status_code, 200)
+        card = response.context['plan_cards'][0]
+        self.assertEqual(card['result_sections'], [TrainingResult.SECTION_CARDIO])
+        self.assertEqual(card['result_section_labels']['cardio'], 'Скилл / навык')
+        self.assertContains(response, 'data-result-label-cardio="Скилл / навык"', html=False)
 
 
 class LeaderboardAwardsTests(TestCase):

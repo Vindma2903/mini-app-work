@@ -3060,10 +3060,10 @@ class StatisticsView(AdminProtectedMixin, TemplateView):
     @staticmethod
     def _result_unit_label(result_type):
         if result_type == TrainingResult.RESULT_WEIGHT:
-            return 'РєРі'
+            return 'кг'
         if result_type == TrainingResult.RESULT_REPS:
-            return 'РїРѕРІС‚РѕСЂРµРЅРёР№'
-        return 'РјРёРЅ'
+            return 'повторений'
+        return 'мин'
 
     @staticmethod
     def _result_value_label(result_type, minutes, seconds):
@@ -4124,6 +4124,9 @@ class AdminTrainingDeleteView(AdminProtectedMixin, View):
         if training is None:
             return JsonResponse({'ok': False, 'error': 'training_not_found'}, status=404)
         with transaction.atomic():
+            TrainingRate.objects.select_for_update().filter(
+                training_date=training.training_date
+            ).delete()
             linked_results = list(
                 TrainingResult.objects
                 .select_for_update()
@@ -5483,6 +5486,15 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                 for section_key, section_label in resolve_training_section_labels_for_rate(training).items():
                     if section_key not in result_section_labels and section_label:
                         result_section_labels[section_key] = section_label
+
+            # When the card contains a single visible section, use the actual rendered
+            # section title from the card as the rating/results label. This keeps the
+            # user-facing modals aligned with the training block name shown in UI,
+            # including custom labels from manually created trainings.
+            if len(result_sections) == 1 and merged_sections:
+                single_section_title = normalize_mojibake_text(str(merged_sections[0].get('title') or '').strip())
+                if single_section_title:
+                    result_section_labels[result_sections[0]] = single_section_title
 
             plan_cards.append(
                 {

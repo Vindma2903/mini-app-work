@@ -1543,9 +1543,8 @@
                 createManualBlock.style.display = showManual ? "" : "none";
             }
             if (trainingBlockField) {
-                const showTrainingBlockField = normalized === "library";
-                trainingBlockField.hidden = !showTrainingBlockField;
-                trainingBlockField.style.display = showTrainingBlockField ? "" : "none";
+                trainingBlockField.hidden = false;
+                trainingBlockField.style.display = "";
             }
             updateCreatePreviewContent();
         }

@@ -375,6 +375,7 @@ class UserProfile(models.Model):
     )
     role = models.CharField(max_length=16, choices=ROLE_CHOICES, default=ROLE_USER)
     birth_date = models.DateField(null=True, blank=True)
+    avatar = models.FileField(upload_to='avatars/', null=True, blank=True)
     weekly_goal = models.PositiveSmallIntegerField(default=6)
     telegram_user_id = models.BigIntegerField(null=True, blank=True, unique=True)
     telegram_username = models.CharField(max_length=255, blank=True, default='')

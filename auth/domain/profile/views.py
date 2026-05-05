@@ -13,6 +13,7 @@ from auth.views import (
     TelegramLinkStatusView,
     TelegramWebhookView,
     UpdateProfileDataView,
+    UpdateProfileAvatarView,
     UpdateProfileGoalView,
 )
 
@@ -29,5 +30,6 @@ __all__ = [
     "TelegramLinkStatusView",
     "TelegramWebhookView",
     "UpdateProfileDataView",
+    "UpdateProfileAvatarView",
     "UpdateProfileGoalView",
 ]

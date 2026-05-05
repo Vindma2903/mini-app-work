@@ -1775,6 +1775,7 @@ class SettingsView(UserOnlyProtectedMixin, TemplateView):
         context['settings_first_name'] = self.request.user.first_name or ''
         context['settings_last_name'] = self.request.user.last_name or ''
         context['settings_birth_date'] = profile.birth_date.strftime('%d.%m.%Y') if profile.birth_date else ''
+        context['settings_avatar_url'] = _get_existing_media_file_url(profile.avatar, auto_clear_missing=True)
         context['telegram_linked'] = bool(profile.telegram_user_id)
         context['telegram_display'] = f"@{profile.telegram_username}" if profile.telegram_username else ''
         bot_username = (settings.TELEGRAM_BOT_USERNAME or '').strip().lstrip('@')
@@ -2067,6 +2068,56 @@ class UpdateProfileDataView(View):
             'last_name': user.last_name,
             'birth_date': profile.birth_date.strftime('%d.%m.%Y') if profile.birth_date else '',
         })
+
+
+class UpdateProfileAvatarView(View):
+    http_method_names = ['post']
+    max_avatar_size_bytes = 5 * 1024 * 1024
+    allowed_content_types = {'image/jpeg', 'image/png', 'image/webp'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp'}
+
+    def post(self, request, *args, **kwargs):
+        user, auth_type = resolve_request_user(request)
+        if user is None:
+            return JsonResponse({'ok': False, 'error': 'auth_required'}, status=401)
+
+        uploaded = request.FILES.get('avatar')
+        if uploaded is None:
+            return JsonResponse({'ok': False, 'error': 'avatar_required'}, status=400)
+
+        file_size = int(getattr(uploaded, 'size', 0) or 0)
+        if file_size <= 0:
+            return JsonResponse({'ok': False, 'error': 'empty_file'}, status=400)
+        if file_size > self.max_avatar_size_bytes:
+            return JsonResponse({'ok': False, 'error': 'file_too_large'}, status=400)
+
+        content_type = str(getattr(uploaded, 'content_type', '') or '').lower()
+        extension = Path(str(getattr(uploaded, 'name', '') or '')).suffix.lower()
+        if content_type not in self.allowed_content_types and extension not in self.allowed_extensions:
+            return JsonResponse({'ok': False, 'error': 'invalid_file_type'}, status=400)
+
+        profile, _ = UserProfile.objects.get_or_create(user=user)
+        previous_avatar_name = profile.avatar.name if profile.avatar else ''
+        profile.avatar = uploaded
+        profile.save(update_fields=['avatar', 'updated_at'])
+
+        if previous_avatar_name and previous_avatar_name != profile.avatar.name:
+            still_used = UserProfile.objects.filter(avatar=previous_avatar_name).exclude(pk=profile.pk).exists()
+            if not still_used:
+                try:
+                    profile.avatar.storage.delete(previous_avatar_name)
+                except OSError:
+                    logger.exception('Failed to delete old profile avatar file=%s', previous_avatar_name)
+
+        avatar_url = _get_existing_media_file_url(profile.avatar, auto_clear_missing=True)
+        logger.info(
+            'Profile avatar updated user_id=%s email=%s auth=%s ip=%s',
+            user.id,
+            user.email,
+            auth_type,
+            get_client_ip(request),
+        )
+        return JsonResponse({'ok': True, 'avatar_url': avatar_url})
 
 
 class UpdateProfileGoalView(View):

@@ -62,6 +62,26 @@ def ensure_default_admin() -> tuple[User, bool]:
         is_staff=True,
         is_superuser=True,
     )
+
+    # Keep default admin account consistent even if it existed before this run.
+    admin_updates = []
+    if (admin.email or '') != email:
+        admin.email = email
+        admin_updates.append('email')
+    if not admin.is_staff:
+        admin.is_staff = True
+        admin_updates.append('is_staff')
+    if not admin.is_superuser:
+        admin.is_superuser = True
+        admin_updates.append('is_superuser')
+    if not admin.is_active:
+        admin.is_active = True
+        admin_updates.append('is_active')
+    if admin_updates:
+        admin.save(update_fields=admin_updates)
+
+    _ensure_verified_email(admin, email)
+
     profile, _ = UserProfile.objects.get_or_create(user=admin)
     if profile.role != UserProfile.ROLE_ADMIN:
         profile.role = UserProfile.ROLE_ADMIN

@@ -12,6 +12,7 @@ from .views import (
     TelegramLinkStatusView,
     TelegramWidgetLinkView,
     TelegramWebhookView,
+    UpdateProfileAvatarView,
     UpdateProfileDataView,
     UpdateProfileGoalView,
 )
@@ -25,6 +26,7 @@ urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile"),
     path("settings/", SettingsView.as_view(), name="settings"),
     path("settings/profile-data/", UpdateProfileDataView.as_view(), name="settings_profile_data"),
+    path("settings/avatar/", UpdateProfileAvatarView.as_view(), name="settings_avatar"),
     path("settings/telegram/widget/link/", TelegramWidgetLinkView.as_view(), name="settings_telegram_widget_link"),
     path("profile/goal/", UpdateProfileGoalView.as_view(), name="profile_goal"),
     path("settings/telegram/link-start/", StartTelegramLinkView.as_view(), name="settings_telegram_link_start"),

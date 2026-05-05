@@ -20,11 +20,19 @@
 
     <section class="settings-user">
         <div class="settings-user__avatar-wrap">
-            <div class="settings-user__avatar" role="img" aria-label="Фото профиля"></div>
-            <button type="button" class="settings-user__avatar-edit" aria-label="Изменить фото профиля">
+            <div
+                class="settings-user__avatar"
+                role="img"
+                aria-label="Фото профиля"
+                data-settings-avatar
+                {% if settings_avatar_url %}style="background-image: url('{{ settings_avatar_url }}');"{% endif %}
+            ></div>
+            <input type="file" accept="image/png,image/jpeg,image/webp" hidden data-settings-avatar-input>
+            <button type="button" class="settings-user__avatar-edit" aria-label="Изменить фото профиля" data-settings-avatar-edit>
                 <img src="{% static 'auth/img/edit-photo.svg' %}" alt="" width="18" height="18" decoding="async">
             </button>
         </div>
+        <p class="settings-user__link-status" data-avatar-upload-msg hidden></p>
         <h1 data-settings-full-name>{{ settings_name }}</h1>
         <p>{{ settings_email }}</p>
         {% if telegram_linked %}
@@ -111,7 +119,12 @@
         const fullNameNode = document.querySelector("[data-settings-full-name]");
         const messageNode = document.querySelector("[data-profile-save-msg]");
         const saveUrl = "{% url 'auth:settings_profile_data' %}";
+        const avatarSaveUrl = "{% url 'auth:settings_avatar' %}";
         const csrfTokenFallback = "{{ csrf_token }}";
+        const avatarNode = document.querySelector("[data-settings-avatar]");
+        const avatarInput = document.querySelector("[data-settings-avatar-input]");
+        const avatarEditBtn = document.querySelector("[data-settings-avatar-edit]");
+        const avatarMessageNode = document.querySelector("[data-avatar-upload-msg]");
 
         function getCookie(name) {
             const value = `; ${document.cookie}`;
@@ -125,6 +138,13 @@
             messageNode.textContent = text;
             messageNode.classList.toggle("settings-block__msg--error", Boolean(isError));
             messageNode.classList.toggle("settings-block__msg--ok", !isError);
+        }
+
+        function showAvatarMessage(text, isError) {
+            if (!avatarMessageNode) return;
+            avatarMessageNode.hidden = !text;
+            avatarMessageNode.textContent = text || "";
+            avatarMessageNode.classList.toggle("settings-user__link-status--error", Boolean(isError));
         }
 
         function formatBirthDateValue(value) {
@@ -175,6 +195,45 @@
                 saveBtn.disabled = false;
             }
         });
+
+        if (avatarEditBtn && avatarInput && avatarNode) {
+            avatarEditBtn.addEventListener("click", () => {
+                avatarInput.click();
+            });
+
+            avatarInput.addEventListener("change", async () => {
+                const file = avatarInput.files && avatarInput.files[0] ? avatarInput.files[0] : null;
+                if (!file) return;
+
+                const formData = new FormData();
+                formData.append("avatar", file);
+                avatarEditBtn.disabled = true;
+                showAvatarMessage("Загружаем фото...", false);
+
+                try {
+                    const response = await fetch(avatarSaveUrl, {
+                        method: "POST",
+                        headers: {
+                            "X-CSRFToken": getCookie("csrftoken") || csrfTokenFallback,
+                        },
+                        body: formData,
+                    });
+                    const data = await response.json().catch(() => ({}));
+                    if (!response.ok || !data.ok || !data.avatar_url) {
+                        showAvatarMessage("Не удалось сохранить фото. Используйте JPG, PNG или WEBP до 5 МБ.", true);
+                        return;
+                    }
+
+                    avatarNode.style.backgroundImage = `url("${data.avatar_url}")`;
+                    showAvatarMessage("Фото профиля сохранено.", false);
+                } catch (error) {
+                    showAvatarMessage("Ошибка сети. Попробуйте еще раз.", true);
+                } finally {
+                    avatarEditBtn.disabled = false;
+                    avatarInput.value = "";
+                }
+            });
+        }
 
         const tgBtn = document.querySelector("[data-open-telegram-link]");
         const tgMsg = document.querySelector("[data-telegram-link-msg]");

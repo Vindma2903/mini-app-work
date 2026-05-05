@@ -106,6 +106,9 @@
                     data-result-type-strength="{{ card.result_types.strength|default:'time' }}"
                     data-result-type-cardio="{{ card.result_types.cardio|default:'time' }}"
                     data-result-type-metabolic="{{ card.result_types.metabolic|default:'time' }}"
+                    data-result-label-strength="{{ card.result_section_labels.strength|default:'Силовая часть' }}"
+                    data-result-label-cardio="{{ card.result_section_labels.cardio|default:'Скилл / навык' }}"
+                    data-result-label-metabolic="{{ card.result_section_labels.metabolic|default:'Комплекс дня' }}"
                     data-result-sections="{{ card.result_sections|join:',' }}"
                     {% if card.has_result or not plan_can_add_result %}disabled aria-disabled="true"{% endif %}
                 >{% if card.has_result %}Результат добавлен{% elif not plan_can_add_result %}Добавление недоступно{% else %}Добавить результат{% endif %}</button>
@@ -456,9 +459,9 @@
         let activeSectionResultTypes = { ...getCurrentDefaultSectionResultTypes() };
         const sectionLabelsByTraining = getPlanResultSectionLabelsByTraining();
         const sections = [
-            { key: "strength", title: "Силовая" },
-            { key: "cardio", title: "Кардио" },
-            { key: "metabolic", title: "Метаболическая" }
+            { key: "strength", title: "Силовая часть" },
+            { key: "cardio", title: "Скилл / навык" },
+            { key: "metabolic", title: "Комплекс дня" }
         ];
         let activeSectionKeys = sections.map((section) => section.key);
         let activeSectionLabels = {};
@@ -499,11 +502,29 @@
         });
 
         const shareDateLabel = shareResultsModal?.querySelector("[data-share-date]");
+        const shareLabelNodes = {
+            strength: shareResultsModal?.querySelector("[data-share-label='strength']"),
+            cardio: shareResultsModal?.querySelector("[data-share-label='cardio']"),
+            metabolic: shareResultsModal?.querySelector("[data-share-label='metabolic']")
+        };
         const shareValueNodes = {
             strength: shareResultsModal?.querySelector("[data-share-value='strength']"),
             cardio: shareResultsModal?.querySelector("[data-share-value='cardio']"),
             metabolic: shareResultsModal?.querySelector("[data-share-value='metabolic']")
         };
+
+        function getDefaultSectionLabels() {
+            return Object.fromEntries(sections.map((section) => [section.key, section.title]));
+        }
+
+        function getSectionLabelsFromButton(button) {
+            const defaults = getDefaultSectionLabels();
+            return {
+                strength: String(button?.getAttribute("data-result-label-strength") || defaults.strength).trim() || defaults.strength,
+                cardio: String(button?.getAttribute("data-result-label-cardio") || defaults.cardio).trim() || defaults.cardio,
+                metabolic: String(button?.getAttribute("data-result-label-metabolic") || defaults.metabolic).trim() || defaults.metabolic
+            };
+        }
 
         function getCsrfToken() {
             const chunks = document.cookie.split(";").map((chunk) => chunk.trim());
@@ -696,11 +717,25 @@
 
         function applySharePreview() {
             if (shareDateLabel) shareDateLabel.textContent = dateLabelRu();
+            Object.keys(shareLabelNodes).forEach((key) => {
+                const node = shareLabelNodes[key];
+                if (!node) return;
+                node.textContent = activeSectionLabels[key] || getDefaultSectionLabels()[key] || "";
+            });
             Object.keys(shareValueNodes).forEach((key) => {
                 const node = shareValueNodes[key];
                 if (!node) return;
                 node.textContent = formatResultForShare(resultsDraft[key]);
             });
+        }
+
+        function buildNativeShareText() {
+            return activeSectionKeys
+                .map((key) => {
+                    const label = activeSectionLabels[key] || getDefaultSectionLabels()[key] || key;
+                    return `${label}: ${formatResultForShare(resultsDraft[key])}`;
+                })
+                .join(", ");
         }
 
         async function saveResultsToServer() {
@@ -800,7 +835,10 @@
             if (!activeSectionKeys.length) {
                 activeSectionKeys = [...validSectionKeys];
             }
-            activeSectionLabels = sectionLabelsByTraining[activeTrainingId] || {};
+            activeSectionLabels = {
+                ...getSectionLabelsFromButton(button),
+                ...(sectionLabelsByTraining[activeTrainingId] || {})
+            };
             Object.keys(resultsDraft).forEach((key) => delete resultsDraft[key]);
             renderSections();
             applyRateSectionConfig();
@@ -894,7 +932,7 @@
                 try {
                     await navigator.share({
                         title: "Результаты тренировки",
-                        text: `Силовая: ${formatResultForShare(resultsDraft.strength)}, Кардио: ${formatResultForShare(resultsDraft.cardio)}, Метаболическая: ${formatResultForShare(resultsDraft.metabolic)}`
+                        text: buildNativeShareText()
                     });
                 } catch (_error) {
                 }

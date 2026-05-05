@@ -2128,6 +2128,42 @@ class TrainingPlanTodayVisibilityTests(TestCase):
         self.assertFalse(line['show_video'])
         self.assertEqual(line['video_url'], '')
 
+    def test_training_plan_uses_user_facing_result_section_labels_in_modal_payload(self):
+        training = AdminTraining.objects.create(
+            training_date=timezone.localdate(),
+            direction='workout',
+            visibility='all',
+            comment='labels-training',
+            color='blue',
+            source_type='manual',
+            created_by=self.admin,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='strength',
+            exercise_name='Front squat',
+            result_type='reps',
+            order=0,
+        )
+        AdminTrainingExercise.objects.create(
+            training=training,
+            block_type='custom',
+            block_custom_name='Финишер',
+            exercise_name='Bike',
+            result_type='time',
+            order=1,
+        )
+
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('auth:training_plan_today'))
+
+        self.assertEqual(response.status_code, 200)
+        card = response.context['plan_cards'][0]
+        self.assertEqual(card['result_section_labels']['strength'], 'Силовая часть')
+        self.assertEqual(card['result_section_labels']['metabolic'], 'Финишер')
+        self.assertContains(response, 'data-result-label-strength="Силовая часть"', html=False)
+        self.assertContains(response, 'data-result-label-metabolic="Финишер"', html=False)
+
 
 class LeaderboardAwardsTests(TestCase):
     def setUp(self):

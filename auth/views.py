@@ -5499,6 +5499,7 @@ class TrainingPlanTodayView(SharedProfileHeaderMixin, UserOnlyProtectedMixin, Te
                     'comment': '\n'.join(comments),
                     'result_types': get_plan_result_type_map(direction_trainings),
                     'result_sections': result_sections,
+                    'result_section_labels': result_section_labels,
                     'result_section_labels_json': json.dumps(result_section_labels, ensure_ascii=False),
                 }
             )

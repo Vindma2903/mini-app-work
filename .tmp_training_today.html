@@ -1,0 +1,106 @@
+﻿
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Авторизация</title>
+    <link rel="stylesheet" href="/static/auth/css/components-bottom-nav.css">
+    
+    <link rel="stylesheet" href="/static/auth/css/login.css">
+    
+</head>
+<body>
+    
+<main class="screen">
+    <section class="auth-card" aria-label="Вход">
+        
+            <div class="auth-telegram-widget" aria-label="Вход через Telegram">
+                <script async src="https://telegram.org/js/telegram-widget.js?22"
+                        data-telegram-login="ktfiness_bot"
+                        data-size="large"
+                        data-auth-url="http://127.0.0.1:8012/auth/telegram/widget/login/"
+                        data-request-access="write"></script>
+            </div>
+        
+
+        <h1 class="auth-card__title">Вход</h1>
+
+        <form class="auth-form" method="post">
+            <input type="hidden" name="csrfmiddlewaretoken" value="a6AZzNxYOmaluVgZf5eQNuoS7tIE3YBD3CiDqpARgmzgKmmS9W8DSFOX9aoV8Vqr">
+            
+            
+
+            <label class="auth-form__field">
+                <span class="auth-form__label">Почта</span>
+                <input class="auth-form__input" type="email" name="email" value="" required>
+            </label>
+
+            <label class="auth-form__field">
+                <span class="auth-form__label">Пароль</span>
+                <span class="auth-form__password-wrap">
+                    <input class="auth-form__input" type="password" name="password" id="login-password-input" required>
+                    <button class="auth-form__password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false" data-password-toggle>
+                        <img src="/static/auth/img/admin/eye.svg" alt="" aria-hidden="true">
+                    </button>
+                </span>
+            </label>
+
+            <button class="auth-form__submit" type="submit">Войти</button>
+        </form>
+
+        <a class="auth-card__register" href="/register/">Зарегистрироваться</a>
+    </section>
+</main>
+<script>
+    (function () {
+        const toggleButton = document.querySelector('[data-password-toggle]');
+        const passwordInput = document.getElementById('login-password-input');
+        if (!toggleButton || !passwordInput) {
+            return;
+        }
+
+        toggleButton.addEventListener('click', function () {
+            const isHidden = passwordInput.type === 'password';
+            passwordInput.type = isHidden ? 'text' : 'password';
+            toggleButton.setAttribute('aria-pressed', String(isHidden));
+            toggleButton.setAttribute('aria-label', isHidden ? 'Скрыть пароль' : 'Показать пароль');
+        });
+    })();
+</script>
+
+<script>
+    (function () {
+        const loginPath = "/";
+        const startedAt = Date.now();
+        const maxDurationMs = 2 * 60 * 1000;
+        const intervalMs = 1500;
+
+        async function checkAuthAndRedirect() {
+            if (Date.now() - startedAt > maxDurationMs) {
+                clearInterval(timerId);
+                return;
+            }
+            try {
+                const response = await fetch(loginPath, {
+                    method: 'GET',
+                    credentials: 'include',
+                    redirect: 'follow',
+                    cache: 'no-store',
+                });
+                if (response.redirected && response.url && !response.url.endsWith(loginPath)) {
+                    window.location.href = response.url;
+                }
+            } catch (error) {
+                // Ignore transient network errors and retry on next tick.
+            }
+        }
+
+        const timerId = setInterval(checkAuthAndRedirect, intervalMs);
+    })();
+</script>
+
+
+</body>
+</html>
+
